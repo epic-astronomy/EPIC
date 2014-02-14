@@ -37,15 +37,15 @@ nchan = 16
 f_center = f0
 channel_width = 40e3
 
-src_flux = [1.0]
-skypos = NP.asarray([0.0, 0.0]).reshape(-1,2)
+# src_flux = [1.0]
+# skypos = NP.asarray([0.0, 0.0]).reshape(-1,2)
 
-# # src_flux = [1.0, 1.0]
-# # skypos = NP.asarray([[0.0, 0.0], [0.5, 0.5]])
+src_flux = [1.0, 1.0]
+skypos = NP.asarray([[0.0, 0.0], [0.1, 0.0]])
 # n_src = 4
 # src_flux = NP.ones(n_src)
 # skypos = 0.25*NP.hstack((NP.cos(2.0*NP.pi*NP.arange(n_src).reshape(-1,1)/n_src),
-                         # NP.sin(2.0*NP.pi*NP.arange(n_src).reshape(-1,1)/n_src)))
+#                          NP.sin(2.0*NP.pi*NP.arange(n_src).reshape(-1,1)/n_src)))
 # src_flux = [1.0, 1.0, 1.0, 1.0] 
 # skypos = NP.asarray([[0.25, 0.0], [0.0, -0.25], [-0.25, 0.0], [0.0, 0.25]])
 # skypos = NP.asarray([[0.0, 0.0], [0.2, 0.0], [0.0, 0.4], [0.0, -0.5]])
@@ -72,9 +72,13 @@ wtspos_v *= dy/(FCNST.c / f0)
 
 antpos_info = aar.antenna_positions(sort=True)
 Ef_runs = None
-E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
+E_timeseries_dict = SIM.monochromatic_E_timeseries(f_center, nchan/2, 2*channel_width,
                                                 flux_ref=src_flux, skypos=skypos,
                                                 antpos=antpos_info['positions'])
+# E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
+#                                                 flux_ref=src_flux, skypos=skypos,
+#                                                 antpos=antpos_info['positions'])
+
 
 update_info = []
 timestamp = str(DT.datetime.now())
@@ -108,12 +112,24 @@ holimg = AA.Image(antenna_array=aar)
 holimg.imagr()
 holimg.save('/data3/t_nithyanandan/project_MOFF/simulated/MWA/images/MWA-128T-imgcube', verbose=True, overwrite=True)
 
-fig = PLT.figure(figsize=(8,7))
-# fig.clf()
-ax1 = fig.add_subplot(111, xlim=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0])), ylim=(NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])))
-imgplot = ax1.imshow(NP.abs(holimg.holograph_P1[:,:,0])**2,aspect='equal',extent=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0]),NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])),origin='lower',norm=PLTC.LogNorm())
+fig1 = PLT.figure(figsize=(8,9))
+# fig1.clf()
+ax11 = fig1.add_subplot(211, xlim=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0])), ylim=(NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])))
+imgplot = ax11.imshow(NP.abs(holimg.holograph_P1[:,:,0])**2, aspect='equal', extent=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0]), NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])), origin='lower', norm=PLTC.LogNorm())
 PLT.grid(True,which='both',ls='-',color='g')
 PLT.colorbar(imgplot)
+ax12 = fig1.add_subplot(212, xlim=(-1.0, 1.0), ylim=(NP.nanmin(NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,0])**2), NP.nanmax(NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,0])**2)))
+ax12.set_yscale('log')
+l, = ax12.plot(holimg.lf_P1[:,0], NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,0])**2) 
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/source_{0[0][0]}_{0[0][1]}.png'.format(skypos), bbox_inches=0)
+PLT.show()
+
+# fig2 = PLT.figure(figsize=(8,7))
+# fig2.clf()
+# ax21 = fig2.add_subplot(111, xlim=(aar.grid_blc_P1[0]*aar.f[0]/FCNST.c, aar.grid_trc_P1[0]*aar.f[0]/FCNST.c), ylim=(aar.grid_blc_P1[1]*aar.f[0]/FCNST.c, aar.grid_trc_P1[1]*aar.f[0]/FCNST.c))
+# imgplot = ax21.imshow(NP.abs(aar.grid_illumination_P1[:,:,0]), aspect='equal', extent=(aar.grid_blc_P1[0]*aar.f[0]/FCNST.c, aar.grid_trc_P1[0]*aar.f[0]/FCNST.c, aar.grid_blc_P1[1]*aar.f[0]/FCNST.c, aar.grid_trc_P1[1]*aar.f[0]/FCNST.c), origin='lower')
+# PLT.colorbar(imgplot)
+# PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/gridding.png', bbox_inches=0)
 
 
 # If_P1 = NP.fft.ifftshift(NP.abs(NP.fft.ifft2(Ef_runs_avg))**2) * (nchan**2)
