@@ -72,13 +72,13 @@ wtspos_v *= dy/(FCNST.c / f0)
 
 antpos_info = aar.antenna_positions(sort=True)
 Ef_runs = None
-E_timeseries_dict = SIM.monochromatic_E_timeseries(f_center, nchan/2, 2*channel_width,
-                                                flux_ref=src_flux, skypos=skypos,
-                                                antpos=antpos_info['positions'])
-# E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
+# E_timeseries_dict = SIM.monochromatic_E_timeseries(f_center, nchan/2, 2*channel_width,
 #                                                 flux_ref=src_flux, skypos=skypos,
 #                                                 antpos=antpos_info['positions'])
-
+E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
+                                                flux_ref=src_flux, skypos=skypos,
+                                                antpos=antpos_info['positions'],
+                                                tshift=False)
 
 update_info = []
 timestamp = str(DT.datetime.now())
@@ -92,13 +92,17 @@ for label in aar.antennas:
     dict['Et_P1'] = E_timeseries_dict['Et'][:,ind]
     dict['Et_P2'] = E_timeseries_dict['Et'][:,ind]
     dict['gridfunc_freq'] = 'scale'    
-    dict['wtsinfo_P1'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
-    dict['wtsinfo_P2'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
+    dict['wtsinfo_P1'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_lookup_zenith.txt'}]
+    dict['wtsinfo_P2'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_lookup_zenith.txt'}]
+    dict['gridmethod'] = 'NN'
+    dict['distNN'] = 3.0
+    # dict['wtsinfo_P1'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
+    # dict['wtsinfo_P2'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
     update_info += [dict]
 
 aar.update(update_info, verbose=True)
 aar.grid()
-aar.grid_convolve()
+aar.grid_convolve(method='NN', distNN=3.0)
 aar.save('/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/grid/MWA-128T-grid', antenna_save=False, antfile='/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/antenna/MWA-128T', verbose=True, tabtype='BinTableHDU', overwrite=True)
 
 #     if Ef_runs is None:
@@ -130,7 +134,6 @@ PLT.show()
 # imgplot = ax21.imshow(NP.abs(aar.grid_illumination_P1[:,:,0]), aspect='equal', extent=(aar.grid_blc_P1[0]*aar.f[0]/FCNST.c, aar.grid_trc_P1[0]*aar.f[0]/FCNST.c, aar.grid_blc_P1[1]*aar.f[0]/FCNST.c, aar.grid_trc_P1[1]*aar.f[0]/FCNST.c), origin='lower')
 # PLT.colorbar(imgplot)
 # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/gridding.png', bbox_inches=0)
-
 
 # If_P1 = NP.fft.ifftshift(NP.abs(NP.fft.ifft2(Ef_runs_avg))**2) * (nchan**2)
 # If_P1 = NP.fft.ifftshift(NP.abs(NP.fft.ifft2(aar.grid_illumination_P1[:,:,0]))**2) * (nchan**2)
