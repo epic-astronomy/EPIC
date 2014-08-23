@@ -81,8 +81,9 @@ for i in xrange(max_n_timestamps):
             dict['gridfunc_freq'] = 'scale'    
             dict['wtsinfo_P1'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
             dict['gridmethod'] = 'NN'
-            dict['distNN'] = 6.0
-
+            dict['distNN'] = 0.5 * FCNST.c / f0
+            dict['tol'] = 1.0e-6
+            dict['maxNN'] = 1
             dict['delaydict_P1'] = {}
             dict['delaydict_P1']['pol'] = 'P1'
             dict['delaydict_P1']['frequencies'] = hdulist['FREQUENCIES AND CABLE DELAYS'].data['frequency']
@@ -96,7 +97,7 @@ for i in xrange(max_n_timestamps):
     aar.update(update_info, verbose=True)
     if i==0:
         aar.grid()
-    aar.grid_convolve(pol='P1', method='NN', distNN=6.0)
+    aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxNN=1)
     holimg = AA.Image(antenna_array=aar, pol='P1')
     holimg.imagr(pol='P1')
 
