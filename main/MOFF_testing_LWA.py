@@ -83,7 +83,7 @@ for i in xrange(max_n_timestamps):
             dict['gridmethod'] = 'NN'
             dict['distNN'] = 0.5 * FCNST.c / f0
             dict['tol'] = 1.0e-6
-            dict['maxNN'] = 1
+            dict['maxmatch'] = 1
             dict['delaydict_P1'] = {}
             dict['delaydict_P1']['pol'] = 'P1'
             dict['delaydict_P1']['frequencies'] = hdulist['FREQUENCIES AND CABLE DELAYS'].data['frequency']
@@ -97,7 +97,7 @@ for i in xrange(max_n_timestamps):
     aar.update(update_info, verbose=True)
     if i==0:
         aar.grid()
-    aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxNN=1)
+    aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1)
     holimg = AA.Image(antenna_array=aar, pol='P1')
     holimg.imagr(pol='P1')
 

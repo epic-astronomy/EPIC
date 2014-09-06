@@ -121,7 +121,7 @@ for i in xrange(itr):
     aar.update(update_info, verbose=True)
     if i==0:
         aar.grid()
-    aar.grid_convolve(method='NN', distNN=3.0, maxNN=None)
+    aar.grid_convolve(method='NN', distNN=3.0, maxmatch=None)
     # aar.save('/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/grid/MWA-128T-grid', antenna_save=False, antfile='/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/antenna/MWA-128T', verbose=True, tabtype='BinTableHDU', overwrite=True)
 
     #     if Ef_runs is None:
