@@ -86,16 +86,20 @@ Ef_runs = None
 
 immax2 = NP.zeros((itr,nchan,2))
 for i in xrange(itr):
-    E_timeseries_dict = SIM.monochromatic_E_timeseries(f_center, nchan/2, 2*channel_width,
-                                                       flux_ref=src_flux, skypos=skypos,
-                                                       antpos=antpos_info['positions'])
-    # E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
-    #                                                 flux_ref=src_flux, skypos=skypos,
-    #                                                 antpos=antpos_info['positions'],
-    #                                                 tshift=False)
+    # E_timeseries_dict = SIM.monochromatic_E_timeseries(f_center, nchan/2, 2*channel_width,
+    #                                                    flux_ref=src_flux, skypos=skypos,
+    #                                                    antpos=antpos_info['positions'])
+    
+    E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
+                                                    flux_ref=src_flux, skypos=skypos,
+                                                    antpos=antpos_info['positions'],
+                                                    tshift=False)
 
-    update_info = []
     timestamp = str(DT.datetime.now())
+    update_info = {}
+    update_info['antenna'] = []
+    update_info['antenna_array'] = {}
+    update_info['antenna_array']['timestamp'] = timestamp
     for label in aar.antennas:
         dict = {}
         dict['label'] = label
@@ -112,12 +116,12 @@ for i in xrange(itr):
         dict['distNN'] = 3.0
         # dict['wtsinfo_P1'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
         # dict['wtsinfo_P2'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
-        update_info += [dict]
+        update_info['antenna'] += [dict]
 
     aar.update(update_info, verbose=True)
     if i==0:
         aar.grid()
-    aar.grid_convolve(method='NN', distNN=3.0)
+    aar.grid_convolve(method='NN', distNN=3.0, maxNN=None)
     # aar.save('/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/grid/MWA-128T-grid', antenna_save=False, antfile='/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/antenna/MWA-128T', verbose=True, tabtype='BinTableHDU', overwrite=True)
 
     #     if Ef_runs is None:
