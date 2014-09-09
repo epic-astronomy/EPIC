@@ -8,7 +8,7 @@ import geometry as GEOM
 import sim_observe as SIM
 import ipdb as PDB
 
-itr = 16
+itr = 1
 
 # Antenna initialization
 
