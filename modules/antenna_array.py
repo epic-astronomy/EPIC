@@ -40,6 +40,9 @@ class PolInfo:
 
     __str__():     Prints a summary of current attributes.
 
+    discretize():  Discretize the electric field timeseries or spectrum to a
+                   specified bit depth
+
     temporal_F():  Perform a Fourier transform of an Electric field time series
 
     update():      Routine to update the Electric field and flag information.
@@ -80,6 +83,72 @@ class PolInfo:
 
     ############################################################################ 
 
+    def discretize(self, nbits=None, nlevels=None, inprange=None, mode=None,
+                   pol=None, timeseries=True, spectrum=True):
+
+        """
+        -------------------------------------------------------------------------
+        Discretize the electric field timeseries or spectrum to a specified bit
+        depth
+
+        Keyword Inputs:
+
+        nbits       [scalar integer] Number of bits. Must be positive. Number of 
+                    levels will be 2**nbits. 
+    
+        inprange    [2-element list] Consists of min and max bounds for the data. 
+                    The data will be clipped outside this range. If set to None
+                    (default), min and max of the data will be used
+    
+        mode        [string] determines if the nearest neighbour is determined by 
+                    truncation to the next lower level or by round to the nearest 
+                    level. mode can be set to 'floor' or 'truncate' for 
+                    truncation. It must be set to 'round' or 'nearest' for 
+                    rounding to the nearest level. Default = None (applies
+                    truncation).
+    
+        pol         [string] polarization to be operated. Set to 'P1' or 'P2'. If 
+                    None provided, both polarizations are operated upon.
+
+        timeseries  [boolean] If set to True, timeseries is discretized. 
+
+        spectrum    [boolean] If set to True, spectrum is discretized. 
+
+        Result:
+
+        One or more of internal attributes Et_P1, Et_P2, Ef_P1, and Ef_P2 will be
+        discretized.
+        -------------------------------------------------------------------------
+        """
+        
+        if not isinstance(timeseries, bool):
+            raise TypeError('Input parameter timeseries must be a boolean value')
+        if not isinstance(spectrum, bool):
+            raise TypeError('Input parameter spectrum must be a boolean value')
+
+        if pol is None:
+            if timeseries:
+                self.Et_P1, Et_P1_min, Et_P1_resolution = DSP.discretize(self.Et_P1, nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+                self.Et_P2, Et_P2_min, Et_P2_resolution = DSP.discretize(self.Et_P2, nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+            if spectrum:
+                self.Ef_P1, Ef_P1_min, Ef_P1_resolution = DSP.discretize(self.Ef_P1, nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+                self.Ef_P2, Ef_P2_min, Ef_P2_resolution = DSP.discretize(self.Ef_P2, nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+        elif pol in ['P1','p1','P2','p2','x','X','y','Y']:
+            if pol in ['P1','p1','x','X']:
+                if timeseries:
+                    self.Et_P1, Et_P1_min, Et_P1_resolution = DSP.discretize(self.Et_P1, nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+                if spectrum:
+                    self.Ef_P1, Ef_P1_min, Ef_P1_resolution = DSP.discretize(self.Ef_P1, nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+            else:
+                if timeseries:
+                    self.Et_P2, Et_P2_min, Et_P2_resolution = DSP.discretize(self.Et_P2, nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+                if spectrum:
+                    self.Ef_P2, Ef_P2_min, Ef_P2_resolution = DSP.discretize(self.Ef_P2, nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+        else:
+            raise ValueError('Polarization string unrecognized. Verify inputs. Aborting PolInfo.discretize()')        
+
+    ############################################################################ 
+
     def temporal_F(self, pol=None):
 
         """
@@ -96,7 +165,8 @@ class PolInfo:
 
         Outputs:
 
-        Electric field spectrum Ef_P1 and/or Ef_P2 depending on value of pol.
+        Internal attributes, electric field spectrum, Ef_P1 and/or Ef_P2 are 
+        computed depending on value of pol.
         ------------------------------------------------------------------------
         """
 
@@ -510,13 +580,75 @@ class Antenna:
 
         return DSP.spectax(2*len(self.t), self.t[1]-self.t[0], shift=True)
 
-    #################################################################################
+    #############################################################################
+
+    def discretize(self, nbits=None, nlevels=None, inprange=None, mode=None,
+                   pol=None, timeseries=True, spectrum=True, aperture=True):
+
+        """
+        -------------------------------------------------------------------------
+        Discretize the electric field timeseries or spectrum to a specified bit
+        depth
+
+        Keyword Inputs:
+
+        nbits       [scalar integer] Number of bits. Must be positive. Number of 
+                    levels will be 2**nbits. 
+    
+        inprange    [2-element list] Consists of min and max bounds for the data. 
+                    The data will be clipped outside this range. If set to None
+                    (default), min and max of the data will be used
+    
+        mode        [string] determines if the nearest neighbour is determined by 
+                    truncation to the next lower level or by round to the nearest 
+                    level. mode can be set to 'floor' or 'truncate' for 
+                    truncation. It must be set to 'round' or 'nearest' for 
+                    rounding to the nearest level. Default = None (applies
+                    truncation).
+    
+        pol         [string] polarization to be operated. Set to 'P1' or 'P2'. If 
+                    None provided, both polarizations are operated upon.
+
+        timeseries  [boolean] If set to True, timeseries is discretized. 
+
+        spectrum    [boolean] If set to True, spectrum is discretized. 
+
+        Result:
+
+        One or more of internal attributes Et_P1, Et_P2, Ef_P1, and Ef_P2 of 
+        instances of class PolInfo will be discretized.
+        -------------------------------------------------------------------------
+        """
+        
+        if not isinstance(timeseries, bool):
+            raise TypeError('Input parameter timeseries must be a boolean value')
+        if not isinstance(spectrum, bool):
+            raise TypeError('Input parameter spectrum must be a boolean value')
+
+        self.pol.discretize(nbits=nbits, inprange=inprange, mode=mode, pol=pol, timeseries=timeseries, spectrum=spectrum)
+
+        if aperture:
+            for i in xrange(len(self.f)):
+                if pol is None:
+                    self.wts_P1[i], wtsmin, wtsinterval = DSP.discretize(self.wts_P1[i], nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+                    self.wts_P2[i], wtsmin, wtsinterval = DSP.discretize(self.wts_P2[i], nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+                elif pol in ['P1','p1','P2','p2','x','X','y','Y']:
+                    if pol in ['P1','p1','x','X']:
+                        self.wts_P1[i], wtsmin, wtsinterval = DSP.discretize(self.wts_P1[i], nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+                    else:
+                        self.wts_P2[i], wtsmin, wtsinterval = DSP.discretize(self.wts_P2[i], nbits=nbits, inprange=inprange, mode=mode, discrete_out=False, verbose=False)
+                else:
+                    raise ValueError('Polarization string unrecognized. Verify inputs. Aborting PolInfo.discretize()')        
+
+
+    ############################################################################ 
 
     def update(self, label=None, Et_P1=None, Et_P2=None, t=None, timestamp=None,
                location=None, wtsinfo_P1=None, wtsinfo_P2=None, flag_P1=None,
                flag_P2=None, gridfunc_freq=None, delaydict_P1=None,
                delaydict_P2=None, ref_freq=None, pol_type='Linear',
                verbose=False):
+
         """
         -------------------------------------------------------------------------
         Routine to update all or some of the antenna information 

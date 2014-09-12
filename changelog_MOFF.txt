@@ -1,3 +1,20 @@
+From v1.06.2 of MOFF:
+====================
+
+Created a branch named discretepol to introduce discretization at the individual
+polarization and antenna level
+
+In antenna_array.py, 
+
+(*) Added a new member function discretize() under class PolInfo that can
+discretize the electric field timeseries and/or spectrum
+(*) Made a minor change to docstring of member function temporal_F() of class 
+PolInfo
+(*) Added a new member function discretize() under class Antenna that can
+discretize the electric field timeseries and/or spectrum and also the aperture
+illumination
+
+---------------------------------------------------------------------------------
 From v1.06.1 of MOFF:
 ====================
 
