@@ -97,7 +97,7 @@ for i in xrange(itr):
 
     timestamp = str(DT.datetime.now())
     update_info = {}
-    update_info['antenna'] = []
+    update_info['antennas'] = []
     update_info['antenna_array'] = {}
     update_info['antenna_array']['timestamp'] = timestamp
     for label in aar.antennas:
@@ -116,7 +116,7 @@ for i in xrange(itr):
         dict['distNN'] = 3.0
         # dict['wtsinfo_P1'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
         # dict['wtsinfo_P2'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
-        update_info['antenna'] += [dict]
+        update_info['antennas'] += [dict]
 
     aar.update(update_info, verbose=True)
     if i==0:

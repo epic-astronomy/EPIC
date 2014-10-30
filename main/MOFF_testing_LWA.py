@@ -59,13 +59,13 @@ timestamps = timestamps[:max_n_timestamps]
 stand_cable_delays = NP.loadtxt('/data3/t_nithyanandan/project_MOFF/data/samples/cable_delays.txt', skiprows=1)
 antennas = stand_cable_delays[:,0].astype(NP.int).astype(str)
 cable_delays = stand_cable_delays[:,1]
-antenna_cable_delays_output = {}
+# antenna_cable_delays_output = {}
 
 progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(), PGB.ETA()], maxval=max_n_timestamps).start()
 for i in xrange(max_n_timestamps):
     timestamp = timestamps[i]
     update_info = {}
-    update_info['antenna'] = []
+    update_info['antennas'] = []
     update_info['antenna_array'] = {}
     update_info['antenna_array']['timestamp'] = timestamp
     for label in aar.antennas:
@@ -92,7 +92,7 @@ for i in xrange(max_n_timestamps):
             dict['delaydict_P1']['fftshifted'] = True
         else:
             dict['flag_P1'] = True
-        update_info['antenna'] += [dict]
+        update_info['antennas'] += [dict]
 
     aar.update(update_info, verbose=True)
     if i==0:
