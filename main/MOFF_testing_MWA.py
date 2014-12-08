@@ -135,7 +135,7 @@ for i in xrange(itr):
     holimg.imagr()
     # holimg.save('/data3/t_nithyanandan/project_MOFF/simulated/MWA/images/MWA-128T-imgcube', verbose=True, overwrite=True)
     for chan in xrange(holimg.holograph_P1.shape[2]):
-        imval = NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,chan])**2
+        imval = NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,chan])**2 # a horizontal slice 
         imval = imval[NP.logical_not(NP.isnan(imval))]
         immax2[i,chan,:] = NP.sort(imval)[-2:]
 
