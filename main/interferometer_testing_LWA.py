@@ -30,7 +30,7 @@ channel_width = freqs[1] - freqs[0]
 f_center = f0
 bchan = 63
 echan = 963
-max_antenna_radius = 15.0 # in meters
+max_antenna_radius = 10.0 # in meters
 # max_antenna_radius = 75.0 # in meters
 
 antid = hdulist0['Antenna Positions'].data['Antenna']
@@ -145,6 +145,7 @@ for i in xrange(max_n_timestamps):
         interferometer_level_update_info['interferometers'] += [idict]    
 
     iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', verbose=True)
+    PDB.set_trace()
     iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', weighting='natural')
 
     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
