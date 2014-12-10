@@ -3301,7 +3301,6 @@ class Interferometer:
         if label is not None: self.label = label
         if location is not None: self.location = location
         if timestamp is not None: self.timestamp = timestamp
-        if latitude is not None: self.latitude = latitude
 
         if t is not None:
             self.t = t
