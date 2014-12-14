@@ -1,3 +1,9 @@
+From 47dba2d:
+============
+
+(*) Forgotten to add interferometer_testing_MWA.py in earlier versions. Added
+it now.
+
 From ed43e3a:
 ============
 
