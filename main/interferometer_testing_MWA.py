@@ -135,7 +135,7 @@ for i in xrange(itr):
         interferometer_level_update_info['interferometers'] += [idict]    
 
     iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', verbose=True)
-    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', weighting='natural')
+    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted')
 
     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
     imgobj.imagr(weighting='natural', pol='P11')
@@ -153,7 +153,6 @@ imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', ex
 posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
 ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
-PDB.set_trace()
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_image_random_source_positions_{0:0d}_iterations.png'.format(itr), bbox_inches=0)
 PLT.close(fig)
 

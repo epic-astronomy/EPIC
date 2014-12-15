@@ -1,3 +1,20 @@
+From edf8e8f:
+============
+
+In antenna_array.py,
+
+(*) Changed name of input parameter weighting in member function grid_convolve()
+of class InterferometerArray to mapping and replaced its allowed values from
+'uniform' and 'natural' to 'sampled' and 'weighted' respectively. The default
+value of this input parameter was changed from 'uniform' to 'weighted'. Made
+corresponding changes in main program interferometer_testing_MWA.py
+
+(*) Completed the incomplete docstring of memer function grid_convolve() of
+class InterferometerArray
+
+(*) Tested these changes on main program interferometer_testing_MWA.py but
+not yet tested on interferometer_testing_LWA.py
+
 From d8ebb48:
 ============
 
