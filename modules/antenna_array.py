@@ -1,6 +1,7 @@
 import numpy as NP
 import scipy.constants as FCNST
 from astropy.io import fits
+import matplotlib.pyplot as PLT
 import progressbar as PGB
 import my_DSP_modules as DSP
 import geometry as GEOM
@@ -7906,8 +7907,8 @@ class NewImage:
 
                     sum_wts = NP.sum(NP.abs(self.grid_wts[cpol] * self.grid_illumination[cpol]), axis=(0,1), keepdims=True)
 
-                    self.beam[cpol] = NP.fft.fftshift(NP.fft.fft2(self.grid_wts[cpol]*self.grid_illumination[cpol],axes=(0,1)).real) / sum_wts
-                    self.img[cpol] = NP.fft.fftshift(NP.fft.fft2(self.grid_wts[cpol]*self.grid_Vf[cpol],axes=(0,1)).real) / sum_wts
+                    self.beam[cpol] = NP.fft.fftshift(NP.fft.fft2(self.grid_wts[cpol]*self.grid_illumination[cpol],axes=(0,1)).real, axes=(0,1)) / sum_wts
+                    self.img[cpol] = NP.fft.fftshift(NP.fft.fft2(self.grid_wts[cpol]*self.grid_Vf[cpol],axes=(0,1)).real, axes=(0,1)) / sum_wts
                     
             du = self.gridu[0,1] - self.gridu[0,0]
             dv = self.gridv[1,0] - self.gridv[0,0]

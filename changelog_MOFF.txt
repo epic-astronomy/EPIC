@@ -1,8 +1,21 @@
+From d8ebb48:
+============
+
+(*) Figured out that 47dba2d version is not buggy. Tested with code in 
+interferometer_testing_MWA.py
+
+In antenna_array.py,
+
+(*) imported module matplotlib.pyplot for plotting
+(*) in member function imagr() of class NewImage, after 2D fourier transform,
+fftshift is now performed only on axes 0 and 1 and not on the 3rd axis, namely,
+frequency
+
 From 47dba2d:
 ============
 
 (*) Forgotten to add interferometer_testing_MWA.py in earlier versions. Added
-it now.
+it now. This is a buggy version.
 
 From ed43e3a:
 ============
