@@ -13,7 +13,7 @@ import my_DSP_modules as DSP
 import sim_observe as SIM
 import ipdb as PDB
 
-itr = 64
+itr = 16
 
 # Antenna initialization
 
@@ -55,10 +55,10 @@ dt = 1/bandwidth
 # src_flux = [1.0, 1.0]
 # skypos = NP.asarray([[0.0, 0.0], [0.1, 0.0]])
 
-src_seed = 4
+src_seed = 3
 NP.random.seed(src_seed)
 # n_src = NP.random.poisson(lam=5)
-n_src = 10
+n_src = 5
 lmrad = NP.random.uniform(low=0.0, high=0.5, size=n_src).reshape(-1,1)
 lmang = NP.random.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
@@ -135,7 +135,7 @@ for i in xrange(itr):
         interferometer_level_update_info['interferometers'] += [idict]    
 
     iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', parallel=True, verbose=True)
-    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', weighting='natural')
+    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted')
 
     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
     imgobj.imagr(weighting='natural', pol='P11')
@@ -153,8 +153,8 @@ imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', ex
 posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
 ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
-PDB.set_trace()
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_image_random_source_positions_{0:0d}_iterations.png'.format(itr), bbox_inches=0)
+PDB.set_trace()
 PLT.close(fig)
 
 fig = PLT.figure()
