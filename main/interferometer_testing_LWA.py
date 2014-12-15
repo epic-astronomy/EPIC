@@ -16,7 +16,7 @@ import ipdb as PDB
 LWA_reformatted_datafile_prefix = '/data3/t_nithyanandan/project_MOFF/data/samples/lwa_reformatted_data_test'
 LWA_pol0_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-0.fits'
 LWA_pol1_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-1.fits'
-max_n_timestamps = None
+max_n_timestamps = 16
 
 hdulist0 = fits.open(LWA_pol0_reformatted_datafile)
 hdulist1 = fits.open(LWA_pol1_reformatted_datafile)
@@ -30,7 +30,7 @@ channel_width = freqs[1] - freqs[0]
 f_center = f0
 bchan = 63
 echan = 963
-max_antenna_radius = 10.0 # in meters
+max_antenna_radius = 20.0 # in meters
 # max_antenna_radius = 75.0 # in meters
 
 antid = hdulist0['Antenna Positions'].data['Antenna']
@@ -64,15 +64,6 @@ cable_delays = stand_cable_delays[:,1]
 iar = AA.InterferometerArray(antenna_array=aar)
 
 iar.grid()
-
-# ant0.pol.Et_P1 = NP.ones(7)
-# ant0.pol.Et_P2 = NP.ones(7)
-# ant1.pol.Et_P1 = NP.ones(7)
-# ant1.pol.Et_P2 = NP.ones(7)
-
-# ant0.pol.temporal_F()
-# ant1.pol.temporal_F()
-# apair = AA.Interferometer(ant0, ant1, corr_type='FX')
 
 count = 0
 for i in xrange(max_n_timestamps):
@@ -144,13 +135,34 @@ for i in xrange(max_n_timestamps):
             idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
         interferometer_level_update_info['interferometers'] += [idict]    
 
-    iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', verbose=True)
-    PDB.set_trace()
-    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', weighting='natural')
+    iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', parallel=True, verbose=True)
+    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted')
 
     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
     imgobj.imagr(weighting='natural', pol='P11')
 
-    # iar.make_grid_cube(pol='P11')
-    PDB.set_trace()
+    if i == 0:
+        avg_img = imgobj.img['P11']
+    else:
+        avg_img += imgobj.img['P11']
+
+avg_img /= max_n_timestamps
+
+fig = PLT.figure()
+ax = fig.add_subplot(111)
+imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
+# posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
+ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_sample_image_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
+PDB.set_trace()
+PLT.close(fig)
+
+fig = PLT.figure()
+ax = fig.add_subplot(111)
+imgplot = ax.imshow(NP.mean(imgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
+ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())  
+ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_psf.png'.format(itr), bbox_inches=0)
+PLT.close(fig)
 
