@@ -13,7 +13,7 @@ import my_DSP_modules as DSP
 import sim_observe as SIM
 import ipdb as PDB
 
-itr = 4
+itr = 64
 
 # Antenna initialization
 
@@ -26,7 +26,7 @@ ant_info[:,1] -= NP.mean(ant_info[:,1])
 ant_info[:,2] -= NP.mean(ant_info[:,2])
 ant_info[:,3] -= NP.mean(ant_info[:,3])
 
-max_antenna_radius = 30.0 # in meters
+max_antenna_radius = 75.0 # in meters
 # max_antenna_radius = 75.0 # in meters
 
 # core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < max_antenna_radius), (NP.abs(ant_info[:,2]) < max_antenna_radius))
@@ -58,7 +58,7 @@ dt = 1/bandwidth
 src_seed = 4
 NP.random.seed(src_seed)
 # n_src = NP.random.poisson(lam=5)
-n_src = 2
+n_src = 10
 lmrad = NP.random.uniform(low=0.0, high=0.5, size=n_src).reshape(-1,1)
 lmang = NP.random.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
@@ -113,9 +113,6 @@ for i in xrange(itr):
         adict['Et_P1'] = E_timeseries_dict['Et'][:,ind]
         adict['Et_P2'] = E_timeseries_dict['Et'][:,ind]
         adict['flag_P1'] = False
-
-        adict['Et_P2'] = E_timeseries_dict['Et'][:,ind]
-        adict['Et_P2'] = E_timeseries_dict['Et'][:,ind]
         adict['flag_P2'] = False
 
         antenna_level_update_info['antennas'] += [adict]
@@ -133,8 +130,8 @@ for i in xrange(itr):
         idict['maxmatch'] = 1
         idict['wtsinfo'] = {}
         for pol in ['P11', 'P12', 'P21', 'P22']:
-            idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/V_illumination_lookup_zenith.txt'}]
-            # idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+            # idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/V_illumination_lookup_zenith.txt'}]
+            idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
         interferometer_level_update_info['interferometers'] += [idict]    
 
     iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', parallel=True, verbose=True)
@@ -156,6 +153,7 @@ imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', ex
 posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
 ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+PDB.set_trace()
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_image_random_source_positions_{0:0d}_iterations.png'.format(itr), bbox_inches=0)
 PLT.close(fig)
 
