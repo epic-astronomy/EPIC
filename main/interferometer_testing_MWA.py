@@ -13,7 +13,7 @@ import my_DSP_modules as DSP
 import sim_observe as SIM
 import ipdb as PDB
 
-itr = 16
+itr = 9
 
 # Antenna initialization
 
@@ -55,10 +55,10 @@ dt = 1/bandwidth
 # src_flux = [1.0, 1.0]
 # skypos = NP.asarray([[0.0, 0.0], [0.1, 0.0]])
 
-src_seed = 3
+src_seed = 5
 NP.random.seed(src_seed)
 # n_src = NP.random.poisson(lam=5)
-n_src = 5
+n_src = 10
 lmrad = NP.random.uniform(low=0.0, high=0.5, size=n_src).reshape(-1,1)
 lmang = NP.random.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
@@ -135,7 +135,7 @@ for i in xrange(itr):
         interferometer_level_update_info['interferometers'] += [idict]    
 
     iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', parallel=True, verbose=True)
-    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted')
+    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
 
     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
     imgobj.imagr(weighting='natural', pol='P11')

@@ -16,7 +16,7 @@ import ipdb as PDB
 LWA_reformatted_datafile_prefix = '/data3/t_nithyanandan/project_MOFF/data/samples/lwa_reformatted_data_test'
 LWA_pol0_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-0.fits'
 LWA_pol1_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-1.fits'
-max_n_timestamps = 16
+max_n_timestamps = 9
 
 hdulist0 = fits.open(LWA_pol0_reformatted_datafile)
 hdulist1 = fits.open(LWA_pol1_reformatted_datafile)
@@ -30,7 +30,7 @@ channel_width = freqs[1] - freqs[0]
 f_center = f0
 bchan = 63
 echan = 963
-max_antenna_radius = 20.0 # in meters
+max_antenna_radius = 40.0 # in meters
 # max_antenna_radius = 75.0 # in meters
 
 antid = hdulist0['Antenna Positions'].data['Antenna']
@@ -136,7 +136,7 @@ for i in xrange(max_n_timestamps):
         interferometer_level_update_info['interferometers'] += [idict]    
 
     iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', parallel=True, verbose=True)
-    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted')
+    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
 
     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
     imgobj.imagr(weighting='natural', pol='P11')
