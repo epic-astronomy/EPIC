@@ -113,101 +113,51 @@ for i in xrange(itr):
         dict['gridmethod'] = 'NN'
         dict['distNN'] = 3.0
         dict['Et'] = {}
+        dict['flags'] = {}
         dict['wtsinfo'] = {}
         for pol in ['P1', 'P2']:
+            dict['flags'][pol] = False
             dict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
             dict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
         update_info['antennas'] += [dict]
 
     aar.update(update_info, parallel=True, verbose=True)
-    aar.grid_convolve(method='NN', distNN=3.0, maxmatch=None)
-    # aar.save('/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/grid/MWA-128T-grid', antenna_save=False, antfile='/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/antenna/MWA-128T', verbose=True, tabtype='BinTableHDU', overwrite=True)
+    aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='queue')
 
-    #     if Ef_runs is None:
-    #         Ef_runs = aar.grid_Ef_P1[:,:,0]
-    #     else:
-    #         Ef_runs = NP.dstack((Ef_runs, aar.grid_Ef_P1[:,:,0]))
- 
-    # Ef_runs_avg = NP.mean(Ef_runs, axis=2)
+    imgobj = AA.NewImage(antenna_array=aar, pol='P1')
+    imgobj.imagr(weighting='natural', pol='P1')
 
-    holimg = AA.Image(antenna_array=aar)
-    holimg.imagr()
-    # holimg.save('/data3/t_nithyanandan/project_MOFF/simulated/MWA/images/MWA-128T-imgcube', verbose=True, overwrite=True)
-    for chan in xrange(holimg.holograph_P1.shape[2]):
-        imval = NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,chan])**2 # a horizontal slice 
-        imval = imval[NP.logical_not(NP.isnan(imval))]
-        immax2[i,chan,:] = NP.sort(imval)[-2:]
+    # for chan in xrange(imgobj.holograph_P1.shape[2]):
+    #     imval = NP.abs(imgobj.holograph_P1[imgobj.mf_P1.shape[0]/2,:,chan])**2 # a horizontal slice 
+    #     imval = imval[NP.logical_not(NP.isnan(imval))]
+    #     immax2[i,chan,:] = NP.sort(imval)[-2:]
 
     if i == 0:
-        # avg_img = NP.abs(holimg.holograph_P1)**2
-        avg_img = NP.abs(holimg.holograph_P1)**2 - NP.nanmean(NP.abs(holimg.holograph_P1)**2)
+        # avg_img = NP.abs(imgobj.holograph_P1)**2
+        avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
     else:
-        # avg_img += NP.abs(holimg.holograph_P1)**2
-        avg_img += NP.abs(holimg.holograph_P1)**2 - NP.nanmean(NP.abs(holimg.holograph_P1)**2)
+        # avg_img += NP.abs(imgobj.holograph_P1)**2
+        avg_img += NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
 
 avg_img /= itr
+beam = NP.abs(imgobj.beam['P1'])**2 - NP.nanmean(NP.abs(imgobj.beam['P1'])**2)
 
-fig1 = PLT.figure(figsize=(17.5,14))
-# fig1.clf()
-ax11 = fig1.add_subplot(111, xlim=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0])), ylim=(NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])))
-# imgplot = ax11.imshow(NP.mean(NP.abs(holimg.holograph_P1)**2, axis=2), aspect='equal', extent=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0]), NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])), origin='lower', norm=PLTC.LogNorm())
-imgplot = ax11.imshow(NP.mean(avg_img, axis=2), aspect='equal', extent=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0]), NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])), origin='lower', norm=PLTC.LogNorm())
-l, = ax11.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='white', mew=1, ms=10)
-PLT.grid(True,which='both',ls='-',color='g')
-cbaxes = fig1.add_axes([0.1, 0.05, 0.8, 0.05])
-cbar = fig1.colorbar(imgplot, cax=cbaxes, orientation='horizontal')
-# PLT.colorbar(imgplot)
-PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/random_source_positions_{0:0d}_iterations.png'.format(itr), bbox_inches=0)
-PLT.show()
+fig = PLT.figure()
+ax = fig.add_subplot(111)
+imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
+posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
+ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_random_source_positions_{0:0d}_iterations.png'.format(itr), bbox_inches=0)
+# PDB.set_trace()
+# PLT.close(fig)
 
-# fig1 = PLT.figure(figsize=(8,9))
-# # fig1.clf()
-# ax11 = fig1.add_subplot(211, xlim=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0])), ylim=(NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])))
-# imgplot = ax11.imshow(NP.abs(holimg.holograph_P1[:,:,0])**2, aspect='equal', extent=(NP.amin(holimg.lf_P1[:,0]), NP.amax(holimg.lf_P1[:,0]), NP.amin(holimg.mf_P1[:,0]), NP.amax(holimg.mf_P1[:,0])), origin='lower', norm=PLTC.LogNorm())
-# PLT.grid(True,which='both',ls='-',color='g')
-# PLT.colorbar(imgplot)
-# ax12 = fig1.add_subplot(212, xlim=(-1.0, 1.0), ylim=(NP.nanmin(NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,0])**2), NP.nanmax(NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,0])**2)))
-# ax12.set_yscale('log')
-# l, = ax12.plot(holimg.lf_P1[:,0], NP.abs(holimg.holograph_P1[holimg.mf_P1.shape[0]/2,:,0])**2) 
-# PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/source_{0[0][0]}_{0[0][1]}.png'.format(skypos), bbox_inches=0)
-# PLT.show()
+fig = PLT.figure()
+ax = fig.add_subplot(111)
+imgplot = ax.imshow(NP.mean(beam, axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
+ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())  
+ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_psf_square_illumination.png'.format(itr), bbox_inches=0)
+# PLT.close(fig)
 
 
-# fig2 = PLT.figure(figsize=(8,7))
-# fig2.clf()
-# ax21 = fig2.add_subplot(111, xlim=(aar.grid_blc_P1[0]*aar.f[0]/FCNST.c, aar.grid_trc_P1[0]*aar.f[0]/FCNST.c), ylim=(aar.grid_blc_P1[1]*aar.f[0]/FCNST.c, aar.grid_trc_P1[1]*aar.f[0]/FCNST.c))
-# imgplot = ax21.imshow(NP.abs(aar.grid_illumination_P1[:,:,0]), aspect='equal', extent=(aar.grid_blc_P1[0]*aar.f[0]/FCNST.c, aar.grid_trc_P1[0]*aar.f[0]/FCNST.c, aar.grid_blc_P1[1]*aar.f[0]/FCNST.c, aar.grid_trc_P1[1]*aar.f[0]/FCNST.c), origin='lower')
-# PLT.colorbar(imgplot)
-# PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/gridding.png', bbox_inches=0)
-
-# If_P1 = NP.fft.ifftshift(NP.abs(NP.fft.ifft2(Ef_runs_avg))**2) * (nchan**2)
-# If_P1 = NP.fft.ifftshift(NP.abs(NP.fft.ifft2(aar.grid_illumination_P1[:,:,0]))**2) * (nchan**2)
- 
-# dxx = (aar.gridx_P1[0,1]-aar.gridx_P1[0,0])*f0/FCNST.c
-# dyy = (aar.gridy_P1[1,0]-aar.gridy_P1[0,0])*f0/FCNST.c
-# l = NP.fft.ifftshift(NP.fft.fftfreq(2*aar.gridx_P1.shape[1],dxx))
-# m = NP.fft.ifftshift(NP.fft.fftfreq(2*aar.gridy_P1.shape[0],dyy))
-# lgrd, mgrd = NP.meshgrid(l, m)
-# nan_ind = lgrd**2 + mgrd**2 > 1.0
-
-# If_P1[nan_ind] = NP.nan
-
-# # fig = PLT.figure(figsize=(8,7))
-# fig.clf()
-# ax1 = fig.add_subplot(111, xlim=(NP.amin(l), NP.amax(l)), ylim=(NP.amin(m), NP.amax(m)))
-# imgplot = ax1.imshow(If_P1,aspect='equal',extent=(NP.amin(l),NP.amax(l),NP.amin(m),NP.amax(m)),origin='lower',norm=PLTC.LogNorm())
-# PLT.grid(True,which='both',ls='-',color='g')
-# PLT.colorbar(imgplot)
-
-# fig = PLT.figure(figsize=(8,14))
-# ax1 = fig.add_subplot(211, xlim=(NP.amin(ant_info[:,1])-10.0, NP.amax(ant_info[:,1])+10.0),
-#                       ylim=(NP.amin(ant_info[:,2])-10.0, NP.amax(ant_info[:,2])+10.0))
-# for i in range(n_antennas):
-#     label = '{0:0d}'.format(int(ant_info[i,0]))
-#     ax1.annotate(label, xy=(ant_info[i,1],ant_info[i,2]), ha='center')
-
-# ax2 = fig.add_subplot(212)
-# img = ax2.imshow(NP.abs(aar.grid_illumination_P1[:,:,0]), origin='lower', aspect='equal',
-#                  extent=(aar.grid_blc_P1[0],aar.grid_trc_P1[0],aar.grid_blc_P1[1],aar.grid_trc_P1[1]))
-# PLT.colorbar(img)
-# PLT.show()
