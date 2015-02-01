@@ -77,11 +77,11 @@ for i in xrange(n_antennas):
     aar = aar + ant
     aar = aar + ant
 
-PDB.set_trace()
-# aar = aar - ants[1]
+aar.grid()
 
 antpos_info = aar.antenna_positions(sort=True)
 Ef_runs = None
+
 # E_timeseries_dict = SIM.monochromatic_E_timeseries(f_center, nchan/2, 2*channel_width,
 #                                                 flux_ref=src_flux, skypos=skypos,
 #                                                 antpos=antpos_info['positions'])
@@ -107,22 +107,19 @@ for i in xrange(itr):
         dict['label'] = label
         dict['action'] = 'modify'
         dict['timestamp'] = timestamp
-        ind = antpos_info['antennas'].index(label)
+        ind = antpos_info['labels'].index(label)
         dict['t'] = E_timeseries_dict['t']
-        dict['Et_P1'] = E_timeseries_dict['Et'][:,ind]
-        dict['Et_P2'] = E_timeseries_dict['Et'][:,ind]
         dict['gridfunc_freq'] = 'scale'    
-        dict['wtsinfo_P1'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
-        dict['wtsinfo_P2'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
         dict['gridmethod'] = 'NN'
         dict['distNN'] = 3.0
-        # dict['wtsinfo_P1'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
-        # dict['wtsinfo_P2'] = [(NP.hstack((wtspos_u.reshape(-1,1), wtspos_v.reshape(-1,1))), NP.ones(nx*ny).reshape(-1,1), 0.0)]
+        dict['Et'] = {}
+        dict['wtsinfo'] = {}
+        for pol in ['P1', 'P2']:
+            dict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
+            dict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
         update_info['antennas'] += [dict]
 
-    aar.update(update_info, verbose=True)
-    if i==0:
-        aar.grid()
+    aar.update(update_info, parallel=True, verbose=True)
     aar.grid_convolve(method='NN', distNN=3.0, maxmatch=None)
     # aar.save('/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/grid/MWA-128T-grid', antenna_save=False, antfile='/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/antenna/MWA-128T', verbose=True, tabtype='BinTableHDU', overwrite=True)
 
