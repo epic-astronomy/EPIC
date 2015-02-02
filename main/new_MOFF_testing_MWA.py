@@ -9,7 +9,7 @@ import sim_observe as SIM
 import my_DSP_modules as DSP
 import ipdb as PDB
 
-itr = 1
+itr = 4
 
 # Antenna initialization
 
@@ -46,11 +46,11 @@ dt = 1/bandwidth
 # src_flux = [1.0, 1.0]
 # skypos = NP.asarray([[0.0, 0.0], [0.1, 0.0]])
 
-src_seed = 5
+src_seed = 50
 NP.random.seed(src_seed)
 # n_src = NP.random.poisson(lam=5)
 n_src = 10
-lmrad = NP.random.uniform(low=0.0, high=0.2, size=n_src).reshape(-1,1)
+lmrad = NP.random.uniform(low=0.0, high=0.5, size=n_src).reshape(-1,1)
 lmang = NP.random.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
 src_flux = NP.ones(n_src)
@@ -74,7 +74,6 @@ for i in xrange(n_antennas):
     ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])), lat, ant_info[i,1:], f0, nsamples=nchan/2)
     ant.f = ant.f0 + DSP.spectax(nchan, dt, shift=True)
     ants += [ant]
-    aar = aar + ant
     aar = aar + ant
 
 aar.grid()
@@ -103,23 +102,24 @@ for i in xrange(itr):
     update_info['antenna_array'] = {}
     update_info['antenna_array']['timestamp'] = timestamp
     for label in aar.antennas:
-        dict = {}
-        dict['label'] = label
-        dict['action'] = 'modify'
-        dict['timestamp'] = timestamp
+        adict = {}
+        adict['label'] = label
+        adict['action'] = 'modify'
+        adict['timestamp'] = timestamp
         ind = antpos_info['labels'].index(label)
-        dict['t'] = E_timeseries_dict['t']
-        dict['gridfunc_freq'] = 'scale'    
-        dict['gridmethod'] = 'NN'
-        dict['distNN'] = 3.0
-        dict['Et'] = {}
-        dict['flags'] = {}
-        dict['wtsinfo'] = {}
+        adict['t'] = E_timeseries_dict['t']
+        adict['gridfunc_freq'] = 'scale'    
+        adict['gridmethod'] = 'NN'
+        adict['distNN'] = 3.0
+        adict['Et'] = {}
+        adict['flags'] = {}
+        adict['wtsinfo'] = {}
         for pol in ['P1', 'P2']:
-            dict['flags'][pol] = False
-            dict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
-            dict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
-        update_info['antennas'] += [dict]
+            adict['flags'][pol] = False
+            adict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
+            # adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
+            adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+        update_info['antennas'] += [adict]
 
     aar.update(update_info, parallel=True, verbose=True)
     aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='queue')

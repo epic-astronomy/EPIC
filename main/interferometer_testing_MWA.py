@@ -13,7 +13,7 @@ import my_DSP_modules as DSP
 import sim_observe as SIM
 import ipdb as PDB
 
-itr = 9
+itr = 4
 
 # Antenna initialization
 
@@ -55,7 +55,7 @@ dt = 1/bandwidth
 # src_flux = [1.0, 1.0]
 # skypos = NP.asarray([[0.0, 0.0], [0.1, 0.0]])
 
-src_seed = 5
+src_seed = 50
 NP.random.seed(src_seed)
 # n_src = NP.random.poisson(lam=5)
 n_src = 10
@@ -107,13 +107,19 @@ for i in xrange(itr):
         adict['label'] = label
         adict['action'] = 'modify'
         adict['timestamp'] = timestamp
-        ind = antpos_info['antennas'].index(label)
+        ind = antpos_info['labels'].index(label)
         adict['t'] = E_timeseries_dict['t']
+        adict['Et'] = {}
+        adict['flags'] = {}
 
-        adict['Et_P1'] = E_timeseries_dict['Et'][:,ind]
-        adict['Et_P2'] = E_timeseries_dict['Et'][:,ind]
-        adict['flag_P1'] = False
-        adict['flag_P2'] = False
+        for pol in ['P1', 'P2']:
+            adict['flags'][pol] = False
+            adict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
+            
+        # adict['Et_P1'] = E_timeseries_dict['Et'][:,ind]
+        # adict['Et_P2'] = E_timeseries_dict['Et'][:,ind]
+        # adict['flag_P1'] = False
+        # adict['flag_P2'] = False
 
         antenna_level_update_info['antennas'] += [adict]
 
