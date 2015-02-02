@@ -160,8 +160,6 @@ posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1
 ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
 ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_image_random_source_positions_{0:0d}_iterations.png'.format(itr), bbox_inches=0)
-PDB.set_trace()
-PLT.close(fig)
 
 fig = PLT.figure()
 ax = fig.add_subplot(111)
@@ -169,6 +167,3 @@ imgplot = ax.imshow(NP.mean(imgobj.beam['P11'], axis=2), aspect='equal', origin=
 ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())  
 ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_psf_square_illumination.png'.format(itr), bbox_inches=0)
-PLT.close(fig)
-
-PDB.set_trace()
