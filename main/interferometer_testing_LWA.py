@@ -77,47 +77,68 @@ for i in xrange(max_n_timestamps):
         adict['label'] = label
         adict['action'] = 'modify'
         adict['timestamp'] = timestamp
+        adict['Et'] = {}
+        adict['flags'] = {}
+        adict['delaydict'] = {}
         if label in hdulist0[timestamp].columns.names:
             adict['t'] = NP.arange(nchan) * dt
             Et_P1 = hdulist0[timestamp].data[label]
-            adict['Et_P1'] = Et_P1[:,0] + 1j * Et_P1[:,1]
-            adict['flag_P1'] = False
+            adict['Et']['P1'] = Et_P1[:,0] + 1j * Et_P1[:,1]
+            adict['flags']['P1'] = False
             # adict['gridfunc_freq'] = 'scale'    
             # adict['wtsinfo_P1'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
             # adict['gridmethod'] = 'NN'
             # adict['distNN'] = 0.5 * FCNST.c / f0
             # adict['tol'] = 1.0e-6
             # adict['maxmatch'] = 1
-            adict['delaydict_P1'] = {}
-            adict['delaydict_P1']['pol'] = 'P1'
-            adict['delaydict_P1']['frequencies'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data['frequency']
+            adict['delaydict']['P1'] = {}
+            adict['delaydict']['P1']['frequencies'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data['frequency']
             # adict['delaydict_P1']['delays'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data[label]
-            adict['delaydict_P1']['delays'] = cable_delays[antennas == label]
-            adict['delaydict_P1']['fftshifted'] = True
+            adict['delaydict']['P1']['delays'] = cable_delays[antennas == label]
+            adict['delaydict']['P1']['fftshifted'] = True
         else:
-            adict['flag_P1'] = True
+            adict['flags']['P1'] = True
 
         if label in hdulist1[timestamp].columns.names:
             adict['t'] = NP.arange(nchan) * dt
             Et_P2 = hdulist1[timestamp].data[label]
-            adict['Et_P2'] = Et_P2[:,0] + 1j * Et_P2[:,1]
-            adict['flag_P2'] = False
+            adict['Et']['P2'] = Et_P2[:,0] + 1j * Et_P2[:,1]
+            adict['flags']['P2'] = False
             # adict['gridfunc_freq'] = 'scale'    
             # adict['wtsinfo_P2'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
             # adict['gridmethod'] = 'NN'
             # adict['distNN'] = 0.5 * FCNST.c / f0
             # adict['tol'] = 1.0e-6
             # adict['maxmatch'] = 1
-            adict['delaydict_P2'] = {}
-            adict['delaydict_P2']['pol'] = 'P2'
-            adict['delaydict_P2']['frequencies'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data['frequency']
-            # adict['delaydict_P2']['delays'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data[label]
-            adict['delaydict_P2']['delays'] = cable_delays[antennas == label]
-            adict['delaydict_P2']['fftshifted'] = True
+            adict['delaydict']['P2'] = {}
+            adict['delaydict']['P2']['frequencies'] = hdulist1['FREQUENCIES AND CABLE DELAYS'].data['frequency']
+            # adict['delaydict_P2']['delays'] = hdulist1['FREQUENCIES AND CABLE DELAYS'].data[label]
+            adict['delaydict']['P2']['delays'] = cable_delays[antennas == label]
+            adict['delaydict']['P2']['fftshifted'] = True
         else:
-            adict['flag_P2'] = True
+            adict['flags']['P2'] = True
 
         antenna_level_update_info['antennas'] += [adict]
+
+        # if label in hdulist1[timestamp].columns.names:
+        #     adict['t'] = NP.arange(nchan) * dt
+        #     Et_P2 = hdulist1[timestamp].data[label]
+        #     adict['Et_P2'] = Et_P2[:,0] + 1j * Et_P2[:,1]
+        #     adict['flag_P2'] = False
+        #     # adict['gridfunc_freq'] = 'scale'    
+        #     # adict['wtsinfo_P2'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+        #     # adict['gridmethod'] = 'NN'
+        #     # adict['distNN'] = 0.5 * FCNST.c / f0
+        #     # adict['tol'] = 1.0e-6
+        #     # adict['maxmatch'] = 1
+        #     adict['delaydict_P2'] = {}
+        #     adict['delaydict_P2']['pol'] = 'P2'
+        #     adict['delaydict_P2']['frequencies'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data['frequency']
+        #     # adict['delaydict_P2']['delays'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data[label]
+        #     adict['delaydict_P2']['delays'] = cable_delays[antennas == label]
+        #     adict['delaydict_P2']['fftshifted'] = True
+        # else:
+        #     adict['flag_P2'] = True
 
     interferometer_level_update_info = {}
     interferometer_level_update_info['interferometers'] = []
@@ -136,7 +157,7 @@ for i in xrange(max_n_timestamps):
         interferometer_level_update_info['interferometers'] += [idict]    
 
     iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', parallel=True, verbose=True)
-    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
+    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='queue')
 
     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
     imgobj.imagr(weighting='natural', pol='P11')

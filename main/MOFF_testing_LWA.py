@@ -69,30 +69,30 @@ for i in xrange(max_n_timestamps):
     update_info['antenna_array'] = {}
     update_info['antenna_array']['timestamp'] = timestamp
     for label in aar.antennas:
-        dict = {}
-        dict['label'] = label
-        dict['action'] = 'modify'
-        dict['timestamp'] = timestamp
+        adict = {}
+        adict['label'] = label
+        adict['action'] = 'modify'
+        adict['timestamp'] = timestamp
         if label in hdulist[timestamp].columns.names:
-            dict['t'] = NP.arange(nchan) * dt
+            adict['t'] = NP.arange(nchan) * dt
             Et_P1 = hdulist[timestamp].data[label]
-            dict['Et_P1'] = Et_P1[:,0] + 1j * Et_P1[:,1]
-            dict['flag_P1'] = False
-            dict['gridfunc_freq'] = 'scale'    
-            dict['wtsinfo_P1'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
-            dict['gridmethod'] = 'NN'
-            dict['distNN'] = 0.5 * FCNST.c / f0
-            dict['tol'] = 1.0e-6
-            dict['maxmatch'] = 1
-            dict['delaydict_P1'] = {}
-            dict['delaydict_P1']['pol'] = 'P1'
-            dict['delaydict_P1']['frequencies'] = hdulist['FREQUENCIES AND CABLE DELAYS'].data['frequency']
-            # dict['delaydict_P1']['delays'] = hdulist['FREQUENCIES AND CABLE DELAYS'].data[label]
-            dict['delaydict_P1']['delays'] = cable_delays[antennas == label]
-            dict['delaydict_P1']['fftshifted'] = True
+            adict['Et_P1'] = Et_P1[:,0] + 1j * Et_P1[:,1]
+            adict['flag_P1'] = False
+            adict['gridfunc_freq'] = 'scale'    
+            adict['wtsinfo_P1'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+            adict['gridmethod'] = 'NN'
+            adict['distNN'] = 0.5 * FCNST.c / f0
+            adict['tol'] = 1.0e-6
+            adict['maxmatch'] = 1
+            adict['delaydict_P1'] = {}
+            adict['delaydict_P1']['pol'] = 'P1'
+            adict['delaydict_P1']['frequencies'] = hdulist['FREQUENCIES AND CABLE DELAYS'].data['frequency']
+            # adict['delaydict_P1']['delays'] = hdulist['FREQUENCIES AND CABLE DELAYS'].data[label]
+            adict['delaydict_P1']['delays'] = cable_delays[antennas == label]
+            adict['delaydict_P1']['fftshifted'] = True
         else:
-            dict['flag_P1'] = True
-        update_info['antennas'] += [dict]
+            adict['flag_P1'] = True
+        update_info['antennas'] += [adict]
 
     aar.update(update_info, verbose=True)
     if i==0:
