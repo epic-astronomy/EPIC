@@ -20,8 +20,11 @@ LWA_pol1_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-1.fits'
 max_n_timestamps = None
 
 filelist = [LWA_pol0_reformatted_datafile, LWA_pol1_reformatted_datafile]
-# PDB.set_trace()
-dh = DI.DataHandler(indata=filelist)
+dh1 = DI.DataHandler(indata=filelist)
+dh1.save('/data3/t_nithyanandan/project_MOFF/data/samples/lwa_data.CDF.fits')
+PDB.set_trace()
+# dh2 = DI.DataHandler(indata='/data3/t_nithyanandan/project_MOFF/data/samples/lwa_data.CDF.fits')
+# dh2.save('/data3/t_nithyanandan/project_MOFF/data/samples/lwa_data.CDF.fits')
 
 hdulist0 = fits.open(LWA_pol0_reformatted_datafile)
 hdulist1 = fits.open(LWA_pol1_reformatted_datafile)
