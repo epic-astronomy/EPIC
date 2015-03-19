@@ -8,14 +8,20 @@ from astropy.io import ascii
 from astropy.table import Table
 import progressbar as PGB
 import antenna_array as AA
+import data_interface as DI
 import geometry as GEOM
 import sim_observe as SIM
 import my_DSP_modules as DSP
+import ipdb as PDB
 
 LWA_reformatted_datafile_prefix = '/data3/t_nithyanandan/project_MOFF/data/samples/lwa_reformatted_data_test'
 LWA_pol0_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-0.fits'
 LWA_pol1_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-1.fits'
 max_n_timestamps = None
+
+filelist = [LWA_pol0_reformatted_datafile, LWA_pol1_reformatted_datafile]
+# PDB.set_trace()
+dh = DI.DataHandler(indata=filelist)
 
 hdulist0 = fits.open(LWA_pol0_reformatted_datafile)
 hdulist1 = fits.open(LWA_pol1_reformatted_datafile)
