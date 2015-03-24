@@ -12,36 +12,40 @@ import data_interface as DI
 import geometry as GEOM
 import sim_observe as SIM
 import my_DSP_modules as DSP
+import ipdb as PDB
 
-LWA_reformatted_datafile_prefix = '/data3/t_nithyanandan/project_MOFF/data/samples/lwa_reformatted_data_test'
-LWA_pol0_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-0.fits'
-LWA_pol1_reformatted_datafile = LWA_reformatted_datafile_prefix + '.pol-1.fits'
+infile = '/data3/t_nithyanandan/project_MOFF/data/samples/lwa_data.CDF.fits'
+du = DI.DataHandler(indata=infile)
 max_n_timestamps = None
 
-hdulist0 = fits.open(LWA_pol0_reformatted_datafile)
-hdulist1 = fits.open(LWA_pol1_reformatted_datafile)
-extnames = [h.header['EXTNAME'] for h in hdulist0]
-lat = hdulist0['PRIMARY'].header['latitude']
-f0 = hdulist0['PRIMARY'].header['center_freq']
-nts = hdulist0['PRIMARY'].header['nchan']
+lat = du.latitude
+f0 = du.center_freq
+nts = du.nchan
 nchan = nts * 2
-dt = 1.0 / hdulist0['PRIMARY'].header['sample_rate']
-freqs = hdulist0['freqs'].data
-channel_width = freqs[1] - freqs[0]
+fs = du.sample_rate
+dt = 1/fs
+freqs = du.freq
+channel_width = du.freq_resolution
 f_center = f0
 bchan = 63
 echan = 963
 max_antenna_radius = 75.0 # in meters
 # max_antenna_radius = 75.0 # in meters
-
-antid = hdulist0['Antenna Positions'].data['Antenna']
-antpos = hdulist0['Antenna Positions'].data['Position']
-# antpos -= NP.mean(antpos, axis=0).reshape(1,-1)
+antid = du.antid
+antpos = du.antpos
+n_antennas = du.n_antennas
+timestamps = du.timestamps
+n_timestamps = du.n_timestamps
+npol = du.npol
+ant_data = du.data
 
 core_ind = NP.logical_and((NP.abs(antpos[:,0]) < max_antenna_radius), (NP.abs(antpos[:,1]) < max_antenna_radius))
 # core_ind = NP.logical_and((NP.abs(antpos[:,0]) <= NP.max(NP.abs(antpos[:,0]))), (NP.abs(antpos[:,1]) < NP.max(NP.abs(antpos[:,1]))))
-ant_info = NP.hstack((antid[core_ind].reshape(-1,1), antpos[core_ind,:]))
+antid = antid[core_ind]
+antpos = antpos[core_ind,:]
+ant_info = NP.hstack((antid.reshape(-1,1), antpos))
 n_antennas = ant_info.shape[0]
+ant_data = ant_data[:,core_ind,:,:]
 
 ants = []
 aar = AA.AntennaArray()
@@ -55,9 +59,6 @@ aar.grid()
 
 antpos_info = aar.antenna_positions(sort=True)
 
-timestamps0 = hdulist0['TIMESTAMPS'].data['timestamp']
-timestamps1 = hdulist1['TIMESTAMPS'].data['timestamp']
-timestamps = NP.intersect1d(timestamps0, timestamps1)
 if max_n_timestamps is None:
     max_n_timestamps = len(timestamps)
 else:
@@ -69,16 +70,16 @@ stand_cable_delays = NP.loadtxt('/data3/t_nithyanandan/project_MOFF/data/samples
 antennas = stand_cable_delays[:,0].astype(NP.int).astype(str)
 cable_delays = stand_cable_delays[:,1]
 
-for i in xrange(max_n_timestamps):
-    timestamp = timestamps[i]
+for it in xrange(max_n_timestamps):
+    timestamp = timestamps[it]
     update_info = {}
     update_info['antennas'] = []
     update_info['antenna_array'] = {}
     update_info['antenna_array']['timestamp'] = timestamp
     print 'Consolidating Antenna updates...'
-    progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(len(aar.antennas)), PGB.ETA()], maxval=len(aar.antennas)).start()
+    progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(n_antennas), PGB.ETA()], maxval=n_antennas).start()
     antnum = 0
-    for label in aar.antennas:
+    for ia, label in enumerate(antid):
         adict = {}
         adict['label'] = label
         adict['action'] = 'modify'
@@ -93,32 +94,18 @@ for i in xrange(max_n_timestamps):
         adict['flags'] = {}
         adict['wtsinfo'] = {}
         adict['delaydict'] = {}
-        adict['delaydict']['P1'] = {}
-        adict['delaydict']['P2'] = {}
-        if label in hdulist0[timestamp].columns.names:
-            Et = hdulist0[timestamp].data[label]
-            adict['Et']['P1'] = Et[:,0] + 1j * Et[:,1]
-            adict['flags']['P1'] = False
-            adict['wtsinfo']['P1'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
-            adict['delaydict']['P1']['frequencies'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data['frequency']
-            # adict['delaydict_P1']['delays'] = hdulist0['FREQUENCIES AND CABLE DELAYS'].data[label]
-            adict['delaydict']['P1']['delays'] = cable_delays[antennas == label]
-            adict['delaydict']['P1']['fftshifted'] = True
-        else:
-            adict['flags']['P1'] = True
-
-        if label in hdulist1[timestamp].columns.names:
-            Et = hdulist1[timestamp].data[label]
-            adict['Et']['P2'] = Et[:,0] + 1j * Et[:,1]
-            adict['flags']['P2'] = False
-            adict['wtsinfo']['P2'] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
-            adict['delaydict']['P2']['frequencies'] = hdulist1['FREQUENCIES AND CABLE DELAYS'].data['frequency']
-            # adict['delaydict_P2']['delays'] = hdulist1['FREQUENCIES AND CABLE DELAYS'].data[label]
-            adict['delaydict']['P2']['delays'] = cable_delays[antennas == label]
-            adict['delaydict']['P2']['fftshifted'] = True
-        else:
-            adict['flags']['P2'] = True
-
+        for ip in range(npol):
+            adict['delaydict']['P{0}'.format(ip+1)] = {}
+            adict['delaydict']['P{0}'.format(ip+1)]['frequencies'] = freqs
+            adict['delaydict']['P{0}'.format(ip+1)]['delays'] = cable_delays[antennas == label]
+            adict['delaydict']['P{0}'.format(ip+1)]['fftshifted'] = True
+            adict['wtsinfo']['P{0}'.format(ip+1)] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]            
+            adict['Et']['P{0}'.format(ip+1)] = ant_data[it,ia,:,ip]
+            if NP.any(NP.isnan(adict['Et']['P{0}'.format(ip+1)])):
+                adict['flags']['P{0}'.format(ip+1)] = True
+            else:
+                adict['flags']['P{0}'.format(ip+1)] = False
+                
         update_info['antennas'] += [adict]
 
         progress.update(antnum+1)
@@ -128,21 +115,31 @@ for i in xrange(max_n_timestamps):
     aar.update(update_info, parallel=True, verbose=True)
     aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
 
+    fp1 = [ad['flags']['P1'] for ad in update_info['antennas']]
+    p1f = [a.antpol.flag['P1'] for a in aar.antennas.itervalues()]
+    if (NP.sum(NP.array(fp1)) > 0) or (NP.sum(NP.array(p1f)) > 0):
+        print NP.sum(NP.array(fp1)), NP.sum(NP.array(p1f))
+        PDB.set_trace()
     imgobj = AA.NewImage(antenna_array=aar, pol='P1')
     imgobj.imagr(weighting='natural', pol='P1')
+    if NP.any(NP.isnan(imgobj.img['P1'])):
+        PDB.set_trace()
 
     # for chan in xrange(imgobj.holograph_P1.shape[2]):
     #     imval = NP.abs(imgobj.holograph_P1[imgobj.mf_P1.shape[0]/2,:,chan])**2 # a horizontal slice 
     #     imval = imval[NP.logical_not(NP.isnan(imval))]
-    #     immax2[i,chan,:] = NP.sort(imval)[-2:]
+    #     immax2[it,chan,:] = NP.sort(imval)[-2:]
 
-    if i == 0:
+    if it == 0:
         # avg_img = NP.abs(imgobj.holograph_P1)**2
         avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
     else:
         # avg_img += NP.abs(imgobj.holograph_P1)**2
         avg_img += NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
+    if NP.any(NP.isnan(avg_img)):
+        PDB.set_trace()
 
+PDB.set_trace()
 avg_img /= max_n_timestamps
 beam = NP.abs(imgobj.beam['P1'])**2 - NP.nanmean(NP.abs(imgobj.beam['P1'])**2)
 
