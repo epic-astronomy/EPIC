@@ -86,6 +86,7 @@ with PyCallGraph(output=graphviz, config=config):
         update_info['antennas'] = []
         update_info['antenna_array'] = {}
         update_info['antenna_array']['timestamp'] = timestamp
+
         print 'Consolidating Antenna updates...'
         progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(n_antennas), PGB.ETA()], maxval=n_antennas).start()
         antnum = 0
@@ -102,6 +103,7 @@ with PyCallGraph(output=graphviz, config=config):
             adict['maxmatch'] = 1
             adict['Et'] = {}
             adict['flags'] = {}
+            adict['stack'] = True
             adict['wtsinfo'] = {}
             adict['delaydict'] = {}
             for ip in range(npol):
