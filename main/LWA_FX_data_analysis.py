@@ -102,6 +102,7 @@ with PyCallGraph(output=graphviz, config=config):
             adict['maxmatch'] = 1
             adict['Et'] = {}
             adict['flags'] = {}
+            adict['stack'] = True
             adict['wtsinfo'] = {}
             adict['delaydict'] = {}
             for ip in range(npol):
@@ -116,14 +117,20 @@ with PyCallGraph(output=graphviz, config=config):
                 else:
                     adict['flags']['P{0}'.format(ip+1)] = False
                     
-            antenna_level_update_info['antennas'] += [adict]        
+            antenna_level_update_info['antennas'] += [adict]
+            progress.update(antnum)
+            antnum += 1
+        progress.finish()
 
         interferometer_level_update_info = {}
         interferometer_level_update_info['interferometers'] = []
         for label in iar.interferometers:
             idict = {}
             idict['label'] = label
+            idict['timestamp'] = timestamp
             idict['action'] = 'modify'
+            idict['stack'] = True
+            idict['do_correlate'] = 'FX'
             idict['gridfunc_freq'] = 'scale'
             idict['gridmethod'] = 'NN'
             idict['distNN'] = 0.5 * FCNST.c / f0
@@ -134,34 +141,35 @@ with PyCallGraph(output=graphviz, config=config):
                 idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
             interferometer_level_update_info['interferometers'] += [idict]    
             
-        iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate='FX', parallel=False, verbose=True)
-        iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=False, pp_method='queue')
+        iar.update(antenna_level_updates=antenna_level_update_info, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
 
-        imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
-        imgobj.imagr(weighting='natural', pol='P11')
+    #     iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=False, pp_method='queue')
+
+    #     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
+    #     imgobj.imagr(weighting='natural', pol='P11')
     
-        if i == 0:
-            avg_img = imgobj.img['P11']
-        else:
-            avg_img += imgobj.img['P11']
+    #     if i == 0:
+    #         avg_img = imgobj.img['P11']
+    #     else:
+    #         avg_img += imgobj.img['P11']
     
-    avg_img /= max_n_timestamps
+    # avg_img /= max_n_timestamps
         
-    fig = PLT.figure()
-    ax = fig.add_subplot(111)
-    imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
-    # posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
-    ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
-    ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_sample_image_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
-    PDB.set_trace()
-    PLT.close(fig)
+    # fig = PLT.figure()
+    # ax = fig.add_subplot(111)
+    # imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
+    # # posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+    # ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
+    # ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_sample_image_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
+    # PDB.set_trace()
+    # PLT.close(fig)
     
-    fig = PLT.figure()
-    ax = fig.add_subplot(111)
-    imgplot = ax.imshow(NP.mean(imgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
-    ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())  
-    ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_psf.png'.format(itr), bbox_inches=0)
-    PLT.close(fig)
+    # fig = PLT.figure()
+    # ax = fig.add_subplot(111)
+    # imgplot = ax.imshow(NP.mean(imgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
+    # ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())  
+    # ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_psf.png'.format(itr), bbox_inches=0)
+    # PLT.close(fig)
 
