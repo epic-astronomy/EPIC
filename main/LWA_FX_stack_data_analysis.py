@@ -146,7 +146,8 @@ with PyCallGraph(output=graphviz, config=config):
 
     iar = AA.InterferometerArray(antenna_array=aar)
     iar.refresh_antenna_pairs()
-    iar.stack(on_flags=True, on_data=True, parallel=True, nproc=None)
+    iar.stack(on_flags=True, on_data=True, parallel=False, nproc=None)
+    iar.accumulate(tbinsize=None)
     iar.grid()
 
     #     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
