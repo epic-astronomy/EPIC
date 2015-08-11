@@ -147,7 +147,11 @@ with PyCallGraph(output=graphviz, config=config):
     iar = AA.InterferometerArray(antenna_array=aar)
     iar.refresh_antenna_pairs()
     iar.stack(on_flags=True, on_data=True, parallel=False, nproc=None)
-    iar.accumulate(tbinsize=None)
+    ts = NP.asarray(map(float, timestamps)).astype(NP.float64)
+    tbinsize = 2 * (ts[1] - ts[0])
+    iar.accumulate(tbinsize=tbinsize)
+    vis_dict = iar.interferometers[('107','5')].get_visibilities('P11', flag=True, tselect=[0,1], fselect=None, datapool='avg')
+    vis_dict = iar.interferometers[('107','5')].get_visibilities('P11', flag=False, tselect=[1,2], fselect=None, datapool='stack')        
     iar.grid()
 
     #     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
