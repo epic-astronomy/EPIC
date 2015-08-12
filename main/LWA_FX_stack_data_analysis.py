@@ -37,7 +37,7 @@ channel_width = du.freq_resolution
 f_center = f0
 bchan = 100
 echan = 925
-max_antenna_radius = 75.0 # in meters
+max_antenna_radius = 15.0 # in meters
 # max_antenna_radius = 75.0 # in meters
 antid = du.antid
 antpos = du.antpos
@@ -150,8 +150,6 @@ with PyCallGraph(output=graphviz, config=config):
     ts = NP.asarray(map(float, timestamps)).astype(NP.float64)
     tbinsize = 2 * (ts[1] - ts[0])
     iar.accumulate(tbinsize=tbinsize)
-    vis_dict = iar.interferometers[('107','5')].get_visibilities('P11', flag=True, tselect=[0,1], fselect=None, datapool='avg')
-    vis_dict = iar.interferometers[('107','5')].get_visibilities('P11', flag=False, tselect=[1,2], fselect=None, datapool='stack')        
     iar.grid()
 
     #     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
