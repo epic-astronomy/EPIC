@@ -37,7 +37,7 @@ channel_width = du.freq_resolution
 f_center = f0
 bchan = 100
 echan = 925
-max_antenna_radius = 15.0 # in meters
+max_antenna_radius = 75.0 # in meters
 # max_antenna_radius = 75.0 # in meters
 antid = du.antid
 antpos = du.antpos
@@ -147,13 +147,36 @@ with PyCallGraph(output=graphviz, config=config):
     iar = AA.InterferometerArray(antenna_array=aar)
     iar.refresh_antenna_pairs()
     iar.stack(on_flags=True, on_data=True, parallel=False, nproc=None)
-    ts = NP.asarray(map(float, timestamps)).astype(NP.float64)
-    tbinsize = 2 * (ts[1] - ts[0])
+    # ts = NP.asarray(map(float, timestamps)).astype(NP.float64)
+    # tbinsize = 2 * (ts[1] - ts[0])
+    tbinsize = None
     iar.accumulate(tbinsize=tbinsize)
+    interferometer_level_update_info = {}
+    interferometer_level_update_info['interferometers'] = []
+    for label in iar.interferometers:
+        idict = {}
+        idict['label'] = label
+        idict['timestamp'] = timestamp
+        idict['action'] = 'modify'
+        idict['gridfunc_freq'] = 'scale'
+        idict['gridmethod'] = 'NN'
+        idict['distNN'] = 0.5 * FCNST.c / f0
+        idict['tol'] = 1.0e-6
+        idict['maxmatch'] = 1
+        idict['wtsinfo'] = {}
+        for pol in ['P11', 'P12', 'P21', 'P22']:
+            idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+        interferometer_level_update_info['interferometers'] += [idict]    
+        
+    iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
+    
     iar.grid()
+    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='queue')
+    iar.make_grid_cube(pol='P11')
 
-    #     imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
-    #     imgobj.imagr(weighting='natural', pol='P11')
+    imgobj = AA.NewImage(interferometer_array=iar, pol='P11')
+    imgobj.imagr(weighting='natural', pol='P11')
+    avg_img = imgobj.img['P11']
     
     #     if i == 0:
     #         avg_img = imgobj.img['P11']
@@ -162,12 +185,13 @@ with PyCallGraph(output=graphviz, config=config):
     
     # avg_img /= max_n_timestamps
         
-    # fig = PLT.figure()
-    # ax = fig.add_subplot(111)
-    # imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
-    # # posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
-    # ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
-    # ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+    fig = PLT.figure()
+    ax = fig.add_subplot(111)
+    imgplot = ax.imshow(NP.mean(avg_img, axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))
+    # posplot, = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+    ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
+    ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
+    PLT.show()
     # PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_sample_image_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
     # PDB.set_trace()
     # PLT.close(fig)
