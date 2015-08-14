@@ -125,7 +125,7 @@ with PyCallGraph(output=graphviz, config=config):
         progress.finish()
     
         aar.update(update_info, parallel=True, verbose=True)
-        aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
+        aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, cal_loop=False, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
     
         # fp1 = [ad['flags']['P1'] for ad in update_info['antennas']]
         # p1f = [a.antpol.flag['P1'] for a in aar.antennas.itervalues()]
