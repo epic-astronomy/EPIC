@@ -36,6 +36,9 @@ ny = 4 # dipoles along y
 dx = 1.1 # dipole spacing along x
 dy = 1.1 # dipole spacing along y
 
+ant_sizex = nx * dx
+ant_sizey = ny * dy
+
 nchan = 16
 f_center = f0
 channel_width = 40e3
@@ -62,7 +65,7 @@ with PyCallGraph(output=graphviz, config=config):
         ants += [ant]
         aar = aar + ant
     
-    aar.grid()
+    aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
     
     antpos_info = aar.antenna_positions(sort=True)
     
@@ -204,7 +207,7 @@ with PyCallGraph(output=graphviz, config=config):
         
     iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
     
-    iar.grid()
+    iar.grid(uvpad=2*NP.max([ant_sizex, ant_sizey]))
     iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='queue')
     
     vfimgobj = AA.NewImage(interferometer_array=iar, pol='P11')
