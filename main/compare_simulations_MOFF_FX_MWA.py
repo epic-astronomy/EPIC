@@ -21,13 +21,12 @@ f0 = 150e6 # Center frequency
 
 antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
 ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3)) 
-ant_info[:,1] -= NP.mean(ant_info[:,1])
-ant_info[:,2] -= NP.mean(ant_info[:,2])
-ant_info[:,3] -= NP.mean(ant_info[:,3])
+ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
 
 # core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 800.0), (NP.abs(ant_info[:,2]) < 800.0))
 core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]) < 150.0))
 ant_info = ant_info[core_ind,:]
+ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
 
 # ant_info = ant_info[:30,:]
 
