@@ -66,8 +66,7 @@ with PyCallGraph(output=graphviz, config=config):
         aar = aar + ant
     
     aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
-    
-    antpos_info = aar.antenna_positions(sort=True)
+    antpos_info = aar.antenna_positions(sort=True, centering=True)
     
     immax2 = NP.zeros((max_n_timestamps,nchan,2))
     for i in xrange(max_n_timestamps):
@@ -115,7 +114,9 @@ with PyCallGraph(output=graphviz, config=config):
         progress.finish()
         
         aar.update(update_info, parallel=True, verbose=True)
-        aar.grid_convolve(pol='P1', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, cal_loop=False, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')    
+        aar.grid_convolve(pol=None, method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, cal_loop=False, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')    
+        aar.make_grid_cube()
+        aar_psf_info = aar.quick_beam_synthesis(pol='P1', keep_zero_spacing=False)
         
         efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         efimgobj.imagr(weighting='natural', pol='P1')
@@ -208,7 +209,9 @@ with PyCallGraph(output=graphviz, config=config):
     iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
     
     iar.grid(uvpad=2*NP.max([ant_sizex, ant_sizey]))
-    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='queue')
+    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
+    iar.make_grid_cube(pol='P11')
+    iar_psf_info = iar.quick_beam_synthesis(pol='P11')
     
     vfimgobj = AA.NewImage(interferometer_array=iar, pol='P11')
     vfimgobj.imagr(weighting='natural', pol='P11')
@@ -256,4 +259,66 @@ with PyCallGraph(output=graphviz, config=config):
     fig.subplots_adjust(top=0.88)
 
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_psf_square_illumination.png'.format(max_n_timestamps), bbox_inches=0)
+    
+    # fig, axs = PLT.subplots(ncols=2, nrows=1, sharex=True, sharey=True, figsize=(8,6))
+    # ant_based_psf = axs[0].imshow()
+
+    fig = PLT.figure()
+    ax = fig.add_subplot(111)
+    apsf = ax.imshow(aar_psf_info['syn_beam'][:,:,0], origin='lower', extent=[aar_psf_info['l'].min(), aar_psf_info['l'].max(), aar_psf_info['m'].min(), aar_psf_info['m'].max()], vmin=-0.2, vmax=aar_psf_info['syn_beam'].max())
+    ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')    
+    ax.set_xlim(-1,1)
+    ax.set_ylim(-1,1)    
+    ax.set_aspect('equal')
+    ax.set_xlabel('l', fontsize=18, weight='medium')
+    ax.set_ylabel('m', fontsize=18, weight='medium')    
+    cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
+    cbar = fig.colorbar(apsf, cax=cbax, orientation='vertical')
+    # PLT.tight_layout()
+    fig.subplots_adjust(right=0.85)
+    fig.subplots_adjust(top=0.88)
+
+    fig = PLT.figure()
+    ax = fig.add_subplot(111)
+    ipsf = ax.imshow(iar_psf_info['syn_beam'][:,:,0], origin='lower', extent=[iar_psf_info['l'].min(), iar_psf_info['l'].max(), iar_psf_info['m'].min(), iar_psf_info['m'].max()], vmin=-0.2, vmax=iar_psf_info['syn_beam'].max())
+    ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')    
+    ax.set_xlim(-1,1)
+    ax.set_ylim(-1,1)    
+    ax.set_aspect('equal')
+    ax.set_xlabel('l', fontsize=18, weight='medium')
+    ax.set_ylabel('m', fontsize=18, weight='medium')    
+    cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
+    cbar = fig.colorbar(ipsf, cax=cbax, orientation='vertical')
+    # PLT.tight_layout()
+    fig.subplots_adjust(right=0.85)
+    fig.subplots_adjust(top=0.88)
+    
+    fig = PLT.figure()
+    ax = fig.add_subplot(111)
+    auvgrid = ax.imshow(NP.abs(aar_psf_info['grid_power_illumination'][:,:,0]), origin='lower', extent=[2*aar.gridu.min(), 2*aar.gridu.max(), 2*aar.gridv.min(), 2*aar.gridv.max()])
+    ax.set_xlim(2*aar.gridu.min(),2*aar.gridu.max())
+    ax.set_ylim(2*aar.gridv.min(),2*aar.gridv.max())    
+    ax.set_aspect('equal')
+    ax.set_xlabel('u', fontsize=18, weight='medium')
+    ax.set_ylabel('v', fontsize=18, weight='medium')    
+    cbax = fig.add_axes([0.8, 0.125, 0.02, 0.74])
+    cbar = fig.colorbar(auvgrid, cax=cbax, orientation='vertical')
+    # PLT.tight_layout()
+    fig.subplots_adjust(right=0.85)
+    fig.subplots_adjust(top=0.88)
+
+    fig = PLT.figure()
+    ax = fig.add_subplot(111)
+    iuvgrid = ax.imshow(NP.abs(iar_psf_info['grid_power_illumination'][:,:,0]), origin='lower', extent=[iar.gridu.min(), iar.gridu.max(), iar.gridv.min(), iar.gridv.max()])
+    ax.set_xlim(iar.gridu.min(),iar.gridu.max())
+    ax.set_ylim(iar.gridv.min(),iar.gridv.max())    
+    ax.set_aspect('equal')
+    ax.set_xlabel('u', fontsize=18, weight='medium')
+    ax.set_ylabel('v', fontsize=18, weight='medium')    
+    cbax = fig.add_axes([0.8, 0.125, 0.02, 0.74])
+    cbar = fig.colorbar(iuvgrid, cax=cbax, orientation='vertical')
+    # PLT.tight_layout()
+    fig.subplots_adjust(right=0.85)
+    fig.subplots_adjust(top=0.88)
+    
     
