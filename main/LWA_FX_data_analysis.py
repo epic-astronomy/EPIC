@@ -162,8 +162,6 @@ with PyCallGraph(output=graphviz, config=config):
     # ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())
     # ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
     # PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_sample_image_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
-    # PDB.set_trace()
-    # PLT.close(fig)
     
     # fig = PLT.figure()
     # ax = fig.add_subplot(111)
@@ -171,5 +169,5 @@ with PyCallGraph(output=graphviz, config=config):
     # ax.set_xlim(imgobj.gridl.min(), imgobj.gridl.max())  
     # ax.set_ylim(imgobj.gridm.min(), imgobj.gridm.max())
     # PLT.savefig('/data3/t_nithyanandan/project_MOFF/data/samples/figures/FX_LWA_psf.png'.format(itr), bbox_inches=0)
-    # PLT.close(fig)
+
 
