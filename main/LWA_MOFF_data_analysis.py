@@ -131,10 +131,7 @@ with PyCallGraph(output=graphviz, config=config):
         # p1f = [a.antpol.flag['P1'] for a in aar.antennas.itervalues()]
         imgobj = AA.NewImage(antenna_array=aar, pol='P1')
         imgobj.imagr(weighting='natural', pol='P1')
-        img = NP.abs(imgobj.img['P1'])**2
-        imgavg = NP.nanmean(img.reshape(-1,img.shape[-1]), axis=0).reshape(1,1,-1)
-        img = img - imgavg
-        # img = img - NP.apply_over_axes(NP.nanmean, img, (0,1))
+        img = imgobj.img['P1']
     
         # for chan in xrange(imgobj.holograph_P1.shape[2]):
         #     imval = NP.abs(imgobj.holograph_P1[imgobj.mf_P1.shape[0]/2,:,chan])**2 # a horizontal slice 
@@ -150,9 +147,7 @@ with PyCallGraph(output=graphviz, config=config):
     
     avg_img /= max_n_timestamps
 
-    beam = NP.abs(imgobj.beam['P1'])**2
-    beamavg = NP.nanmean(beam.reshape(-1,beam.shape[-1]), axis=0).reshape(1,1,-1)
-    beam = beam - beamavg
+    beam = imgobj.beam['P1']
     
     # PDB.set_trace()
     fig = PLT.figure()

@@ -47,7 +47,10 @@ dt = 1/bandwidth
 
 src_seed = 50
 NP.random.seed(src_seed)
-# n_src = NP.random.poisson(lam=5)
+# # n_src = NP.random.poisson(lam=5)
+# n_src = 1
+# lmrad = NP.zeros(n_src)
+# lmang = NP.zeros(n_src)
 n_src = 10
 lmrad = NP.random.uniform(low=0.0, high=0.5, size=n_src).reshape(-1,1)
 lmang = NP.random.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
@@ -74,7 +77,7 @@ with PyCallGraph(output=graphviz, config=config):
                                                         flux_ref=src_flux, skypos=skypos,
                                                         antpos=antpos_info['positions'],
                                                         tshift=False)
-    
+        
         ts = Time.now()
         timestamp = ts.gps
         update_info = {}
@@ -119,11 +122,8 @@ with PyCallGraph(output=graphviz, config=config):
         aar_psf_info = aar.quick_beam_synthesis(pol='P1', keep_zero_spacing=False)
         
         efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
-        efimgobj.imagr(weighting='natural', pol='P1')
-        efimg = NP.abs(efimgobj.img['P1'])**2
-        efimgavg = NP.nanmean(efimg.reshape(-1,efimg.shape[-1]), axis=0).reshape(1,1,-1)
-        efimg = efimg - efimgavg
-    
+        efimgobj.imagr(weighting='uniform', pol='P1')
+        efimg = efimgobj.img['P1']
         if i == 0:
             avg_efimg = NP.copy(efimg)
         else:
@@ -132,14 +132,11 @@ with PyCallGraph(output=graphviz, config=config):
             PDB.set_trace()
 
     avg_efimg /= max_n_timestamps
-
-    beam = NP.abs(efimgobj.beam['P1'])**2
-    beamavg = NP.nanmean(beam.reshape(-1,beam.shape[-1]), axis=0).reshape(1,1,-1)
-    beam = beam - beamavg
+    beam = efimgobj.beam['P1']
 
     fig = PLT.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
-    efimgplot = ax.imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-0.1, vmax=0.8)
+    efimgplot = ax.imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-NP.std(NP.mean(avg_efimg, axis=2)))
     posplot = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
     ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
     
@@ -163,7 +160,7 @@ with PyCallGraph(output=graphviz, config=config):
     
     fig = PLT.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
-    efbeamplot = ax.imshow(NP.mean(beam, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-0.1, vmax=1.0)
+    efbeamplot = ax.imshow(NP.mean(beam, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-NP.std(NP.mean(beam, axis=2)), vmax=1.0)
     ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
     # ax.set_xlim(efimgobj.gridl.min(), efimgobj.gridl.max())  
     # ax.set_ylim(efimgobj.gridm.min(), efimgobj.gridm.max())
@@ -219,7 +216,7 @@ with PyCallGraph(output=graphviz, config=config):
     
     fig = PLT.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
-    vfimgplot = ax.imshow(NP.mean(avg_vfimg, axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-0.1, vmax=0.8)
+    vfimgplot = ax.imshow(NP.mean(avg_vfimg, axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-NP.std(NP.mean(avg_vfimg, axis=2)))
     posplot = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
     ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
     # ax.set_xlim(vfimgobj.gridl.min(), vfimgobj.gridl.max())
@@ -242,7 +239,7 @@ with PyCallGraph(output=graphviz, config=config):
     
     fig = PLT.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
-    vfbeamplot = ax.imshow(NP.mean(vfimgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-0.1, vmax=1.0)
+    vfbeamplot = ax.imshow(NP.mean(vfimgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-NP.std(NP.mean(vfimgobj.beam['P11'], axis=2)), vmax=1.0)
     ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
     # ax.set_xlim(vfimgobj.gridl.min(), vfimgobj.gridl.max())  
     # ax.set_ylim(vfimgobj.gridm.min(), vfimgobj.gridm.max())
@@ -260,12 +257,9 @@ with PyCallGraph(output=graphviz, config=config):
 
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_psf_square_illumination.png'.format(max_n_timestamps), bbox_inches=0)
     
-    # fig, axs = PLT.subplots(ncols=2, nrows=1, sharex=True, sharey=True, figsize=(8,6))
-    # ant_based_psf = axs[0].imshow()
-
     fig = PLT.figure()
     ax = fig.add_subplot(111)
-    apsf = ax.imshow(aar_psf_info['syn_beam'][:,:,0], origin='lower', extent=[aar_psf_info['l'].min(), aar_psf_info['l'].max(), aar_psf_info['m'].min(), aar_psf_info['m'].max()], vmin=-0.2, vmax=aar_psf_info['syn_beam'].max())
+    apsf = ax.imshow(aar_psf_info['syn_beam'][:,:,0], origin='lower', extent=[aar_psf_info['l'].min(), aar_psf_info['l'].max(), aar_psf_info['m'].min(), aar_psf_info['m'].max()], vmin=-NP.std(aar_psf_info['syn_beam'][:,:,0]), vmax=aar_psf_info['syn_beam'].max())
     ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')    
     ax.set_xlim(-1,1)
     ax.set_ylim(-1,1)    
@@ -277,10 +271,11 @@ with PyCallGraph(output=graphviz, config=config):
     # PLT.tight_layout()
     fig.subplots_adjust(right=0.85)
     fig.subplots_adjust(top=0.88)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/quick_psf_via_MOFF.png'.format(max_n_timestamps), bbox_inches=0)
 
     fig = PLT.figure()
     ax = fig.add_subplot(111)
-    ipsf = ax.imshow(iar_psf_info['syn_beam'][:,:,0], origin='lower', extent=[iar_psf_info['l'].min(), iar_psf_info['l'].max(), iar_psf_info['m'].min(), iar_psf_info['m'].max()], vmin=-0.2, vmax=iar_psf_info['syn_beam'].max())
+    ipsf = ax.imshow(iar_psf_info['syn_beam'][:,:,0], origin='lower', extent=[iar_psf_info['l'].min(), iar_psf_info['l'].max(), iar_psf_info['m'].min(), iar_psf_info['m'].max()], vmin=-NP.std(iar_psf_info['syn_beam'][:,:,0]), vmax=iar_psf_info['syn_beam'].max())
     ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')    
     ax.set_xlim(-1,1)
     ax.set_ylim(-1,1)    
@@ -292,6 +287,7 @@ with PyCallGraph(output=graphviz, config=config):
     # PLT.tight_layout()
     fig.subplots_adjust(right=0.85)
     fig.subplots_adjust(top=0.88)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/quick_psf_via_FX.png'.format(max_n_timestamps), bbox_inches=0)
     
     fig = PLT.figure()
     ax = fig.add_subplot(111)
@@ -306,6 +302,7 @@ with PyCallGraph(output=graphviz, config=config):
     # PLT.tight_layout()
     fig.subplots_adjust(right=0.85)
     fig.subplots_adjust(top=0.88)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/quick_uvwts_via_MOFF.png'.format(max_n_timestamps), bbox_inches=0)    
 
     fig = PLT.figure()
     ax = fig.add_subplot(111)
@@ -320,5 +317,5 @@ with PyCallGraph(output=graphviz, config=config):
     # PLT.tight_layout()
     fig.subplots_adjust(right=0.85)
     fig.subplots_adjust(top=0.88)
-    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/quick_uvwts_via_FX.png'.format(max_n_timestamps), bbox_inches=0)        
     
