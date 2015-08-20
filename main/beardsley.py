@@ -125,11 +125,16 @@ for i in xrange(itr):
 
   aar.update(update_info, parallel=True, verbose=False, nproc=16)
 
-  # Apply calibration 
+  ### Calibration steps
+  # read in data array
   aar.caldata['P1']=aar.get_E_fields('P1')
   tempdata=aar.caldata['P1']['E-fields'][0,:,:]
+  # Use raw data to calibrate
+  calarr['P1'].update_cal(tempdata)
   amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
+  # Apply calibration to data
   tempdata=calarr['P1'].apply_cal(tempdata)
+  # Put back into antenna array
   #aar.caldata['P1']['E-fields'][0,:,:]=tempdata
 
   aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=True,pp_method='queue', nproc=16, cal_loop=True)
@@ -137,16 +142,8 @@ for i in xrange(itr):
   imgobj = AA.NewImage(antenna_array=aar, pol='P1')
   imgobj.imagr(weighting='natural',pol='P1')
 
-  # update calibration
-  if i == 0:
-    # get size of image
-    imgsize = imgobj.img['P1'][:,:,0].shape
-  imgdata = imgobj.img['P1'][imgsize[0]/2,imgsize[1]/2,:]
-  calarr['P1'].update_cal(tempdata,imgdata)
-
   if i == 0:
     avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
-    temp_im = NP.zeros((avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
     im_stack = NP.zeros((ncal,avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
     im_stack[cali,:,:] = avg_img[:,:,0]
     temp_im = avg_img[:,:,0]
@@ -160,10 +157,10 @@ for i in xrange(itr):
     hol_stack[i,:,:] = imgobj.img['P1'][:,:,0]
     
   else:
-    avg_img += NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
-    temp_im += NP.abs(imgobj.img['P1'][:,:,0])**2 - NP.nanmean(NP.abs(imgobj.img['P1'][:,:,0])**2)
+    avg_img += imgobj.img['P1']
+    temp_im += imgobj.img['P1'][:,:,0]
     temp_amp += NP.abs(tempdata[0,:])**2
-    hol_stack[i,:,:] = imgobj.img['P1'][:,:,0]
+    hol_stack[i,:,:] = imgobj.holimg['P1'][:,:,0]
     if i % cal_iter == 0:
       im_stack[cali,:,:] = temp_im/cal_iter
       temp_im[:] = 0.0
