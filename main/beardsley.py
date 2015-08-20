@@ -12,6 +12,7 @@ import MOFF_cal
 
 cal_iter=1
 itr = 20*cal_iter
+make_images=False
 
 
 # Antenna initialization
@@ -79,7 +80,7 @@ immax2 = np.zeros((itr,nchan,2)) #what's this
 # set up calibration
 calarr={}
 for pol in ['P1','P2']:
-  calarr[pol]=MOFF_cal.cal(ant_info.shape[0],nchan,n_iter=cal_iter,sim_mode=True,sky_model=NP.ones(1),gain_factor=0.8)
+  calarr[pol]=MOFF_cal.cal(ant_info.shape[0],nchan,n_iter=cal_iter,sim_mode=True,sky_model=NP.ones(1),gain_factor=0.65)
   calarr[pol].scramble_gains(0.5)
   calarr[pol].curr_gains[0,:] = NP.ones(nchan,dtype=NP.complex64)
   calarr[pol].sim_gains=calarr[pol].curr_gains
@@ -130,40 +131,45 @@ for i in xrange(itr):
   aar.caldata['P1']=aar.get_E_fields('P1')
   tempdata=aar.caldata['P1']['E-fields'][0,:,:]
   # Use raw data to calibrate
+  tempdata[:]=1
   calarr['P1'].update_cal(tempdata)
   amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
   # Apply calibration to data
-  tempdata=calarr['P1'].apply_cal(tempdata)
+  #tempdata=calarr['P1'].apply_cal(tempdata)
   # Put back into antenna array
   #aar.caldata['P1']['E-fields'][0,:,:]=tempdata
 
-  aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=True,pp_method='queue', nproc=16, cal_loop=True)
+  if make_images:
+    aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=True,pp_method='queue', nproc=16, cal_loop=True)
 
-  imgobj = AA.NewImage(antenna_array=aar, pol='P1')
-  imgobj.imagr(weighting='natural',pol='P1')
-
+    imgobj = AA.NewImage(antenna_array=aar, pol='P1')
+    imgobj.imagr(weighting='natural',pol='P1')
+    
   if i == 0:
-    avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
-    im_stack = NP.zeros((ncal,avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
-    im_stack[cali,:,:] = avg_img[:,:,0]
-    temp_im = avg_img[:,:,0]
+    if make_images:
+      avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
+      im_stack = NP.zeros((ncal,avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
+      im_stack[cali,:,:] = avg_img[:,:,0]
+      temp_im = avg_img[:,:,0]
+    
     temp_amp = NP.abs(tempdata[0,:])**2
     gain_stack[cali,:,:] = calarr['P1'].sim_gains
     amp_stack[cali,:] = NP.abs(tempdata[0,:])**2
     cali += 1
     gain_stack[cali,:,:] = calarr['P1'].curr_gains
     
-    hol_stack=NP.zeros((itr,avg_img.shape[0],avg_img.shape[1]),dtype=NP.complex64)
-    hol_stack[i,:,:] = imgobj.img['P1'][:,:,0]
     
   else:
-    avg_img += imgobj.img['P1']
-    temp_im += imgobj.img['P1'][:,:,0]
+    if make_images:
+      avg_img += imgobj.img['P1']
+      temp_im += imgobj.img['P1'][:,:,0]
+      
     temp_amp += NP.abs(tempdata[0,:])**2
-    hol_stack[i,:,:] = imgobj.holimg['P1'][:,:,0]
     if i % cal_iter == 0:
-      im_stack[cali,:,:] = temp_im/cal_iter
-      temp_im[:] = 0.0
+      if make_images:
+        im_stack[cali,:,:] = temp_im/cal_iter
+        temp_im[:] = 0.0
+
       gain_stack[cali,:,:] = calarr['P1'].curr_gains
       amp_stack[cali,:] = temp_amp/cal_iter
       temp_amp[:] = 0.0
@@ -175,7 +181,8 @@ for i in xrange(itr):
     print 'NAN in calibration gains! exiting!'
     break
 
-avg_img /= itr
+if make_images:
+  avg_img /= itr
 
 #fig = PLT.figure()
 #ax = fig.add_subplot(111)
