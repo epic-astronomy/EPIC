@@ -60,202 +60,251 @@ src_flux = NP.ones(n_src)
 
 with PyCallGraph(output=graphviz, config=config):
 
-    ants = []
-    aar = AA.AntennaArray()
-    for i in xrange(n_antennas):
-        ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])), lat, ant_info[i,1:], f0, nsamples=nts)
-        ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)
-        ants += [ant]
-        aar = aar + ant
+    # ants = []
+    # aar = AA.AntennaArray()
+    # for i in xrange(n_antennas):
+    #     ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])), lat, ant_info[i,1:], f0, nsamples=nts)
+    #     ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)
+    #     ants += [ant]
+    #     aar = aar + ant
     
-    aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
-    antpos_info = aar.antenna_positions(sort=True, centering=True)
+    # aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
+    # antpos_info = aar.antenna_positions(sort=True, centering=True)
     
-    immax2 = NP.zeros((max_n_timestamps,nchan,2))
-    for i in xrange(max_n_timestamps):
-        E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
-                                                        flux_ref=src_flux, skypos=skypos,
-                                                        antpos=antpos_info['positions'],
-                                                        tshift=False)
+    # immax2 = NP.zeros((max_n_timestamps,nchan,2))
+    # for i in xrange(max_n_timestamps):
+    #     E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
+    #                                                     flux_ref=src_flux, skypos=skypos,
+    #                                                     antpos=antpos_info['positions'],
+    #                                                     tshift=False)
         
-        ts = Time.now()
-        timestamp = ts.gps
-        update_info = {}
-        update_info['antennas'] = []
-        update_info['antenna_array'] = {}
-        update_info['antenna_array']['timestamp'] = timestamp
+    #     ts = Time.now()
+    #     timestamp = ts.gps
+    #     update_info = {}
+    #     update_info['antennas'] = []
+    #     update_info['antenna_array'] = {}
+    #     update_info['antenna_array']['timestamp'] = timestamp
 
-        print 'Consolidating Antenna updates...'
-        progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(n_antennas), PGB.ETA()], maxval=n_antennas).start()
-        antnum = 0
+    #     print 'Consolidating Antenna updates...'
+    #     progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(n_antennas), PGB.ETA()], maxval=n_antennas).start()
+    #     antnum = 0
 
-        for label in aar.antennas:
-            adict = {}
-            adict['label'] = label
-            adict['action'] = 'modify'
-            adict['timestamp'] = timestamp
-            ind = antpos_info['labels'].index(label)
-            adict['t'] = E_timeseries_dict['t']
-            adict['gridfunc_freq'] = 'scale'    
-            adict['gridmethod'] = 'NN'
-            adict['distNN'] = 3.0
-            adict['tol'] = 1.0e-6
-            adict['maxmatch'] = 1
-            adict['Et'] = {}
-            adict['flags'] = {}
-            adict['stack'] = True
-            adict['wtsinfo'] = {}
-            for pol in ['P1', 'P2']:
-                adict['flags'][pol] = False
-                adict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
-                # adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
-                adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
-            update_info['antennas'] += [adict]
+    #     for label in aar.antennas:
+    #         adict = {}
+    #         adict['label'] = label
+    #         adict['action'] = 'modify'
+    #         adict['timestamp'] = timestamp
+    #         ind = antpos_info['labels'].index(label)
+    #         adict['t'] = E_timeseries_dict['t']
+    #         adict['gridfunc_freq'] = 'scale'    
+    #         adict['gridmethod'] = 'NN'
+    #         adict['distNN'] = 3.0
+    #         adict['tol'] = 1.0e-6
+    #         adict['maxmatch'] = 1
+    #         adict['Et'] = {}
+    #         adict['flags'] = {}
+    #         adict['stack'] = True
+    #         adict['wtsinfo'] = {}
+    #         for pol in ['P1', 'P2']:
+    #             adict['flags'][pol] = False
+    #             adict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
+    #             # adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
+    #             adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+    #         update_info['antennas'] += [adict]
 
-            progress.update(antnum+1)
-            antnum += 1
-        progress.finish()
+    #         progress.update(antnum+1)
+    #         antnum += 1
+    #     progress.finish()
         
-        aar.update(update_info, parallel=True, verbose=True)
-        aar.grid_convolve(pol=None, method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, cal_loop=False, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')    
-        aar.make_grid_cube()
-        aar_psf_info = aar.quick_beam_synthesis(pol='P1', keep_zero_spacing=False)
+    #     aar.update(update_info, parallel=True, verbose=True)
+    #     aar.grid_convolve(pol=None, method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_antennas=True, cal_loop=False, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')    
+    #     aar.make_grid_cube()
+    #     aar_psf_info = aar.quick_beam_synthesis(pol='P1', keep_zero_spacing=False)
         
-        efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
-        efimgobj.imagr(weighting='uniform', pol='P1')
-        efimg = efimgobj.img['P1']
-        if i == 0:
-            avg_efimg = NP.copy(efimg)
-        else:
-            avg_efimg += NP.copy(efimg)
-        if NP.any(NP.isnan(avg_efimg)):
-            PDB.set_trace()
+    #     efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
+    #     efimgobj.imagr(weighting='uniform', pol='P1')
+    #     efimg = efimgobj.img['P1']
+    #     if i == 0:
+    #         avg_efimg = NP.copy(efimg)
+    #     else:
+    #         avg_efimg += NP.copy(efimg)
+    #     if NP.any(NP.isnan(avg_efimg)):
+    #         PDB.set_trace()
 
-    avg_efimg /= max_n_timestamps
-    beam = efimgobj.beam['P1']
+    # # Begin interferometry FX processing 
 
-    fig = PLT.figure(figsize=(8,6))
-    ax = fig.add_subplot(111)
-    efimgplot = ax.imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-NP.std(NP.mean(avg_efimg, axis=2)))
-    posplot = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
-    ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
-    
-    # ax.set_xlim(efimgobj.gridl.min(), efimgobj.gridl.max())
-    # ax.set_ylim(efimgobj.gridm.min(), efimgobj.gridm.max())
-    ax.set_xlim(-1,1)
-    ax.set_ylim(-1,1)    
-    ax.set_aspect('equal')
-    ax.set_xlabel('l', fontsize=18, weight='medium')
-    ax.set_ylabel('m', fontsize=18, weight='medium')    
-    
-    cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
-    cbar = fig.colorbar(efimgplot, cax=cbax, orientation='vertical')
-    cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
-    cbax.xaxis.set_label_position('top')
-    # PLT.tight_layout()
-    fig.subplots_adjust(right=0.85)
-    fig.subplots_adjust(top=0.88)
+    # iar = AA.InterferometerArray(antenna_array=aar)
+    # iar.refresh_antenna_pairs()
+    # iar.stack(on_flags=True, on_data=True, parallel=False, nproc=None)
+
+    # tbinsize = None
+    # iar.accumulate(tbinsize=tbinsize)
+    # interferometer_level_update_info = {}
+    # interferometer_level_update_info['interferometers'] = []
+    # for label in iar.interferometers:
+    #     idict = {}
+    #     idict['label'] = label
+    #     idict['timestamp'] = timestamp
+    #     idict['action'] = 'modify'
+    #     idict['gridfunc_freq'] = 'scale'
+    #     idict['gridmethod'] = 'NN'
+    #     idict['distNN'] = 0.5 * FCNST.c / f0
+    #     idict['tol'] = 1.0e-6
+    #     idict['maxmatch'] = 1
+    #     idict['wtsinfo'] = {}
+    #     for pol in ['P11', 'P12', 'P21', 'P22']:
+    #         idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+    #     interferometer_level_update_info['interferometers'] += [idict]    
         
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_random_source_positions_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
+    # iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
     
-    fig = PLT.figure(figsize=(8,6))
-    ax = fig.add_subplot(111)
-    efbeamplot = ax.imshow(NP.mean(beam, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-NP.std(NP.mean(beam, axis=2)), vmax=1.0)
-    ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
-    # ax.set_xlim(efimgobj.gridl.min(), efimgobj.gridl.max())  
-    # ax.set_ylim(efimgobj.gridm.min(), efimgobj.gridm.max())
-    ax.set_xlim(-1,1)
-    ax.set_ylim(-1,1)    
-    ax.set_aspect('equal')
-    ax.set_xlabel('l', fontsize=18, weight='medium')
-    ax.set_ylabel('m', fontsize=18, weight='medium')    
+    # iar.grid(uvpad=2*NP.max([ant_sizex, ant_sizey]))
+    # iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
+    # iar.make_grid_cube(pol='P11')
+    # iar_psf_info = iar.quick_beam_synthesis(pol='P11')
     
-    cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
-    cbar = fig.colorbar(efbeamplot, cax=cbax, orientation='vertical')
-    # PLT.tight_layout()
-    fig.subplots_adjust(right=0.85)
-    fig.subplots_adjust(top=0.88)
+    # avg_efimg /= max_n_timestamps
+    # beam_MOFF = efimgobj.beam['P1']
+    # img_rms_MOFF = NP.std(NP.mean(avg_efimg, axis=2))
+    # beam_rms_MOFF = NP.std(NP.mean(beam_MOFF, axis=2))
+    # img_max_MOFF = NP.max(NP.mean(avg_efimg, axis=2))
+
+    # vfimgobj = AA.NewImage(interferometer_array=iar, pol='P11')
+    # vfimgobj.imagr(weighting='natural', pol='P11')
+    # avg_vfimg = vfimgobj.img['P11']
+    # beam_FX = vfimgobj.beam['P11']
+    # img_rms_FX = NP.std(NP.mean(avg_vfimg, axis=2))
+    # beam_rms_FX = NP.std(NP.mean(beam_FX, axis=2))
+    # img_max_FX = NP.max(NP.mean(avg_vfimg, axis=2))
+
+    # min_img_rms = min([img_rms_MOFF, img_rms_FX])
+    # min_beam_rms = min([beam_rms_MOFF, beam_rms_FX])
+    # max_img = max([img_max_MOFF, img_max_FX])
     
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_psf_square_illumination.png'.format(max_n_timestamps), bbox_inches=0)
+    fig, axs = PLT.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
+    for i in range(2):
+        for j in range(2):
+            if i==0:
+                if j==0:
+                    efimgplot = axs[i,j].imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-5*min_img_rms, vmax=max_img)
+                else:
+                    vfimgplot = axs[i,j].imshow(NP.mean(avg_vfimg, axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-5*min_img_rms, vmax=max_img)
+                    cbax = fig.add_axes([0.92, 0.52, 0.02, 0.37])
+                    cbar = fig.colorbar(efimgplot, cax=cbax, orientation='vertical')
+                    cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+                    cbax.xaxis.set_label_position('top')
 
-    # Begin interferometry FX processing 
+                posplot = axs[i,j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+            else:
+                if j==0:
+                    efbeamplot = axs[i,j].imshow(NP.mean(beam_MOFF, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-5*min_beam_rms, vmax=1.0)
+                else:
+                    vfbeamplot = axs[i,j].imshow(NP.mean(vfimgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-5*min_beam_rms, vmax=1.0)
+                    cbax = fig.add_axes([0.92, 0.12, 0.02, 0.37])
+                    cbar = fig.colorbar(efbeamplot, cax=cbax, orientation='vertical')
 
-    iar = AA.InterferometerArray(antenna_array=aar)
-    iar.refresh_antenna_pairs()
-    iar.stack(on_flags=True, on_data=True, parallel=False, nproc=None)
+            axs[i,j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+            axs[i,j].set_xlim(-1,1)
+            axs[i,j].set_ylim(-1,1)    
+            axs[i,j].set_aspect('equal')
 
-    tbinsize = None
-    iar.accumulate(tbinsize=tbinsize)
-    interferometer_level_update_info = {}
-    interferometer_level_update_info['interferometers'] = []
-    for label in iar.interferometers:
-        idict = {}
-        idict['label'] = label
-        idict['timestamp'] = timestamp
-        idict['action'] = 'modify'
-        idict['gridfunc_freq'] = 'scale'
-        idict['gridmethod'] = 'NN'
-        idict['distNN'] = 0.5 * FCNST.c / f0
-        idict['tol'] = 1.0e-6
-        idict['maxmatch'] = 1
-        idict['wtsinfo'] = {}
-        for pol in ['P11', 'P12', 'P21', 'P22']:
-            idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
-        interferometer_level_update_info['interferometers'] += [idict]    
+    fig.subplots_adjust(hspace=0, wspace=0)
+    big_ax = fig.add_subplot(111)
+    big_ax.set_axis_bgcolor('none')
+    big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    big_ax.set_xticks([])
+    big_ax.set_yticks([])
+    big_ax.set_ylabel('l', fontsize=16, weight='medium', labelpad=30)
+    big_ax.set_xlabel('m', fontsize=16, weight='medium', labelpad=20)
+    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations.png'.format(n_src,max_n_timestamps), bbox_inches=0)
+
+    # fig = PLT.figure(figsize=(8,6))
+    # ax = fig.add_subplot(111)
+    # efimgplot = ax.imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-NP.std(NP.mean(avg_efimg, axis=2)))
+    # posplot = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+    # ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+    
+    # # ax.set_xlim(efimgobj.gridl.min(), efimgobj.gridl.max())
+    # # ax.set_ylim(efimgobj.gridm.min(), efimgobj.gridm.max())
+    # ax.set_xlim(-1,1)
+    # ax.set_ylim(-1,1)    
+    # ax.set_aspect('equal')
+    # ax.set_xlabel('l', fontsize=18, weight='medium')
+    # ax.set_ylabel('m', fontsize=18, weight='medium')    
+    
+    # cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
+    # cbar = fig.colorbar(efimgplot, cax=cbax, orientation='vertical')
+    # cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+    # cbax.xaxis.set_label_position('top')
+    # # PLT.tight_layout()
+    # fig.subplots_adjust(right=0.85)
+    # fig.subplots_adjust(top=0.88)
         
-    iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_random_source_positions_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
     
-    iar.grid(uvpad=2*NP.max([ant_sizex, ant_sizey]))
-    iar.grid_convolve(pol='P11', method='NN', distNN=0.5*FCNST.c/f0, tol=1.0e-6, maxmatch=1, identical_interferometers=True, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')
-    iar.make_grid_cube(pol='P11')
-    iar_psf_info = iar.quick_beam_synthesis(pol='P11')
+    # fig = PLT.figure(figsize=(8,6))
+    # ax = fig.add_subplot(111)
+    # efbeamplot = ax.imshow(NP.mean(beam, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), vmin=-, vmax=1.0)
+    # ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+    # # ax.set_xlim(efimgobj.gridl.min(), efimgobj.gridl.max())  
+    # # ax.set_ylim(efimgobj.gridm.min(), efimgobj.gridm.max())
+    # ax.set_xlim(-1,1)
+    # ax.set_ylim(-1,1)    
+    # ax.set_aspect('equal')
+    # ax.set_xlabel('l', fontsize=18, weight='medium')
+    # ax.set_ylabel('m', fontsize=18, weight='medium')    
     
-    vfimgobj = AA.NewImage(interferometer_array=iar, pol='P11')
-    vfimgobj.imagr(weighting='natural', pol='P11')
-    avg_vfimg = vfimgobj.img['P11']
+    # cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
+    # cbar = fig.colorbar(efbeamplot, cax=cbax, orientation='vertical')
+    # # PLT.tight_layout()
+    # fig.subplots_adjust(right=0.85)
+    # fig.subplots_adjust(top=0.88)
     
-    fig = PLT.figure(figsize=(8,6))
-    ax = fig.add_subplot(111)
-    vfimgplot = ax.imshow(NP.mean(avg_vfimg, axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-NP.std(NP.mean(avg_vfimg, axis=2)))
-    posplot = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
-    ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
-    # ax.set_xlim(vfimgobj.gridl.min(), vfimgobj.gridl.max())
-    # ax.set_ylim(vfimgobj.gridm.min(), vfimgobj.gridm.max())
-    ax.set_xlim(-1,1)
-    ax.set_ylim(-1,1)    
-    ax.set_aspect('equal')
-    ax.set_xlabel('l', fontsize=18, weight='medium')
-    ax.set_ylabel('m', fontsize=18, weight='medium')    
-    
-    cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
-    cbar = fig.colorbar(vfimgplot, cax=cbax, orientation='vertical')
-    cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
-    cbax.xaxis.set_label_position('top')
-    # PLT.tight_layout()
-    fig.subplots_adjust(right=0.85)
-    fig.subplots_adjust(top=0.88)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_psf_square_illumination.png'.format(max_n_timestamps), bbox_inches=0)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_image_random_source_positions_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
+    # fig = PLT.figure(figsize=(8,6))
+    # ax = fig.add_subplot(111)
+    # vfimgplot = ax.imshow(NP.mean(avg_vfimg, axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-NP.std(NP.mean(avg_vfimg, axis=2)))
+    # posplot = ax.plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+    # ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+    # # ax.set_xlim(vfimgobj.gridl.min(), vfimgobj.gridl.max())
+    # # ax.set_ylim(vfimgobj.gridm.min(), vfimgobj.gridm.max())
+    # ax.set_xlim(-1,1)
+    # ax.set_ylim(-1,1)    
+    # ax.set_aspect('equal')
+    # ax.set_xlabel('l', fontsize=18, weight='medium')
+    # ax.set_ylabel('m', fontsize=18, weight='medium')    
     
-    fig = PLT.figure(figsize=(8,6))
-    ax = fig.add_subplot(111)
-    vfbeamplot = ax.imshow(NP.mean(vfimgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-NP.std(NP.mean(vfimgobj.beam['P11'], axis=2)), vmax=1.0)
-    ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
-    # ax.set_xlim(vfimgobj.gridl.min(), vfimgobj.gridl.max())  
-    # ax.set_ylim(vfimgobj.gridm.min(), vfimgobj.gridm.max())
-    ax.set_xlim(-1,1)
-    ax.set_ylim(-1,1)    
-    ax.set_aspect('equal')
-    ax.set_xlabel('l', fontsize=18, weight='medium')
-    ax.set_ylabel('m', fontsize=18, weight='medium')    
-    
-    cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
-    cbar = fig.colorbar(vfbeamplot, cax=cbax, orientation='vertical')
-    # PLT.tight_layout()
-    fig.subplots_adjust(right=0.85)
-    fig.subplots_adjust(top=0.88)
+    # cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
+    # cbar = fig.colorbar(vfimgplot, cax=cbax, orientation='vertical')
+    # cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+    # cbax.xaxis.set_label_position('top')
+    # # PLT.tight_layout()
+    # fig.subplots_adjust(right=0.85)
+    # fig.subplots_adjust(top=0.88)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_psf_square_illumination.png'.format(max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_image_random_source_positions_{0:0d}_iterations.png'.format(max_n_timestamps), bbox_inches=0)
+    
+    # fig = PLT.figure(figsize=(8,6))
+    # ax = fig.add_subplot(111)
+    # vfbeamplot = ax.imshow(NP.mean(vfimgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), vmin=-NP.std(NP.mean(vfimgobj.beam['P11'], axis=2)), vmax=1.0)
+    # ax.plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+    # # ax.set_xlim(vfimgobj.gridl.min(), vfimgobj.gridl.max())  
+    # # ax.set_ylim(vfimgobj.gridm.min(), vfimgobj.gridm.max())
+    # ax.set_xlim(-1,1)
+    # ax.set_ylim(-1,1)    
+    # ax.set_aspect('equal')
+    # ax.set_xlabel('l', fontsize=18, weight='medium')
+    # ax.set_ylabel('m', fontsize=18, weight='medium')    
+    
+    # cbax = fig.add_axes([0.9, 0.125, 0.02, 0.74])
+    # cbar = fig.colorbar(vfbeamplot, cax=cbax, orientation='vertical')
+    # # PLT.tight_layout()
+    # fig.subplots_adjust(right=0.85)
+    # fig.subplots_adjust(top=0.88)
+
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_psf_square_illumination.png'.format(max_n_timestamps), bbox_inches=0)
     
     fig = PLT.figure()
     ax = fig.add_subplot(111)
