@@ -10,7 +10,10 @@ import my_DSP_modules as DSP
 import ipdb as PDB
 import MOFF_cal
 
-itr = 200
+cal_iter=1
+itr = 20*cal_iter
+make_images=True
+
 
 # Antenna initialization
 
@@ -42,6 +45,14 @@ dt = 1/bandwidth
 n_src = 1
 skypos = np.array([[0.0,0.0]])
 src_flux = np.ones(n_src)
+#n_src = 20
+#lmrad = NP.random.uniform(low=0.0, high=0.5, size=n_src).reshape(-1,1)
+#lmrad[0]=0
+#lmang = NP.random.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
+#lmang[0]=0
+# skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
+# src_flux = 0.1*NP.ones(n_src)
+# src_flux[0]=1
 
 nvect = np.sqrt(1.0-np.sum(skypos**2, axis=1)).reshape(-1,1) # what is this?
 skypos = np.hstack((skypos,nvect))
@@ -68,23 +79,25 @@ immax2 = np.zeros((itr,nchan,2)) #what's this
 
 # set up calibration
 calarr={}
-cal_iter=10
 for pol in ['P1','P2']:
-  calarr[pol]=MOFF_cal.cal(ant_info.shape[0],nchan,n_iter=cal_iter,sim_mode=True,sky_model=NP.sqrt(0.5)*NP.ones(1),gain_factor=0.2)
+  calarr[pol]=MOFF_cal.cal(ant_info.shape[0],nchan,n_iter=cal_iter,sim_mode=True,sky_model=NP.ones(1),gain_factor=0.65)
   calarr[pol].scramble_gains(0.5)
   calarr[pol].curr_gains[0,:] = NP.ones(nchan,dtype=NP.complex64)
   calarr[pol].sim_gains=calarr[pol].curr_gains
 ncal=itr/cal_iter
 cali=0
 # Create array of gains to watch them change
-gain_stack = NP.zeros((ncal,ant_info.shape[0],nchan),dtype=NP.complex64)
+gain_stack = NP.zeros((ncal+1,ant_info.shape[0],nchan),dtype=NP.complex64)
+amp_stack = NP.zeros((ncal+1,nchan),dtype=NP.float64)
+amp_full_stack = NP.zeros((itr,nchan),dtype=NP.float64)
+temp_amp = NP.zeros(nchan,dtype=NP.float64)
 
 for i in xrange(itr):
   print i
   # simulate
   E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
       flux_ref=src_flux, skypos=skypos, antpos=antpos_info['positions'],tshift=False)
-  
+
   timestamp = str(DT.datetime.now())
   update_info={}
   update_info['antennas']=[]
@@ -106,49 +119,70 @@ for i in xrange(itr):
     for pol in ['P1','P2']:
       adict['flags'][pol] = False
       adict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
-      #adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
       adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
 
     update_info['antennas'] += [adict]
 
   aar.update(update_info, parallel=True, verbose=False, nproc=16)
 
-  # Apply calibration 
+  ### Calibration steps
+  # read in data array
   aar.caldata['P1']=aar.get_E_fields('P1')
-  tempdata=aar.caldata['P1']['E-fields'][0,:,:]
-  tempdata=calarr['P1'].apply_cal(tempdata)
-  aar.caldata['P1']['E-fields'][0,:,:]=tempdata
+  tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
+  # Use raw data to calibrate
+  #tempdata[:]=1 # uncomment this line to make noise = 0
+  amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
+  # Apply calibration and put back into antenna array
+  aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata,inv=True)
+  
+  if make_images:
+    aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=False,pp_method='queue', nproc=16, cal_loop=True)
 
-  aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=True,pp_method='queue', nproc=16, cal_loop=True)
+    imgobj = AA.NewImage(antenna_array=aar, pol='P1')
+    imgobj.imagr(weighting='natural',pol='P1',pad='off')
 
-  imgobj = AA.NewImage(antenna_array=aar, pol='P1')
-  imgobj.imagr(weighting='natural',pol='P1')
-
-  # update calibration
+    # update calibration
+    imgdata = imgobj.holimg['P1'][imgobj.holimg['P1'].shape[0]/2,imgobj.holimg['P1'].shape[1]/2,:]
+    calarr['P1'].update_cal(tempdata,imgdata)
+    
   if i == 0:
-    # get size of image
-    imgsize = imgobj.img['P1'][:,:,0].shape
-  imgdata = imgobj.img['P1'][imgsize[0]/2,imgsize[1]/2,:]
-  calarr['P1'].update_cal(tempdata,imgdata)
-
-  if i == 0:
-    avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
-    im_stack = NP.zeros((ncal,avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
-    im_stack[cali,:,:] = NP.mean(NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2),axis=2)
-    gain_stack[cali,:,:] = calarr['P1'].curr_gains
+    if make_images:
+      avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
+      im_stack = NP.zeros((ncal,avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
+      im_stack[cali,:,:] = avg_img[:,:,0]
+      temp_im = avg_img[:,:,0]
+    
+    temp_amp = NP.abs(tempdata[0,:])**2
+    gain_stack[cali,:,:] = calarr['P1'].sim_gains
+    amp_stack[cali,:] = NP.abs(tempdata[0,:])**2
     cali += 1
+    gain_stack[cali,:,:] = calarr['P1'].curr_gains
+    
+    
   else:
-    avg_img += NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
+    if make_images:
+      avg_img += imgobj.img['P1']
+      temp_im += imgobj.img['P1'][:,:,0]
+      
+    temp_amp += NP.abs(tempdata[0,:])**2
     if i % cal_iter == 0:
-      im_stack[cali,:,:] = NP.mean(NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2),axis=2)
+      if make_images:
+        im_stack[cali,:,:] = temp_im/cal_iter
+        temp_im[:] = 0.0
+
       gain_stack[cali,:,:] = calarr['P1'].curr_gains
+      amp_stack[cali,:] = temp_amp/cal_iter
+      temp_amp[:] = 0.0
       cali += 1
+
+
 
   if True in NP.isnan(calarr['P1'].temp_gains):
     print 'NAN in calibration gains! exiting!'
     break
 
-avg_img /= itr
+if make_images:
+  avg_img /= itr
 
 #fig = PLT.figure()
 #ax = fig.add_subplot(111)
