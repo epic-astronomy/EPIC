@@ -12,7 +12,7 @@ import MOFF_cal
 
 cal_iter=1
 itr = 20*cal_iter
-make_images=False
+make_images=True
 
 
 # Antenna initialization
@@ -97,7 +97,7 @@ for i in xrange(itr):
   # simulate
   E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
       flux_ref=src_flux, skypos=skypos, antpos=antpos_info['positions'],tshift=False)
-  
+
   timestamp = str(DT.datetime.now())
   update_info={}
   update_info['antennas']=[]
@@ -119,7 +119,6 @@ for i in xrange(itr):
     for pol in ['P1','P2']:
       adict['flags'][pol] = False
       adict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
-      #adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
       adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
 
     update_info['antennas'] += [adict]
@@ -129,21 +128,22 @@ for i in xrange(itr):
   ### Calibration steps
   # read in data array
   aar.caldata['P1']=aar.get_E_fields('P1')
-  tempdata=aar.caldata['P1']['E-fields'][0,:,:]
+  tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
   # Use raw data to calibrate
-  tempdata[:]=1
-  calarr['P1'].update_cal(tempdata)
+  #tempdata[:]=1 # uncomment this line to make noise = 0
   amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
-  # Apply calibration to data
-  #tempdata=calarr['P1'].apply_cal(tempdata)
-  # Put back into antenna array
-  #aar.caldata['P1']['E-fields'][0,:,:]=tempdata
-
+  # Apply calibration and put back into antenna array
+  aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata,inv=True)
+  
   if make_images:
-    aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=True,pp_method='queue', nproc=16, cal_loop=True)
+    aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=False,pp_method='queue', nproc=16, cal_loop=True)
 
     imgobj = AA.NewImage(antenna_array=aar, pol='P1')
-    imgobj.imagr(weighting='natural',pol='P1')
+    imgobj.imagr(weighting='natural',pol='P1',pad='off')
+
+    # update calibration
+    imgdata = imgobj.holimg['P1'][imgobj.holimg['P1'].shape[0]/2,imgobj.holimg['P1'].shape[1]/2,:]
+    calarr['P1'].update_cal(tempdata,imgdata)
     
   if i == 0:
     if make_images:
