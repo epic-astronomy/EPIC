@@ -80,10 +80,9 @@ immax2 = np.zeros((itr,nchan,2)) #what's this
 # set up calibration
 calarr={}
 for pol in ['P1','P2']:
-  calarr[pol]=MOFF_cal.cal(ant_info.shape[0],nchan,n_iter=cal_iter,sim_mode=True,sky_model=NP.ones(1),gain_factor=0.65)
-  calarr[pol].scramble_gains(0.5)
-  calarr[pol].curr_gains[0,:] = NP.ones(nchan,dtype=NP.complex64)
-  calarr[pol].sim_gains=calarr[pol].curr_gains
+  calarr[pol]=MOFF_cal.cal(ant_info.shape[0],nchan,n_iter=cal_iter,sim_mode=True,sky_model=NP.ones(1),gain_factor=0.65,inv_gains=False)
+  #calarr[pol].scramble_gains(0.5) 
+  calarr[pol].sim_gains=calarr[pol].simulate_gains()
 ncal=itr/cal_iter
 cali=0
 # Create array of gains to watch them change
@@ -129,11 +128,11 @@ for i in xrange(itr):
   # read in data array
   aar.caldata['P1']=aar.get_E_fields('P1')
   tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
-  # Use raw data to calibrate
-  #tempdata[:]=1 # uncomment this line to make noise = 0
+  tempdata[:]=1 # uncomment this line to make noise = 0
+  tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
   amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
   # Apply calibration and put back into antenna array
-  aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata,inv=True)
+  aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata)
   
   if make_images:
     aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=False,pp_method='queue', nproc=16, cal_loop=True)
