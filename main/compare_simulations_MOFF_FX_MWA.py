@@ -13,12 +13,18 @@ from pycallgraph import PyCallGraph, Config, GlobbingFilter
 from pycallgraph.output import GraphvizOutput
 import ipdb as PDB
 
+config = Config(max_depth=5, groups=True)
+graphviz = GraphvizOutput(output_file='/data3/t_nithyanandan/project_MOFF/data/samples/figures/profile_graph_{0:0d}_iterations.png'.format(max_n_timestamps))
+config.trace_filter = GlobbingFilter(include=['antenna_array.*'])
+
 max_n_timestamps = 4
 
 # Antenna initialization
 
 lat = -26.701 # Latitude of MWA in degrees
 f0 = 150e6 # Center frequency
+nts = 8 # number of time samples in a time-series
+nchan = 2 * nts # number of frequency channels, factor 2 for padding before FFT
 
 antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
 ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3)) 
@@ -40,7 +46,6 @@ dy = 1.1 # dipole spacing along y
 ant_sizex = nx * dx
 ant_sizey = ny * dy
 
-nchan = 16
 f_center = f0
 channel_width = 40e3
 bandwidth = nchan * channel_width
@@ -65,7 +70,7 @@ with PyCallGraph(output=graphviz, config=config):
     aar = AA.AntennaArray()
     for i in xrange(n_antennas):
         ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])), lat, ant_info[i,1:], f0, nsamples=nts)
-        ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)
+        ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)<
         ants += [ant]
         aar = aar + ant
     
