@@ -13,13 +13,12 @@ import my_DSP_modules as DSP
 import my_operations as OPS
 from pycallgraph import PyCallGraph, Config, GlobbingFilter
 from pycallgraph.output import GraphvizOutput
-import ipdb as PDB
+
+max_n_timestamps = 4
 
 config = Config(max_depth=5, groups=True)
 graphviz = GraphvizOutput(output_file='/data3/t_nithyanandan/project_MOFF/data/samples/figures/profile_graph_{0:0d}_iterations.png'.format(max_n_timestamps))
 config.trace_filter = GlobbingFilter(include=['antenna_array.*'])
-
-max_n_timestamps = 4
 
 # Antenna initialization
 
@@ -57,21 +56,26 @@ dt = 1/bandwidth
 src_seed = 50
 rstate = NP.random.RandomState(src_seed)
 NP.random.seed(src_seed)
-n_src = 1
-lmrad = 0.0*NP.ones(n_src)
-lmang = NP.zeros(n_src)
-# n_src = 10
-# lmrad = rstate.uniform(low=0.0, high=0.2, size=n_src).reshape(-1,1)
-# lmang = rstate.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
+# n_src = 1
+# lmrad = 0.0*NP.ones(n_src)
+# lmang = NP.zeros(n_src)
+n_src = 10
+lmrad = rstate.uniform(low=0.0, high=0.2, size=n_src).reshape(-1,1)
+lmang = rstate.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
 skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
 src_flux = 10.0*NP.ones(n_src)
 
-kerntype = {'P1':'func', 'P2':'func'}
-kernshape = {'P1':'rect', 'P2':'rect'}
-kernshapeparms = {'P1':{'xmin':-0.5*ant_sizex, 'xmax':0.5*ant_sizex, 'ymin':-0.5*ant_sizey, 'ymax':0.5*ant_sizey, 'rotangle':0.0}, 'P2':{'xmin':-0.5*ant_sizex, 'xmax':0.5*ant_sizex, 'ymin':-0.5*ant_sizey, 'ymax':0.5*ant_sizey, 'rotangle':0.0}}
+# kerntype = {'P1':'func', 'P2':'func'}
+# kernshape = {'P1':'rect', 'P2':'rect'}
+# lookupinfo = None
+kerntype = {'P1': 'lookup', 'P2': 'lookup'}
+kernshape = None
+lookupinfo = {'P1': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt', 'P2': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}
 
-aprtr = aperture.AntennaAperture(kernel_type=kerntype, shape=kernshape, parms=kernshapeparms)
+kernshapeparms = {'P1':{'xmin':-0.5*ant_sizex, 'xmax':0.5*ant_sizex, 'ymin':-0.5*ant_sizey, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}, 'P2':{'xmin':-0.5*ant_sizex, 'xmax':0.5*ant_sizex, 'ymin':-0.5*ant_sizey, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}}
+
+aprtr = aperture.AntennaAperture(kernel_type=kerntype, shape=kernshape, parms=kernshapeparms, lkpinfo=lookupinfo, load_lookup=True)
 if identical_antennas:
     aprtrs = [aprtr] * n_antennas
 
@@ -115,7 +119,7 @@ with PyCallGraph(output=graphviz, config=config):
             adict['t'] = E_timeseries_dict['t']
             adict['gridfunc_freq'] = 'scale'    
             adict['gridmethod'] = 'NN'
-            adict['distNN'] = 4.0
+            adict['distNN'] = 0.5 * NP.sqrt(ant_sizex**2 + ant_sizey**2)
             adict['tol'] = 1.0e-6
             adict['maxmatch'] = 1
             adict['Et'] = {}
@@ -134,7 +138,7 @@ with PyCallGraph(output=graphviz, config=config):
         progress.finish()
         
         aar.update(update_info, parallel=True, verbose=True)
-        aar.grid_convolve_new(pol=None, method='NN', distNN=3.2, tol=1.0e-6, maxmatch=1, identical_antennas=False, cal_loop=False, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')    
+        aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), tol=1.0e-6, maxmatch=1, identical_antennas=False, cal_loop=False, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')    
         aar.make_grid_cube_new()
         efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         efimgobj.imagr(pol='P1', weighting='uniform', pad='on')
