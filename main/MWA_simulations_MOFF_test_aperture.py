@@ -73,7 +73,7 @@ kerntype = {'P1': 'lookup', 'P2': 'lookup'}
 kernshape = None
 lookupinfo = {'P1': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt', 'P2': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}
 
-kernshapeparms = {'P1':{'xmin':-0.5*ant_sizex, 'xmax':0.5*ant_sizex, 'ymin':-0.5*ant_sizey, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}, 'P2':{'xmin':-0.5*ant_sizex, 'xmax':0.5*ant_sizex, 'ymin':-0.5*ant_sizey, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}}
+kernshapeparms = {'P1':{'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}, 'P2':{'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}}
 
 aprtr = aperture.AntennaAperture(kernel_type=kerntype, shape=kernshape, parms=kernshapeparms, lkpinfo=lookupinfo, load_lookup=True)
 if identical_antennas:
