@@ -52,15 +52,15 @@ bandwidth = nchan * channel_width
 dt = 1/bandwidth
 
 src_seed = 50
+rstate = NP.random.RandomState(src_seed)
 NP.random.seed(src_seed)
-# # n_src = NP.random.poisson(lam=5)
-# n_src = 1
-# lmrad = NP.zeros(n_src)
-# lmang = NP.zeros(n_src)
-n_src = 10
-lmrad = NP.random.uniform(low=0.0, high=0.5, size=n_src).reshape(-1,1)
-lmang = NP.random.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
-skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
+n_src = 1
+lmrad = 0.0*NP.ones(n_src)
+lmang = NP.zeros(n_src)
+# n_src = 10
+# lmrad = NP.random.uniform(low=0.0, high=0.2, size=n_src).reshape(-1,1)
+# lmang = NP.random.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
+skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
 skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
 src_flux = 10.0*NP.ones(n_src)
 
@@ -70,7 +70,7 @@ with PyCallGraph(output=graphviz, config=config):
     aar = AA.AntennaArray()
     for i in xrange(n_antennas):
         ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])), lat, ant_info[i,1:], f0, nsamples=nts)
-        ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)<
+        ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)
         ants += [ant]
         aar = aar + ant
     
@@ -78,6 +78,7 @@ with PyCallGraph(output=graphviz, config=config):
     antpos_info = aar.antenna_positions(sort=True, centering=True)
     
     immax2 = NP.zeros((max_n_timestamps,nchan,2))
+    efimgmax = []
     for i in xrange(max_n_timestamps):
         E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
                                                         flux_ref=src_flux, skypos=skypos,
@@ -130,6 +131,7 @@ with PyCallGraph(output=graphviz, config=config):
         efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         efimgobj.imagr(pol='P1', weighting='uniform', pad='on')
         efimg = efimgobj.img['P1']
+        efimgmax += [efimg[tuple(NP.array(efimg.shape)/2)]]
         if i == 0:
             avg_efimg = NP.copy(efimg)
         else:
