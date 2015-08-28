@@ -66,8 +66,9 @@ skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
 skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
 src_flux = 10.0*NP.ones(n_src)
 
+pol_type = 'single'
 # kerntype = {'P1':'func', 'P2':'func'}
-# kernshape = {'P1':'rect', 'P2':'rect'}
+# kernshape = {'P1':'circular', 'P2':'circular'}
 # lookupinfo = None
 kerntype = {'P1': 'lookup', 'P2': 'lookup'}
 kernshape = None
@@ -75,7 +76,9 @@ lookupinfo = {'P1': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/looku
 
 kernshapeparms = {'P1':{'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}, 'P2':{'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}}
 
-aprtr = aperture.AntennaAperture(kernel_type=kerntype, shape=kernshape, parms=kernshapeparms, lkpinfo=lookupinfo, load_lookup=True)
+aprtr = aperture.AntennaAperture(pol_type=pol_type, kernel_type=kerntype,
+                                 shape=kernshape, parms=kernshapeparms,
+                                 lkpinfo=lookupinfo, load_lookup=True)
 if identical_antennas:
     aprtrs = [aprtr] * n_antennas
 
