@@ -10,10 +10,11 @@ import my_DSP_modules as DSP
 import ipdb as PDB
 import MOFF_cal
 
-cal_iter=1
+cal_iter=5
 itr = 20*cal_iter
 
-# Antenna initialization
+
+#### Antenna and array initialization
 
 lat = -26.701 # Latitude of MWA in degrees
 f0 = 150e6 # Center frequency
@@ -29,20 +30,6 @@ core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]
 ant_info = ant_info[core_ind,:]
 
 n_antennas = ant_info.shape[0]
-    
-nchan = 4
-f_center = f0
-channel_width = 40e3
-bandwidth = nchan * channel_width
-dt = 1/bandwidth
-
-# use a single point source off center
-n_src = 1
-skypos = np.array([[0.010929/2,0.0]]) # note that this gets switched in the images.
-src_flux = np.ones(n_src)
-
-nvect = np.sqrt(1.0-np.sum(skypos**2, axis=1)).reshape(-1,1) # what is this?
-skypos = np.hstack((skypos,nvect))
 
 # set up antenna array
 ants = []
@@ -56,21 +43,38 @@ for ant in ants:
 
 antpos_info = aar.antenna_positions(sort=True)
 
-# set up calibration
+nchan = 4
+f_center = f0
+channel_width = 40e3
+bandwidth = nchan * channel_width
+dt = 1/bandwidth
+freqs = arange(f0-nchan/2*channel_width,f0+nchan/2*channel_width,channel_width)
+
+
+#### Set up sky model
+
+# use a single point source for now
+n_src = 1
+skypos = np.array([[0.0,0.0]]) # note that this gets switched in the images.
+src_flux = NP.ones(n_src) # used for stochastic_E_timeseries
+
+nvect = np.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) # what is this?
+skypos = np.hstack((skypos,nvect))
+sky_model = NP.zeros((n_src,nchan,4))
+sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
+sky_model[:,:,3] = src_flux.reshape(n_src,1,1)
+
+####  set up calibration
 calarr={}
-sky_model=NP.zeros((3,n_src,nchan))
-for i in xrange(n_src):
-    sky_model[2,i,:]=src_flux[i]
-    sky_model[0,i,:]=skypos[i,0]
-    sky_model[1,i,:]=skypos[i,1]
-ant_info[:,1:] = ant_info[:,1:] / FCNST.c * f0
+ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
     
 for pol in ['P1','P2']:
-    calarr[pol]=MOFF_cal.cal(ant_info.shape[0],nchan,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.65,inv_gains=False,cal_method='off_center')
+    calarr[pol] = MOFF_cal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.65,pol=pol,cal_method='off_center',inv_gains=False)
     #calarr[pol].scramble_gains(0.5) 
+
+# Create array of gains to watch them change
 ncal=itr/cal_iter
 cali=0
-# Create array of gains to watch them change
 gain_stack = NP.zeros((ncal+1,ant_info.shape[0],nchan),dtype=NP.complex64)
 amp_stack = NP.zeros((ncal+1,nchan),dtype=NP.float64)
 amp_full_stack = NP.zeros((itr,nchan),dtype=NP.float64)
@@ -113,7 +117,7 @@ for i in xrange(itr):
     # read in data array
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
-    #tempdata[:,2]=tempdata[:,2]/NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0
+    #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0
     #tempdata[:,:]=1.0
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
     amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
@@ -126,12 +130,8 @@ for i in xrange(itr):
     imgobj.imagr(weighting='natural',pol='P1',pad='off',verbose=False)
 
     # update calibration
-    yind = NP.where(NP.abs(imgobj.gridl[0,:]-skypos[0][0])==NP.min(NP.abs(imgobj.gridl[0,:]-skypos[0][0])))
-    xind = NP.where(NP.abs(imgobj.gridm[:,0]-skypos[0][1])==NP.min(NP.abs(imgobj.gridm[:,0]-skypos[0][1])))
-    imgdata = imgobj.holimg['P1'][xind,yind,:]
-    imgdata = imgdata.flatten()
-    # TODO: Add frequency dependence of antenna locations! 
-    calarr['P1'].update_cal(tempdata,imgdata,calarr['P1'].sky_model,antpos_info['positions'] / FCNST.c * f0)
+    # TODO: Correct for non-pixel centered sources
+    calarr['P1'].update_cal(tempdata,imgobj,0)
     
     if i == 0:
         avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
