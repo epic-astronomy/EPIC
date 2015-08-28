@@ -67,12 +67,12 @@ skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).resha
 src_flux = 10.0*NP.ones(n_src)
 
 pol_type = 'single'
-# kerntype = {'P1':'func', 'P2':'func'}
-# kernshape = {'P1':'circular', 'P2':'circular'}
-# lookupinfo = None
-kerntype = {'P1': 'lookup', 'P2': 'lookup'}
-kernshape = None
-lookupinfo = {'P1': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt', 'P2': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}
+kerntype = {'P1':'func', 'P2':'func'}
+kernshape = {'P1':'rect', 'P2':'rect'}
+lookupinfo = None
+# kerntype = {'P1': 'lookup', 'P2': 'lookup'}
+# kernshape = None
+# lookupinfo = {'P1': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt', 'P2': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}
 
 kernshapeparms = {'P1':{'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}, 'P2':{'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}}
 
@@ -140,8 +140,8 @@ with PyCallGraph(output=graphviz, config=config):
         progress.finish()
         
         aar.update(update_info, parallel=True, verbose=True)
-        aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), tol=1.0e-6, maxmatch=1, identical_antennas=False, cal_loop=False, gridfunc_freq='scale', mapping='weighted', wts_change=False, parallel=True, pp_method='pool')    
-        aar.make_grid_cube_new()
+        aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')    
+        # aar.make_grid_cube_new()
         efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         efimgobj.imagr(pol='P1', weighting='uniform', pad='on')
         efimg = efimgobj.img['P1']
