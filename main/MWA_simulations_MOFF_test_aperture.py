@@ -66,7 +66,7 @@ skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
 skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
 src_flux = 10.0*NP.ones(n_src)
 
-pol_type = 'single'
+pol_type = 'dual'
 kerntype = {'P1':'func', 'P2':'func'}
 kernshape = {'P1':'rect', 'P2':'rect'}
 lookupinfo = None
