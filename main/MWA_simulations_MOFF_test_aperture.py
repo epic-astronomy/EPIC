@@ -6,7 +6,7 @@ import scipy.constants as FCNST
 import progressbar as PGB
 import copy
 import antenna_array as AA
-import aperture 
+import aperture as APR
 import geometry as GEOM
 import sim_observe as SIM
 import my_DSP_modules as DSP
@@ -76,9 +76,8 @@ lookupinfo = {'P1': '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/looku
 
 kernshapeparms = {'P1':{'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}, 'P2':{'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0}}
 
-aprtr = aperture.AntennaAperture(pol_type=pol_type, kernel_type=kerntype,
-                                 shape=kernshape, parms=kernshapeparms,
-                                 lkpinfo=lookupinfo, load_lookup=True)
+aprtr = APR.Aperture(pol_type=pol_type, kernel_type=kerntype, shape=kernshape,
+                     parms=kernshapeparms, lkpinfo=lookupinfo, load_lookup=True)
 if identical_antennas:
     aprtrs = [aprtr] * n_antennas
 
