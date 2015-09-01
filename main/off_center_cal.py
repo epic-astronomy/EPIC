@@ -10,7 +10,7 @@ import my_DSP_modules as DSP
 import ipdb as PDB
 import MOFF_cal
 
-cal_iter=5
+cal_iter=10
 itr = 20*cal_iter
 
 
@@ -55,21 +55,26 @@ freqs = arange(f0-nchan/2*channel_width,f0+nchan/2*channel_width,channel_width)
 
 # use a single point source for now
 n_src = 1
-skypos = np.array([[0.0,0.0]]) # note that this gets switched in the images.
-src_flux = NP.ones(n_src) # used for stochastic_E_timeseries
+lmrad = NP.random.uniform(low=0.0,high=0.3,size=n_src).reshape(-1,1)
+lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
+lmrad[0] = 0.0
+skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
+src_flux = NP.ones(n_src)
+#src_flux[1]=0.5
 
-nvect = np.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) # what is this?
+nvect = np.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) 
 skypos = np.hstack((skypos,nvect))
+
 sky_model = NP.zeros((n_src,nchan,4))
 sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
-sky_model[:,:,3] = src_flux.reshape(n_src,1,1)
+sky_model[:,:,3] = src_flux.reshape(n_src,1)
 
 ####  set up calibration
 calarr={}
 ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
     
 for pol in ['P1','P2']:
-    calarr[pol] = MOFF_cal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.65,pol=pol,cal_method='off_center',inv_gains=False)
+    calarr[pol] = MOFF_cal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
     #calarr[pol].scramble_gains(0.5) 
 
 # Create array of gains to watch them change
@@ -117,8 +122,7 @@ for i in xrange(itr):
     # read in data array
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
-    #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0
-    #tempdata[:,:]=1.0
+    #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
     amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
     # Apply calibration and put back into antenna array
