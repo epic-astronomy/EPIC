@@ -13,11 +13,11 @@ from pycallgraph import PyCallGraph, Config, GlobbingFilter
 from pycallgraph.output import GraphvizOutput
 import ipdb as PDB
 
+max_n_timestamps = 4
+
 config = Config(max_depth=5, groups=True)
 graphviz = GraphvizOutput(output_file='/data3/t_nithyanandan/project_MOFF/data/samples/figures/profile_graph_{0:0d}_iterations.png'.format(max_n_timestamps))
 config.trace_filter = GlobbingFilter(include=['antenna_array.*'])
-
-max_n_timestamps = 4
 
 # Antenna initialization
 
@@ -77,7 +77,6 @@ with PyCallGraph(output=graphviz, config=config):
     aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
     antpos_info = aar.antenna_positions(sort=True, centering=True)
     
-    immax2 = NP.zeros((max_n_timestamps,nchan,2))
     efimgmax = []
     for i in xrange(max_n_timestamps):
         E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
