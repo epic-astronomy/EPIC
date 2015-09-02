@@ -53,12 +53,12 @@ freqs = arange(f0-nchan/2*channel_width,f0+nchan/2*channel_width,channel_width)
 
 #### Set up sky model
 
-# use a single point source for now
 n_src = 1
 lmrad = NP.random.uniform(low=0.0,high=0.3,size=n_src).reshape(-1,1)
 lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
 lmrad[0] = 0.0
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
+#skypos=NP.array([[0.010929343053842994,0.0]])
 src_flux = NP.ones(n_src)
 #src_flux[1]=0.5
 
