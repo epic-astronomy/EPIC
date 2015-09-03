@@ -12,6 +12,7 @@ import MOFF_cal
 
 cal_iter=10
 itr = 20*cal_iter
+rxr_noise = 0.05
 
 
 #### Antenna and array initialization
@@ -19,12 +20,17 @@ itr = 20*cal_iter
 lat = -26.701 # Latitude of MWA in degrees
 f0 = 150e6 # Center frequency
 
-antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
+# ** Use this for MWA core
+#antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
+
+# ** Use this for LWA
+antenna_file = '/home/beards/inst_config/LWA_antenna_locs.txt'
+
 ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3))
-ant_info[:,1] -= NP.mean(ant_info[:,1])
-ant_info[:,2] -= NP.mean(ant_info[:,2])
+ant_info[:,0] -= NP.mean(ant_info[:,1])
+ant_info[:,1] -= NP.mean(ant_info[:,2])
 #ant_info[:,3] -= NP.mean(ant_info[:,3])
-ant_info[:,3] = 0.0
+ant_info[:,2] = 0.0
 
 core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]) < 150.0))
 ant_info = ant_info[core_ind,:]
@@ -122,7 +128,8 @@ for i in xrange(itr):
     # read in data array
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
-    #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
+    tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
+    tempdata += NP.random.normal(loc=0.0, scale=rxr_noise, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=rxr_noise, size=tempdata.shape)
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
     amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
     # Apply calibration and put back into antenna array
