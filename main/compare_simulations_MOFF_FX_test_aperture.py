@@ -161,7 +161,7 @@ with PyCallGraph(output=graphviz, config=config):
             aar_psf_info = aar.quick_beam_synthesis_new(pol='P1', keep_zero_spacing=False)
 
         efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
-        efimgobj.imagr(pol='P1', weighting='uniform', pad='on')
+        efimgobj.imagr(pol='P1', weighting='uniform', pad='on', stack=False)
         efimg = efimgobj.img['P1']
         efimgmax += [efimg[tuple(NP.array(efimg.shape)/2)]]
         if i == 0:
@@ -213,7 +213,7 @@ with PyCallGraph(output=graphviz, config=config):
     img_max_MOFF = NP.max(NP.mean(avg_efimg, axis=2))
 
     vfimgobj = AA.NewImage(interferometer_array=iar, pol='P11')
-    vfimgobj.imagr(pol='P11', weighting='natural', pad='on')
+    vfimgobj.imagr(pol='P11', weighting='natural', pad='on', stack=False)
     avg_vfimg = vfimgobj.img['P11']
     beam_FX = vfimgobj.beam['P11']
     img_rms_FX = NP.std(NP.mean(avg_vfimg, axis=2))
