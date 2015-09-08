@@ -27,10 +27,10 @@ f0 = 150e6 # Center frequency
 antenna_file = '/home/beards/inst_config/LWA_antenna_locs.txt'
 
 ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3))
-ant_info[:,0] -= NP.mean(ant_info[:,1])
-ant_info[:,1] -= NP.mean(ant_info[:,2])
+ant_info[:,1] -= NP.mean(ant_info[:,1])
+ant_info[:,2] -= NP.mean(ant_info[:,2])
 #ant_info[:,3] -= NP.mean(ant_info[:,3])
-ant_info[:,2] = 0.0
+ant_info[:,3] = 0.0
 
 core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]) < 150.0))
 ant_info = ant_info[core_ind,:]
@@ -59,14 +59,13 @@ freqs = arange(f0-nchan/2*channel_width,f0+nchan/2*channel_width,channel_width)
 
 #### Set up sky model
 
-n_src = 1
+n_src = 500 # include a lot of sources in sim, but only model one.
 lmrad = NP.random.uniform(low=0.0,high=0.3,size=n_src).reshape(-1,1)
 lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
 lmrad[0] = 0.0
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
-#skypos=NP.array([[0.010929343053842994,0.0]])
-src_flux = NP.ones(n_src)
-#src_flux[1]=0.5
+src_flux = NP.random.uniform(low=0,high=0.01,size=n_src)
+src_flux[0]=1.0
 
 nvect = np.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) 
 skypos = np.hstack((skypos,nvect))
@@ -74,13 +73,14 @@ skypos = np.hstack((skypos,nvect))
 sky_model = NP.zeros((n_src,nchan,4))
 sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
 sky_model[:,:,3] = src_flux.reshape(n_src,1)
+sky_model=sky_model[0,:,:].reshape(1,nchan,4)
 
 ####  set up calibration
 calarr={}
 ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
     
 for pol in ['P1','P2']:
-    calarr[pol] = MOFF_cal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
+    calarr[pol] = MOFF_cal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='off_center',inv_gains=False)
     #calarr[pol].scramble_gains(0.5) 
 
 # Create array of gains to watch them change
@@ -129,12 +129,12 @@ for i in xrange(itr):
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
     tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
-    tempdata += NP.random.normal(loc=0.0, scale=rxr_noise, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=rxr_noise, size=tempdata.shape)
+    #tempdata += NP.random.normal(loc=0.0, scale=rxr_noise, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=rxr_noise, size=tempdata.shape)
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
-    amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
+    #amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
     # Apply calibration and put back into antenna array
     aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata)
-
+    
     aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=False,pp_method='queue', nproc=16, cal_loop=True,verbose=False)
 
     imgobj = AA.NewImage(antenna_array=aar, pol='P1')
@@ -145,10 +145,10 @@ for i in xrange(itr):
     calarr['P1'].update_cal(tempdata,imgobj,0)
     
     if i == 0:
-        avg_img = NP.abs(imgobj.img['P1'])**2 - NP.nanmean(NP.abs(imgobj.img['P1'])**2)
+        avg_img = imgobj.img['P1'].copy()
         im_stack = NP.zeros((ncal,avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
-        im_stack[cali,:,:] = avg_img[:,:,0]
-        temp_im = avg_img[:,:,0]
+        im_stack[cali,:,:] = avg_img[:,:,2].copy()
+        temp_im = avg_img[:,:,2]
     
         temp_amp = NP.abs(tempdata[0,:])**2
         gain_stack[cali,:,:] = calarr['P1'].sim_gains
@@ -157,9 +157,9 @@ for i in xrange(itr):
         gain_stack[cali,:,:] = calarr['P1'].curr_gains
     
     else:
-        avg_img += imgobj.img['P1']
-        temp_im += imgobj.img['P1'][:,:,0]
-      
+        avg_img = avg_img+imgobj.img['P1'].copy()
+        temp_im = temp_im+imgobj.img['P1'][:,:,2].copy()
+        
         temp_amp += NP.abs(tempdata[0,:])**2
         if i % cal_iter == 0:
             im_stack[cali,:,:] = temp_im/cal_iter
