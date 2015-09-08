@@ -177,6 +177,7 @@ with PyCallGraph(output=graphviz, config=config):
             PDB.set_trace()
 
     efimgobj.accumulate(tbinsize=MOFF_tbinsize)
+    efimgobj.evalAutoCorr(forceeval=True)
         
     # Begin interferometry FX processing 
 
