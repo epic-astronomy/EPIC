@@ -178,6 +178,7 @@ with PyCallGraph(output=graphviz, config=config):
 
     efimgobj.accumulate(tbinsize=MOFF_tbinsize)
     efimgobj.evalAutoCorr(forceeval=True)
+    efimgobj.removeAutoCorr(forceeval=True, datapool='current')
         
     # Begin interferometry FX processing 
 
