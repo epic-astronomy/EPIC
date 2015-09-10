@@ -1,5 +1,6 @@
 from astropy.time import Time
 import numpy as NP
+import copy
 import matplotlib.pyplot as PLT
 import matplotlib.colors as PLTC
 from matplotlib import ticker
@@ -166,20 +167,23 @@ with PyCallGraph(output=graphviz, config=config):
         else:
             efimgobj.update(antenna_array=aar, reset=True)
         efimgobj.imagr(pol='P1', weighting='natural', pad='on', stack=True)
-        # efimgobj.stack(pol='P1')
-        efimg = efimgobj.img['P1']
-        efimgmax += [efimg[tuple(NP.array(efimg.shape)/2)]]
-        if i == 0:
-            avg_efimg = NP.copy(efimg)
-        else:
-            avg_efimg += NP.copy(efimg)
-        if NP.any(NP.isnan(avg_efimg)):
-            PDB.set_trace()
+        # # efimgobj.stack(pol='P1')
+        # efimg = efimgobj.img['P1']
+        # efimgmax += [efimg[tuple(NP.array(efimg.shape)/2)]]
+        # if i == 0:
+        #     avg_efimg = NP.copy(efimg)
+        # else:
+        #     avg_efimg += NP.copy(efimg)
+        # if NP.any(NP.isnan(avg_efimg)):
+        #     PDB.set_trace()
 
     efimgobj.accumulate(tbinsize=MOFF_tbinsize)
     efimgobj.evalAutoCorr(forceeval=True)
-    efimgobj.removeAutoCorr(forceeval=True, datapool='current')
-        
+    efimgobj.removeAutoCorr(forceeval=True, datapool='avg')
+    avg_efimg = efimgobj.nzsp_img_avg['P1']
+    if avg_efimg.ndim == 4:
+        avg_efimg = avg_efimg[0,:,:,:]
+
     # Begin interferometry FX processing 
 
     iar = AA.InterferometerArray(antenna_array=aar)
@@ -215,8 +219,10 @@ with PyCallGraph(output=graphviz, config=config):
     iar.make_grid_cube_new(pol='P11')
     iar_psf_info = iar.quick_beam_synthesis(pol='P11')
     
-    avg_efimg /= max_n_timestamps
-    beam_MOFF = efimgobj.beam['P1']
+    # avg_efimg /= max_n_timestamps
+    beam_MOFF = efimgobj.beam_avg['P1']
+    if beam_MOFF.ndim == 4:
+        beam_MOFF = beam_MOFF[0,:,:,:]
     img_rms_MOFF = NP.std(NP.mean(avg_efimg, axis=2))
     beam_rms_MOFF = NP.std(NP.mean(beam_MOFF, axis=2))
     img_max_MOFF = NP.max(NP.mean(avg_efimg, axis=2))
@@ -288,50 +294,50 @@ with PyCallGraph(output=graphviz, config=config):
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.png'.format(n_src,max_n_timestamps), bbox_inches=0)
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
 
-    fig, axs = PLT.subplots(ncols=2, sharex=True, sharey=True, figsize=(9,4.5))
-    for j in range(2):
-        if j==0:
-            efimgplot1 = axs[j].imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=[efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()], interpolation='none', vmin=-5*min_img_rms, vmax=img_max_MOFF)
-            posplot = axs[j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
-            axs[j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+    # fig, axs = PLT.subplots(ncols=2, sharex=True, sharey=True, figsize=(9,4.5))
+    # for j in range(2):
+    #     if j==0:
+    #         efimgplot1 = axs[j].imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=[efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()], interpolation='none', vmin=-5*min_img_rms, vmax=img_max_MOFF)
+    #         posplot = axs[j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+    #         axs[j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
 
-            cbax = fig.add_axes([0.13, 0.91, 0.32, 0.02])
-            cbar = fig.colorbar(efimgplot1, cax=cbax, orientation='horizontal')
-            cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
-            cbax.xaxis.set_label_position('top')
-            tick_locator = ticker.MaxNLocator(nbins=5)
-            cbar.locator = tick_locator
-            cbar.update_ticks()
-        else:
-            efimgplot2 = axs[j].imshow(NP.mean(efimgobj.img_avg['P1'][0,:,:,:], axis=2), aspect='equal', origin='lower', extent=[efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()], interpolation='none', vmin=-5*min_img_rms, vmax=NP.max(NP.mean(efimgobj.img_avg['P1'][0,:,:,:],axis=2)))
-            posplot = axs[j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
-            axs[j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+    #         cbax = fig.add_axes([0.13, 0.91, 0.32, 0.02])
+    #         cbar = fig.colorbar(efimgplot1, cax=cbax, orientation='horizontal')
+    #         cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+    #         cbax.xaxis.set_label_position('top')
+    #         tick_locator = ticker.MaxNLocator(nbins=5)
+    #         cbar.locator = tick_locator
+    #         cbar.update_ticks()
+    #     else:
+    #         efimgplot2 = axs[j].imshow(NP.mean(efimgobj.img_avg['P1'][0,:,:,:], axis=2), aspect='equal', origin='lower', extent=[efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()], interpolation='none', vmin=-5*min_img_rms, vmax=NP.max(NP.mean(efimgobj.img_avg['P1'][0,:,:,:],axis=2)))
+    #         posplot = axs[j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+    #         axs[j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
 
-            cbax = fig.add_axes([0.53, 0.91, 0.32, 0.02])
-            cbar = fig.colorbar(efimgplot2, cax=cbax, orientation='horizontal')
-            cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
-            cbax.xaxis.set_label_position('top')
-            tick_locator = ticker.MaxNLocator(nbins=5)
-            cbar.locator = tick_locator
-            cbar.update_ticks()
+    #         cbax = fig.add_axes([0.53, 0.91, 0.32, 0.02])
+    #         cbar = fig.colorbar(efimgplot2, cax=cbax, orientation='horizontal')
+    #         cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+    #         cbax.xaxis.set_label_position('top')
+    #         tick_locator = ticker.MaxNLocator(nbins=5)
+    #         cbar.locator = tick_locator
+    #         cbar.update_ticks()
       
-        axs[j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
-        axs[j].set_xlim(-0.9,0.9)
-        axs[j].set_ylim(-0.9,0.9)    
-        axs[j].set_aspect('equal')
+    #     axs[j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+    #     axs[j].set_xlim(-0.9,0.9)
+    #     axs[j].set_ylim(-0.9,0.9)    
+    #     axs[j].set_aspect('equal')
 
-    fig.subplots_adjust(hspace=0, wspace=0)
-    fig.subplots_adjust(left=0.1, top=0.85, right=0.9, bottom=0.1)
-    big_ax = fig.add_subplot(111)
-    big_ax.set_axis_bgcolor('none')
-    big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    big_ax.set_xticks([])
-    big_ax.set_yticks([])
-    big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
-    big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
+    # fig.subplots_adjust(hspace=0, wspace=0)
+    # fig.subplots_adjust(left=0.1, top=0.85, right=0.9, bottom=0.1)
+    # big_ax = fig.add_subplot(111)
+    # big_ax.set_axis_bgcolor('none')
+    # big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    # big_ax.set_xticks([])
+    # big_ax.set_yticks([])
+    # big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
+    # big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
     
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_stacking_test_{0:0d}_random_source_positions_{1:0d}_iterations.png'.format(n_src,max_n_timestamps), bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_stacking_test_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_stacking_test_{0:0d}_random_source_positions_{1:0d}_iterations.png'.format(n_src,max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_stacking_test_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
 
     # fig = PLT.figure(figsize=(8,6))
     # ax = fig.add_subplot(111)
@@ -554,40 +560,40 @@ with PyCallGraph(output=graphviz, config=config):
 
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_uvwts_test_aperture.png', bbox_inches=0)
     
-    fig, axs = PLT.subplots(nrows=1, ncols=2, figsize=(9,4.5), sharey=True)
-    for j in range(2):
-        if j == 0:
-            agi = axs[j].imshow(NP.abs(aar.grid_illumination['P1'][:,:,8]), origin='lower', extent=(aar.gridu.min(), aar.gridu.max(), aar.gridv.min(), aar.gridv.max()), interpolation='none', vmin=0.0, vmax=NP.abs(aar.grid_illumination['P1'][:,:,8]).max())
-            axs[j].set_xlim(aar.gridu.min(), aar.gridu.max())
-            axs[j].set_ylim(aar.gridv.min(), aar.gridv.max())
-            cbax = fig.add_axes([0.13, 0.93, 0.35, 0.02])
-            cbar = fig.colorbar(agi, cax=cbax, orientation='horizontal')
-            cbax.xaxis.set_label_position('top')
-            tick_locator = ticker.MaxNLocator(nbins=5)
-            cbar.locator = tick_locator
-            cbar.update_ticks()
-        else:
-            igi = axs[j].imshow(NP.abs(iar.grid_illumination['P11'][:,:,8]), origin='lower', extent=(iar.gridu.min(), iar.gridu.max(), iar.gridv.min(), iar.gridv.max()), interpolation='none', vmin=0.0, vmax=NP.abs(iar.grid_illumination['P11'][:,:,8]).max())
-            axs[j].set_xlim(aar.gridu.min(), aar.gridu.max())
-            axs[j].set_ylim(aar.gridv.min(), aar.gridv.max())
-            cbax = fig.add_axes([0.52, 0.93, 0.35, 0.02])
-            cbar = fig.colorbar(igi, cax=cbax, orientation='horizontal')
-            cbax.xaxis.set_label_position('top')
-            tick_locator = ticker.MaxNLocator(nbins=5)
-            cbar.locator = tick_locator
-            cbar.update_ticks()
+    # fig, axs = PLT.subplots(nrows=1, ncols=2, figsize=(9,4.5), sharey=True)
+    # for j in range(2):
+    #     if j == 0:
+    #         agi = axs[j].imshow(NP.abs(aar.grid_illumination['P1'][:,:,8]), origin='lower', extent=(aar.gridu.min(), aar.gridu.max(), aar.gridv.min(), aar.gridv.max()), interpolation='none', vmin=0.0, vmax=NP.abs(aar.grid_illumination['P1'][:,:,8]).max())
+    #         axs[j].set_xlim(aar.gridu.min(), aar.gridu.max())
+    #         axs[j].set_ylim(aar.gridv.min(), aar.gridv.max())
+    #         cbax = fig.add_axes([0.13, 0.93, 0.35, 0.02])
+    #         cbar = fig.colorbar(agi, cax=cbax, orientation='horizontal')
+    #         cbax.xaxis.set_label_position('top')
+    #         tick_locator = ticker.MaxNLocator(nbins=5)
+    #         cbar.locator = tick_locator
+    #         cbar.update_ticks()
+    #     else:
+    #         igi = axs[j].imshow(NP.abs(iar.grid_illumination['P11'][:,:,8]), origin='lower', extent=(iar.gridu.min(), iar.gridu.max(), iar.gridv.min(), iar.gridv.max()), interpolation='none', vmin=0.0, vmax=NP.abs(iar.grid_illumination['P11'][:,:,8]).max())
+    #         axs[j].set_xlim(aar.gridu.min(), aar.gridu.max())
+    #         axs[j].set_ylim(aar.gridv.min(), aar.gridv.max())
+    #         cbax = fig.add_axes([0.52, 0.93, 0.35, 0.02])
+    #         cbar = fig.colorbar(igi, cax=cbax, orientation='horizontal')
+    #         cbax.xaxis.set_label_position('top')
+    #         tick_locator = ticker.MaxNLocator(nbins=5)
+    #         cbar.locator = tick_locator
+    #         cbar.update_ticks()
 
-        # axs[j].set_xlabel('u', fontsize=18, weight='medium')
-        # axs[j].set_ylabel('v', fontsize=18, weight='medium')
+    #     # axs[j].set_xlabel('u', fontsize=18, weight='medium')
+    #     # axs[j].set_ylabel('v', fontsize=18, weight='medium')
             
-    fig.subplots_adjust(wspace=0)
-    fig.subplots_adjust(left=0.1, top=0.88, right=0.9, bottom=0.1)
-    big_ax = fig.add_subplot(111)
-    big_ax.set_axis_bgcolor('none')
-    big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    big_ax.set_xticks([])
-    big_ax.set_yticks([])
-    big_ax.set_ylabel('v', fontsize=16, weight='medium', labelpad=30)
-    big_ax.set_xlabel('u', fontsize=16, weight='medium', labelpad=20)
+    # fig.subplots_adjust(wspace=0)
+    # fig.subplots_adjust(left=0.1, top=0.88, right=0.9, bottom=0.1)
+    # big_ax = fig.add_subplot(111)
+    # big_ax.set_axis_bgcolor('none')
+    # big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    # big_ax.set_xticks([])
+    # big_ax.set_yticks([])
+    # big_ax.set_ylabel('v', fontsize=16, weight='medium', labelpad=30)
+    # big_ax.set_xlabel('u', fontsize=16, weight='medium', labelpad=20)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/grid_illumination_MOFF-FX_test_aperture.png', bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/grid_illumination_MOFF-FX_test_aperture.png', bbox_inches=0)
