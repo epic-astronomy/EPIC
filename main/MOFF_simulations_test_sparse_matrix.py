@@ -157,8 +157,9 @@ with PyCallGraph(output=graphviz, config=config):
         aar.update(update_info, parallel=True, verbose=True)
         if i == 0:
             aar.genMappingMatrix(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=True, gridfunc_freq='scale', wts_change=False)
-        # aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')    
-        # aar.make_grid_cube_new()
+        aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')    
+        aar.make_grid_cube_new()
+        aar.applyMappingMatrix()
         if i == max_n_timestamps-1:
             aar_psf_info = aar.quick_beam_synthesis_new(pol='P1', keep_zero_spacing=False)
 
