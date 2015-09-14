@@ -219,7 +219,7 @@ with PyCallGraph(output=graphviz, config=config):
     iar.make_grid_cube_new(pol='P11')
     iar_psf_info = iar.quick_beam_synthesis(pol='P11')
     
-    avg_efimg /= max_n_timestamps
+    # avg_efimg /= max_n_timestamps
     beam_MOFF = efimgobj.nzsp_beam_avg['P1']
     if beam_MOFF.ndim == 4:
         beam_MOFF = beam_MOFF[0,:,:,:]
