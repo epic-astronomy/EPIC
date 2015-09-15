@@ -217,9 +217,11 @@ with PyCallGraph(output=graphviz, config=config):
     iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
 
     iar.grid(uvpad=2*NP.max([ant_sizex, ant_sizey]))
-    iar.grid_convolve_new(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')
-    iar.make_grid_cube_new(pol='P11')
-    iar_psf_info = iar.quick_beam_synthesis(pol='P11')
+    iar.genMappingMatrix(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False)
+    iar.applyMappingMatrix(pol='P11', verbose=True)
+    # iar.grid_convolve_new(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')
+    # iar.make_grid_cube_new(pol='P11')
+    # iar_psf_info = iar.quick_beam_synthesis(pol='P11')
     
     # avg_efimg /= max_n_timestamps
     beam_MOFF = efimgobj.nzsp_beam_avg['P1']
