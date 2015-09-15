@@ -1,5 +1,6 @@
 from astropy.time import Time
 import numpy as NP
+import copy
 import matplotlib.pyplot as PLT
 import matplotlib.colors as PLTC
 from matplotlib import ticker
@@ -51,7 +52,8 @@ f_center = f0
 channel_width = 40e3
 bandwidth = nchan * channel_width
 dt = 1/bandwidth
-
+MOFF_tbinsize = None
+FX_tbinsize = None
 
 src_seed = 50
 rstate = NP.random.RandomState(src_seed)
@@ -156,7 +158,7 @@ with PyCallGraph(output=graphviz, config=config):
         
         aar.update(update_info, parallel=True, verbose=True)
         if i == 0:
-            aar.genMappingMatrix(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=True, gridfunc_freq='scale', wts_change=False)
+            aar.genMappingMatrix(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=True, gridfunc_freq='scale', wts_change=False, parallel=False)
         # aar.applyMappingMatrix()
 
         # aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')    
@@ -217,7 +219,7 @@ with PyCallGraph(output=graphviz, config=config):
     iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
 
     iar.grid(uvpad=2*NP.max([ant_sizex, ant_sizey]))
-    iar.genMappingMatrix(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False)
+    iar.genMappingMatrix(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=False)
     iar.applyMappingMatrix(pol='P11', verbose=True)
     # iar.grid_convolve_new(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')
     # iar.make_grid_cube_new(pol='P11')
