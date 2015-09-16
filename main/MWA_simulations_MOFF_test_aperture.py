@@ -140,7 +140,7 @@ with PyCallGraph(output=graphviz, config=config):
         progress.finish()
         
         aar.update(update_info, parallel=True, verbose=True)
-        aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')    
+        aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')    
         # aar.make_grid_cube_new()
         efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         efimgobj.imagr(pol='P1', weighting='uniform', pad='on')

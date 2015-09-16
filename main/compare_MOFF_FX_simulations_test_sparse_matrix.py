@@ -68,6 +68,9 @@ skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
 skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
 src_flux = 10.0*NP.ones(n_src)
 
+grid_map_method = 'sparse'
+# grid_map_method = 'regular'
+
 ant_pol_type = 'dual'
 ant_kerntype = {pol: 'func' for pol in ['P1','P2']}
 ant_kernshape = {pol: 'rect' for pol in ['P1','P2']}
@@ -157,29 +160,17 @@ with PyCallGraph(output=graphviz, config=config):
         progress.finish()
         
         aar.update(update_info, parallel=True, verbose=True)
-        if i == 0:
-            aar.genMappingMatrix(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=True, gridfunc_freq='scale', wts_change=False, parallel=False)
-        # aar.applyMappingMatrix()
-
-        # aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')    
-        # aar.make_grid_cube_new()
-        # if i == max_n_timestamps-1:
-        #     aar_psf_info = aar.quick_beam_synthesis_new(pol='P1', keep_zero_spacing=False)
+        if grid_map_method == 'regular':
+            aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')    
+        else:
+            if i == 0:
+                aar.genMappingMatrix(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=True, gridfunc_freq='scale', wts_change=False, parallel=False)
 
         if i == 0:
             efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         else:
             efimgobj.update(antenna_array=aar, reset=True)
-        efimgobj.imagr(pol='P1', weighting='natural', pad='on', stack=True)
-        # # efimgobj.stack(pol='P1')
-        # efimg = efimgobj.img['P1']
-        # efimgmax += [efimg[tuple(NP.array(efimg.shape)/2)]]
-        # if i == 0:
-        #     avg_efimg = NP.copy(efimg)
-        # else:
-        #     avg_efimg += NP.copy(efimg)
-        # if NP.any(NP.isnan(avg_efimg)):
-        #     PDB.set_trace()
+        efimgobj.imagr(pol='P1', weighting='natural', pad='on', stack=True, grid_map_method=grid_map_method)
 
     efimgobj.accumulate(tbinsize=MOFF_tbinsize)
     efimgobj.evalAutoCorr(forceeval=True)
@@ -219,11 +210,10 @@ with PyCallGraph(output=graphviz, config=config):
     iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
 
     iar.grid(uvpad=2*NP.max([ant_sizex, ant_sizey]))
-    iar.genMappingMatrix(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=False)
-    iar.applyMappingMatrix(pol='P11', verbose=True)
-    # iar.grid_convolve_new(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=True, pp_method='pool')
-    # iar.make_grid_cube_new(pol='P11')
-    # iar_psf_info = iar.quick_beam_synthesis(pol='P11')
+    if grid_map_method == 'regular':
+        iar.grid_convolve_new(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')
+    else:
+        iar.genMappingMatrix(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=False)
     
     # avg_efimg /= max_n_timestamps
     beam_MOFF = efimgobj.nzsp_beam_avg['P1']
@@ -234,7 +224,7 @@ with PyCallGraph(output=graphviz, config=config):
     img_max_MOFF = NP.max(NP.mean(avg_efimg, axis=2))
 
     vfimgobj = AA.NewImage(interferometer_array=iar, pol='P11')
-    vfimgobj.imagr(pol='P11', weighting='natural', pad='on')
+    vfimgobj.imagr(pol='P11', weighting='natural', pad='on', grid_map_method=grid_map_method)
     avg_vfimg = vfimgobj.img['P11']
     beam_FX = vfimgobj.beam['P11']
     img_rms_FX = NP.std(NP.mean(avg_vfimg, axis=2))
