@@ -9,17 +9,29 @@ import sim_observe as SIM
 import my_DSP_modules as DSP
 import ipdb as PDB
 import MOFF_cal
+import aperture as APR
 
-cal_iter=50
+cal_iter=1
 itr = 20*cal_iter
 rxr_noise = 0.0
-model_frac = 0.8 # fraction of total sky flux to model
+model_frac = 1.0 # fraction of total sky flux to model
 
+grid_map_method='sparse'
+#grid_map_method='regular'
 
 #### Antenna and array initialization
 
 lat = -26.701 # Latitude of MWA in degrees
 f0 = 150e6 # Center frequency
+
+
+nchan = 4
+nts=nchan/2
+f_center = f0
+channel_width = 40e3
+bandwidth = nchan * channel_width
+dt = 1/bandwidth
+freqs = arange(f0-nchan/2*channel_width,f0+nchan/2*channel_width,channel_width)
 
 # ** Use this for MWA core
 #antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
@@ -27,6 +39,7 @@ f0 = 150e6 # Center frequency
 # ** Use this for LWA
 antenna_file = '/home/beards/inst_config/LWA_antenna_locs.txt'
 
+identical_antennas = True
 ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3))
 ant_info[:,1] -= NP.mean(ant_info[:,1])
 ant_info[:,2] -= NP.mean(ant_info[:,2])
@@ -38,29 +51,41 @@ ant_info = ant_info[core_ind,:]
 
 n_antennas = ant_info.shape[0]
 
+# Setup beam
+ant_sizex = 4.4 # meters
+ant_sizey = 4.4
+
+ant_pol_type = 'dual'
+ant_kerntype = {pol: 'func' for pol in ['P1','P2']}
+ant_kernshape = {pol: 'rect' for pol in ['P1','P2']}
+ant_lookupinfo = None
+
+ant_kernshapeparms = {pol: {'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
+
+ant_aprtr = APR.Aperture(pol_type=ant_pol_type, kernel_type=ant_kerntype,
+                         shape=ant_kernshape, parms=ant_kernshapeparms,
+                         lkpinfo=ant_lookupinfo, load_lookup=True)
+if identical_antennas:
+    ant_aprtrs = [ant_aprtr] * n_antennas
+
 # set up antenna array
 ants = []
-for i in xrange(n_antennas):
-    ants += [AA.Antenna('A'+'{0:d}'.format(int(ant_info[i,0])),lat,ant_info[i,1:],f0)]
-
-# build antenna array
 aar = AA.AntennaArray()
-for ant in ants:
+for i in xrange(n_antennas):
+    ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])),lat,ant_info[i,1:],f0, nsamples=nts, aperture=ant_aprtrs[i])
+    ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)
+    ants += [ant]
     aar = aar + ant
+
+aar.grid(xypad=2*NP.max([ant_sizex,ant_sizey]))
 
 antpos_info = aar.antenna_positions(sort=True)
 
-nchan = 4
-f_center = f0
-channel_width = 40e3
-bandwidth = nchan * channel_width
-dt = 1/bandwidth
-freqs = arange(f0-nchan/2*channel_width,f0+nchan/2*channel_width,channel_width)
 
 
 #### Set up sky model
 
-n_src = 100
+n_src = 1
 lmrad = NP.random.uniform(low=0.0,high=0.1,size=n_src).reshape(-1,1)**(0.5)
 lmrad[-1]=0.00
 lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
@@ -68,7 +93,7 @@ lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
 src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**4)
 #src_flux[0]=1.0
-#src_flux[-1]=1.0
+src_flux[-1]=1.0
 tot_flux=NP.sum(src_flux)
 frac_flux=0.0
 ind=0
@@ -146,10 +171,18 @@ for i in xrange(itr):
     # Apply calibration and put back into antenna array
     aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata)
     
-    aar.grid_convolve(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=False,pp_method='queue', nproc=16, cal_loop=True,verbose=False)
+    if grid_map_method == 'regular':
+        aar.grid_convolve_new(pol='P1', method='NN',distNN=0.5*FCNST.c/f0, tol=1.0e-6,maxmatch=1,identical_antennas=True,gridfunc_freq='scale',mapping='weighted',wts_change=False,parallel=False, pp_method='queue',nproc=16, cal_loop=True,verbose=False)
+    else:
+        if i == 0:
+            aar.genMappingMatrix(pol=None,method='NN',distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2),identical_antennas=True,gridfunc_freq='scale',wts_change=False,parallel=False)
 
-    imgobj = AA.NewImage(antenna_array=aar, pol='P1')
-    imgobj.imagr(weighting='natural',pol='P1',pad='off',verbose=False)
+    if i == 0:
+        imgobj = AA.NewImage(antenna_array=aar,pol='P1')
+    else:
+        imgobj.update(antenna_array=aar,reset=True)
+
+    imgobj.imagr(weighting='natural',pol='P1',pad='off',verbose=False,grid_map_method=grid_map_method)
 
     # update calibration
     calarr['P1'].update_cal(tempdata,imgobj,0)
