@@ -60,15 +60,15 @@ freqs = arange(f0-nchan/2*channel_width,f0+nchan/2*channel_width,channel_width)
 
 #### Set up sky model
 
-n_src = 100 # include a lot of sources in sim, but only model one.
-lmrad = NP.random.uniform(low=0.0,high=0.25,size=n_src).reshape(-1,1)**(0.5)
-lmrad[-1]=0.0
+n_src = 100
+lmrad = NP.random.uniform(low=0.0,high=0.1,size=n_src).reshape(-1,1)**(0.5)
+lmrad[-1]=0.00
 lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
 #lmrad[0] = 0.0
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
-src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**2)
+src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**4)
 #src_flux[0]=1.0
-#src_flux[-1]=.5
+#src_flux[-1]=1.0
 tot_flux=NP.sum(src_flux)
 frac_flux=0.0
 ind=0
@@ -140,7 +140,7 @@ for i in xrange(itr):
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
     #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
-    tempdata += rxr_noise * (NP.random.normal(loc=0.0, scale=rxr_noise, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
+    tempdata += rxr_noise * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
     #amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
     # Apply calibration and put back into antenna array
@@ -152,7 +152,6 @@ for i in xrange(itr):
     imgobj.imagr(weighting='natural',pol='P1',pad='off',verbose=False)
 
     # update calibration
-    # TODO: Correct for non-pixel centered sources
     calarr['P1'].update_cal(tempdata,imgobj,0)
     
     if i == 0:
