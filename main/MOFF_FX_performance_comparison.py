@@ -36,7 +36,7 @@ core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]
 ant_info = ant_info[core_ind,:]
 ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
 
-# core_ind2 = NP.logical_and((NP.abs(ant_info[:,1]) < 40.0), (NP.abs(ant_info[:,2]) < 40.0))
+# core_ind2 = (NP.abs(ant_info[:,1]) < 120.0) & (NP.abs(ant_info[:,2]) < 40.0)
 # ant_info = ant_info[core_ind2,:]
 # ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
 
@@ -175,7 +175,7 @@ with PyCallGraph(output=graphviz, config=config):
             efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         else:
             efimgobj.update(antenna_array=aar, reset=True)
-        efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method)
+        efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=True)
 
     efimgobj.accumulate(tbinsize=MOFF_tbinsize)
     efimgobj.evalAutoCorr(forceeval=True)
