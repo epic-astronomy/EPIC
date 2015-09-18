@@ -36,6 +36,10 @@ core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]
 ant_info = ant_info[core_ind,:]
 ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
 
+# core_ind2 = (NP.abs(ant_info[:,1]) < 120.0) & (NP.abs(ant_info[:,2]) < 40.0)
+# ant_info = ant_info[core_ind2,:]
+# ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
+
 n_antennas = ant_info.shape[0]
 nx = 4 # dipoles along x
 ny = 4 # dipoles along y
@@ -171,7 +175,7 @@ with PyCallGraph(output=graphviz, config=config):
             efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         else:
             efimgobj.update(antenna_array=aar, reset=True)
-        efimgobj.imagr(pol='P1', weighting='natural', pad='on', stack=True, grid_map_method=grid_map_method)
+        efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=True)
 
     efimgobj.accumulate(tbinsize=MOFF_tbinsize)
     efimgobj.evalAutoCorr(forceeval=True)
@@ -224,7 +228,7 @@ with PyCallGraph(output=graphviz, config=config):
         iar.genMappingMatrix(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=False)
     
     vfimgobj = AA.NewImage(interferometer_array=iar, pol='P11')
-    vfimgobj.imagr(pol='P11', weighting='natural', pad='on', grid_map_method=grid_map_method)
+    vfimgobj.imagr(pol='P11', weighting='natural', pad=0, grid_map_method=grid_map_method)
     avg_vfimg = vfimgobj.img['P11']
     beam_FX = vfimgobj.beam['P11']
     img_rms_FX = NP.std(NP.mean(avg_vfimg, axis=2))
