@@ -175,11 +175,11 @@ with PyCallGraph(output=graphviz, config=config):
             efimgobj = AA.NewImage(antenna_array=aar, pol='P1')
         else:
             efimgobj.update(antenna_array=aar, reset=True)
-        efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=True)
+        efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
 
     efimgobj.accumulate(tbinsize=MOFF_tbinsize)
     efimgobj.evalAutoCorr(forceeval=True)
-    efimgobj.removeAutoCorr(forceeval=True, datapool='avg')
+    efimgobj.removeAutoCorr(forceeval=True, datapool='avg', pad=0)
     avg_efimg = efimgobj.nzsp_img_avg['P1']
     if avg_efimg.ndim == 4:
         avg_efimg = avg_efimg[0,:,:,:]
