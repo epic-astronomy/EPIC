@@ -18,6 +18,7 @@ import aperture as APR
 # from pycallgraph.output import GraphvizOutput
 import ipdb as PDB
 
+@profile 
 def main():
 
     parser = argparse.ArgumentParser(description='Program to compare performance of MOFF and FX codes')
@@ -47,8 +48,8 @@ def main():
     ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3))
     ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
     
-    # core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 800.0), (NP.abs(ant_info[:,2]) < 800.0))
-    core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]) < 150.0))
+    core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 600.0), (NP.abs(ant_info[:,2]) < 600.0))
+    # core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]) < 150.0))
     ant_info = ant_info[core_ind,:]
     ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
     
@@ -245,70 +246,70 @@ def main():
     
     vfimgobj = AA.NewImage(interferometer_array=iar, pol='P11')
     vfimgobj.imagr(pol='P11', weighting='natural', pad=0, grid_map_method=grid_map_method)
-    avg_vfimg = vfimgobj.img['P11']
-    beam_FX = vfimgobj.beam['P11']
-    img_rms_FX = NP.std(NP.mean(avg_vfimg, axis=2))
-    beam_rms_FX = NP.std(NP.mean(beam_FX, axis=2))
-    img_max_FX = NP.max(NP.mean(avg_vfimg, axis=2))
+    # avg_vfimg = vfimgobj.img['P11']
+    # beam_FX = vfimgobj.beam['P11']
+    # img_rms_FX = NP.std(NP.mean(avg_vfimg, axis=2))
+    # beam_rms_FX = NP.std(NP.mean(beam_FX, axis=2))
+    # img_max_FX = NP.max(NP.mean(avg_vfimg, axis=2))
 
-    min_img_rms = min([img_rms_MOFF, img_rms_FX])
-    min_beam_rms = min([beam_rms_MOFF, beam_rms_FX])
-    max_img = max([img_max_MOFF, img_max_FX])
+    # min_img_rms = min([img_rms_MOFF, img_rms_FX])
+    # min_beam_rms = min([beam_rms_MOFF, beam_rms_FX])
+    # max_img = max([img_max_MOFF, img_max_FX])
     
-    imgtype = ['Image', 'PSF']
-    algo = ['MOFF', 'FX']
+    # imgtype = ['Image', 'PSF']
+    # algo = ['MOFF', 'FX']
 
-    fig, axs = PLT.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
-    for i in range(2):
-        for j in range(2):
-            if i==0:
-                if j==0:
-                    efimgplot = axs[i,j].imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), interpolation='none', vmin=-5*min_img_rms, vmax=img_max_MOFF)
-                    cbax = fig.add_axes([0.13, 0.93, 0.35, 0.02])
-                    cbar = fig.colorbar(efimgplot, cax=cbax, orientation='horizontal')
-                    cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
-                    cbax.xaxis.set_label_position('top')
-                    tick_locator = ticker.MaxNLocator(nbins=5)
-                    cbar.locator = tick_locator
-                    cbar.update_ticks()
-                else:
-                    vfimgplot = axs[i,j].imshow(NP.mean(avg_vfimg, axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), interpolation='none', vmin=-5*min_img_rms, vmax=img_max_FX)
-                    cbax = fig.add_axes([0.52, 0.93, 0.35, 0.02])
-                    # cbax = fig.add_axes([0.92, 0.52, 0.02, 0.37])
-                    cbar = fig.colorbar(vfimgplot, cax=cbax, orientation='horizontal')
-                    cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
-                    cbax.xaxis.set_label_position('top')
-                    tick_locator = ticker.MaxNLocator(nbins=5)
-                    cbar.locator = tick_locator
-                    cbar.update_ticks()
+    # fig, axs = PLT.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
+    # for i in range(2):
+    #     for j in range(2):
+    #         if i==0:
+    #             if j==0:
+    #                 efimgplot = axs[i,j].imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), interpolation='none', vmin=-5*min_img_rms, vmax=img_max_MOFF)
+    #                 cbax = fig.add_axes([0.13, 0.93, 0.35, 0.02])
+    #                 cbar = fig.colorbar(efimgplot, cax=cbax, orientation='horizontal')
+    #                 cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+    #                 cbax.xaxis.set_label_position('top')
+    #                 tick_locator = ticker.MaxNLocator(nbins=5)
+    #                 cbar.locator = tick_locator
+    #                 cbar.update_ticks()
+    #             else:
+    #                 vfimgplot = axs[i,j].imshow(NP.mean(avg_vfimg, axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), interpolation='none', vmin=-5*min_img_rms, vmax=img_max_FX)
+    #                 cbax = fig.add_axes([0.52, 0.93, 0.35, 0.02])
+    #                 # cbax = fig.add_axes([0.92, 0.52, 0.02, 0.37])
+    #                 cbar = fig.colorbar(vfimgplot, cax=cbax, orientation='horizontal')
+    #                 cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+    #                 cbax.xaxis.set_label_position('top')
+    #                 tick_locator = ticker.MaxNLocator(nbins=5)
+    #                 cbar.locator = tick_locator
+    #                 cbar.update_ticks()
 
-                posplot = axs[i,j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
-            else:
-                if j==0:
-                    efbeamplot = axs[i,j].imshow(NP.mean(beam_MOFF, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), interpolation='none', vmin=-5*min_beam_rms, vmax=1.0)
-                else:
-                    vfbeamplot = axs[i,j].imshow(NP.mean(vfimgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), interpolation='none', vmin=-5*min_beam_rms, vmax=1.0)
-                    cbax = fig.add_axes([0.92, 0.12, 0.02, 0.37])
-                    cbar = fig.colorbar(efbeamplot, cax=cbax, orientation='vertical')
+    #             posplot = axs[i,j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+    #         else:
+    #             if j==0:
+    #                 efbeamplot = axs[i,j].imshow(NP.mean(beam_MOFF, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), interpolation='none', vmin=-5*min_beam_rms, vmax=1.0)
+    #             else:
+    #                 vfbeamplot = axs[i,j].imshow(NP.mean(vfimgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), interpolation='none', vmin=-5*min_beam_rms, vmax=1.0)
+    #                 cbax = fig.add_axes([0.92, 0.12, 0.02, 0.37])
+    #                 cbar = fig.colorbar(efbeamplot, cax=cbax, orientation='vertical')
 
-            axs[i,j].text(0.5, 0.9, imgtype[i]+' ('+algo[j]+')', transform=axs[i,j].transAxes, fontsize=14, weight='semibold', ha='center', color='white')
-            axs[i,j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
-            axs[i,j].set_xlim(-0.3,0.3)
-            axs[i,j].set_ylim(-0.3,0.3)    
-            axs[i,j].set_aspect('equal')
+    #         axs[i,j].text(0.5, 0.9, imgtype[i]+' ('+algo[j]+')', transform=axs[i,j].transAxes, fontsize=14, weight='semibold', ha='center', color='white')
+    #         axs[i,j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
+    #         axs[i,j].set_xlim(-0.3,0.3)
+    #         axs[i,j].set_ylim(-0.3,0.3)    
+    #         axs[i,j].set_aspect('equal')
 
-    fig.subplots_adjust(hspace=0, wspace=0)
-    fig.subplots_adjust(left=0.1, top=0.88, right=0.88, bottom=0.1)
-    big_ax = fig.add_subplot(111)
-    big_ax.set_axis_bgcolor('none')
-    big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
-    big_ax.set_xticks([])
-    big_ax.set_yticks([])
-    big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
-    big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
+    # fig.subplots_adjust(hspace=0, wspace=0)
+    # fig.subplots_adjust(left=0.1, top=0.88, right=0.88, bottom=0.1)
+    # big_ax = fig.add_subplot(111)
+    # big_ax.set_axis_bgcolor('none')
+    # big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+    # big_ax.set_xticks([])
+    # big_ax.set_yticks([])
+    # big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
+    # big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
     
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_{2:0d}x{3:.1f}_kHz_{4:0d}_antennas_test_performance_zoomed.png'.format(n_src,max_n_timestamps,nchan,channel_width/1e3,n_antennas), bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_{2:0d}x{3:.1f}_kHz_{4:0d}_antennas_test_performance_zoomed.eps'.format(n_src,max_n_timestamps,nchan,channel_width/1e3,n_antennas), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_{2:0d}x{3:.1f}_kHz_{4:0d}_antennas_test_performance_zoomed.png'.format(n_src,max_n_timestamps,nchan,channel_width/1e3,n_antennas), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_{2:0d}x{3:.1f}_kHz_{4:0d}_antennas_test_performance_zoomed.eps'.format(n_src,max_n_timestamps,nchan,channel_width/1e3,n_antennas), bbox_inches=0)
 
 if __name__ == '__main__':
     main()
