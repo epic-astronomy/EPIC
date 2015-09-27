@@ -34,8 +34,8 @@ def main():
     max_n_timestamps = args['ntmax']
     nts = args['nts']
 
-    if xmax is None: xmax = 150.0
-    if ymax is None: ymax = 150.0
+    if xmax is None: xmax = 160.0
+    if ymax is None: ymax = 160.0
 
     # Antenna initialization
     
@@ -48,8 +48,11 @@ def main():
     ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3))
     ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
     
-    core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 600.0), (NP.abs(ant_info[:,2]) < 600.0))
-    # core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]) < 150.0))
+    if (xmax < 160.0) and (ymax < 160.0):
+        core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 160.0), (NP.abs(ant_info[:,2]) < 160.0))
+    else:
+        core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 600.0), (NP.abs(ant_info[:,2]) < 600.0))
+
     ant_info = ant_info[core_ind,:]
     ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
     
