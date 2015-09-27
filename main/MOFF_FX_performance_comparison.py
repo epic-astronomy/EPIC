@@ -80,7 +80,7 @@ main_iar_update_pp_ind = 3282 - 1
 main_iar_genmap_ind = 3288 - 1
 main_iar_imagr_ind = 3291 - 1
 
-fullfnames = glob.glob('/data3/t_nithyanandan/project_MOFF/simulated/MWA/profiling/*.txt')
+fullfnames = glob.glob('/data3/t_nithyanandan/project_MOFF/simulated/MWA/profiling/FX_parallel_selected_lines/*.txt')
 fnames = [fname.split('/')[-1] for fname in fullfnames]
 bw_str = [fname.split('_')[4] for fname in fnames]
 n_ant_str = [fname.split('_')[8] for fname in fnames]

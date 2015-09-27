@@ -54,7 +54,7 @@ for ind in range(len(xmax)):
         aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
 
         for itr in niter:
-            fname = '/data3/t_nithyanandan/project_MOFF/simulated/MWA/profiling/MOFF_FX_performance_comparison_{0:0d}x{1:.1f}_kHz_{2:.1f}_MHz_{3:0d}_ant_{4:0d}_acc_{5:0d}_pix'.format(2*ti,freq_resolution/1e3,f0/1e6,n_antennas,itr,aar.gridu.size)
+            fname = '/data3/t_nithyanandan/project_MOFF/simulated/MWA/profiling/FX_parallel_selected_lines/MOFF_FX_performance_comparison_{0:0d}x{1:.1f}_kHz_{2:.1f}_MHz_{3:0d}_ant_{4:0d}_acc_{5:0d}_pix'.format(2*ti,freq_resolution/1e3,f0/1e6,n_antennas,itr,aar.gridu.size)
             lines += ['kernprof -l -o {0}.lprof MOFF_FX_performance_profiling.py --nts {1:0d} --max-nt {2:0d} --xmax {3:.2f} --ymax {4:.2f}\n'.format(fname,ti,itr,xmax[ind],ymax[ind])]
             lines += ['python -m line_profiler {0}.lprof > {0}.txt\n'.format(fname)]
             lines += ['\n']

@@ -1,3 +1,8 @@
+From 989fad9 (FX-parallel-selected-lines-profiling):
+===================================================
+
+(*) Rearrange directory structure for organizing profiling outputs
+
 From 7d31bbb (performance):
 ==========================
 
