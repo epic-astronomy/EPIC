@@ -14,6 +14,7 @@ import sim_observe as SIM
 import my_DSP_modules as DSP
 import my_operations as OPS
 import aperture as APR
+import antenna_layout as AL
 # from pycallgraph import PyCallGraph, Config, GlobbingFilter
 # from pycallgraph.output import GraphvizOutput
 import ipdb as PDB
@@ -23,57 +24,86 @@ def main():
 
     parser = argparse.ArgumentParser(description='Program to compare performance of MOFF and FX codes')
     parser.add_argument('--nts', help='Number of time samples per stream', dest='nts', default=8, type=int, metavar='nts')
-    parser.add_argument('--xmax', help='Farthest x-location of antenna from core', dest='xmax', default=None, type=float, metavar='xmax')
-    parser.add_argument('--ymax', help='Farthest y-location of antenna from core', dest='ymax', default=None, type=float, metavar='xmax')
-    parser.add_argument('--max-nt', help='Maximum number of time stamps', dest='ntmax', default=4, type=int, metavar='ntmax')        
+    parser.add_argument('--xmax', help='Farthest x-location of antenna from core', dest='xmax', default=None, type=float, metavar='xmax', required=False)
+    parser.add_argument('--ymax', help='Farthest y-location of antenna from core', dest='ymax', default=None, type=float, metavar='ymax', required=False)
+    parser.add_argument('--ant-diameter', help='Antenna diameter (m)', dest='ant_diameter', default=None, type=float, metavar='ant_diameter', required=False)
+    parser.add_argument('--ant-sizex', help='Antenna x-size (m)', dest='ant_sizex', default=None, type=float, metavar='ant_sizex', required=False)
+    parser.add_argument('--ant-sizey', help='Antenna x-size (m)', dest='ant_sizey', default=None, type=float, metavar='ant_sizey', required=False)    
+    parser.add_argument('--max-nt', help='Maximum number of time stamps', dest='ntmax', default=4, type=int, metavar='ntmax')
+    parser.add_argument('--layout', help='Antenna array layout', dest='layout', default=None, type=str, metavar='layout', required=False)
+    parser.add_argument('--layout-file', help='Antenna array layout file', dest='layout_file', default=None, type=str, metavar='layout_file', required=False)
 
     args = vars(parser.parse_args())
 
     xmax = args['xmax']
     ymax = args['ymax']
+    ant_sizex = args['ant_sizex']
+    ant_sizey = args['ant_sizey']
+    ant_diameter = args['ant_diameter']
     max_n_timestamps = args['ntmax']
     nts = args['nts']
-
-    if xmax is None: xmax = 160.0
-    if ymax is None: ymax = 160.0
-
+    array_layout = args['layout']
+    layout_file = args['layout_file']
+    
     # Antenna initialization
     
     lat = -26.701 # Latitude of MWA in degrees
+    lat = -30.7224 # Latitude of HERA in degrees    
     f0 = 150e6 # Center frequency
     nchan = 2 * nts # number of frequency channels, factor 2 for padding before FFT
     
     identical_antennas = True
-    antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
-    ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3))
-    ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
-    
-    if (xmax < 160.0) and (ymax < 160.0):
-        core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 160.0), (NP.abs(ant_info[:,2]) < 160.0))
+    if array_layout.split('-')[0] == 'MWA':
+        ant_locs, ant_id = AL.MWA_128T(layout_file)
+        ant_info = ant_locs - NP.mean(ant_locs, axis=0, keepdims=True)
+        
+        if (xmax is not None) and (ymax is not None):
+            if (xmax < 160.0) and (ymax < 160.0):
+                core_ind1 = NP.logical_and((NP.abs(ant_info[:,0]) < 160.0), (NP.abs(ant_info[:,1]) < 160.0))
+            else:
+                core_ind1 = NP.logical_and((NP.abs(ant_info[:,0]) < 600.0), (NP.abs(ant_info[:,1]) < 600.0))
+            
+            ant_info1 = ant_info[core_ind1,:]
+            ant_info1 = ant_info1 - NP.mean(ant_info1, axis=0, keepdims=True)
+            ant_id1 = ant_id[core_ind1]
+        else:
+            ant_info1 = NP.copy(ant_info)
+            ant_id1 = NP.copy(ant_id)
+            
+        nx = 4 # dipoles along x
+        ny = 4 # dipoles along y
+        dx = 1.1 # dipole spacing along x
+        dy = 1.1 # dipole spacing along y
+        ant_sizex = nx * dx
+        ant_sizey = ny * dy
+        ant_diameter = NP.sqrt(ant_sizex**2 + ant_sizey**2)
+        ant_kernshape = {pol: 'rect' for pol in ['P1','P2']}
+        bl_kernshape = {pol: 'auto_convolved_rect' for pol in ['P11','P12','P21','P22']}
+    elif array_layout.split('-')[0] == 'HEX':
+        ant_locs, ant_id = AL.hexagon_generator(ant_diameter, n_total=int(array_layout.split('-')[1]))
+        ant_diameter = ant_diameter
+        ant_sizex = ant_diameter
+        ant_sizey = ant_diameter
+        ant_kernshape = {pol: 'circular' for pol in ['P1','P2']}
+        bl_kernshape = {pol: 'auto_convolved_circular' for pol in ['P11','P12','P21','P22']}
+        ant_info1 = NP.copy(ant_locs)
+        ant_id1 = NP.copy(ant_id)
     else:
-        core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 600.0), (NP.abs(ant_info[:,2]) < 600.0))
+        raise ValueError('Other antenna array layouts not supported at the moment')
 
-    ant_info = ant_info[core_ind,:]
-    ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
+    core_ind2 = (NP.abs(ant_info1[:,0]) <= xmax) & (NP.abs(ant_info1[:,1]) <= ymax)
+    ant_info2 = ant_info1[core_ind2,:]
+    ant_info2 = ant_info2 - NP.mean(ant_info2, axis=0, keepdims=True)
+    ant_id2 = ant_id1[core_ind2]
     
-    if (xmax is not None) or (ymax is not None):
-        core_ind2 = (NP.abs(ant_info[:,1]) < xmax) & (NP.abs(ant_info[:,2]) < ymax)
-        ant_info = ant_info[core_ind2,:]
-        ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
-    
-    n_antennas = ant_info.shape[0]
-    nx = 4 # dipoles along x
-    ny = 4 # dipoles along y
-    dx = 1.1 # dipole spacing along x
-    dy = 1.1 # dipole spacing along y
-    
-    ant_sizex = nx * dx
-    ant_sizey = ny * dy
+    n_antennas = ant_info2.shape[0]
     
     f_center = f0
     channel_width = 40e3
     bandwidth = nchan * channel_width
     dt = 1/bandwidth
+    dts = 1/channel_width
+    timestamps = 2*dts * NP.arange(max_n_timestamps)
     MOFF_tbinsize = None
     FX_tbinsize = None
     
@@ -95,23 +125,21 @@ def main():
     
     ant_pol_type = 'dual'
     ant_kerntype = {pol: 'func' for pol in ['P1','P2']}
-    ant_kernshape = {pol: 'rect' for pol in ['P1','P2']}
     ant_lookupinfo = None
     # ant_kerntype = {pol: 'lookup' for pol in ['P1','P2']}
     # ant_kernshape = None
     # ant_lookupinfo = {pol: '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt' for pol in ['P1','P2']}
     
-    ant_kernshapeparms = {pol: {'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
+    ant_kernshapeparms = {pol: {'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*ant_diameter, 'rotangle':0.0} for pol in ['P1','P2']}
     
     bl_pol_type = 'cross'
     bl_kerntype = {pol: 'func' for pol in ['P11','P12','P21','P22']}
-    bl_kernshape = {pol: 'auto_convolved_rect' for pol in ['P11','P12','P21','P22']}
     bl_lookupinfo = None
     # bl_kerntype = {pol: 'lookup' for pol in ['P11','P12','P21','P22']}
     # bl_kernshape = None
     # bl_lookupinfo = {pol:'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt' for pol in ['P11','P12','P21','P22']}
     
-    bl_kernshapeparms = {pol: {'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P11','P12','P21','P22']}
+    bl_kernshapeparms = {pol: {'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmax': 0.5*ant_diameter, 'rotangle':0.0} for pol in ['P11','P12','P21','P22']}
     
     ant_aprtr = APR.Aperture(pol_type=ant_pol_type, kernel_type=ant_kerntype,
                              shape=ant_kernshape, parms=ant_kernshapeparms,
@@ -131,7 +159,7 @@ def main():
     ants = []
     aar = AA.AntennaArray()
     for i in xrange(n_antennas):
-        ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])), lat, ant_info[i,1:], f0, nsamples=nts, aperture=ant_aprtrs[i])
+        ant = AA.Antenna('{0:0d}'.format(int(ant_id2[i])), lat, ant_info2[i,:], f0, nsamples=nts, aperture=ant_aprtrs[i])
         ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)
         ants += [ant]
         aar = aar + ant
@@ -147,8 +175,9 @@ def main():
                                                         antpos=antpos_info['positions'],
                                                         tshift=False)
         
-        ts = Time.now()
-        timestamp = ts.gps
+        # ts = Time.now()
+        # timestamp = ts.gps
+        timestamp = timestamps[i]
         update_info = {}
         update_info['antennas'] = []
         update_info['antenna_array'] = {}
