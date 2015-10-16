@@ -31,6 +31,7 @@ def main():
     parser.add_argument('--ant-sizey', help='Antenna x-size (m)', dest='ant_sizey', default=None, type=float, metavar='ant_sizey', required=False)    
     parser.add_argument('--max-nt', help='Maximum number of time stamps', dest='ntmax', default=4, type=int, metavar='ntmax')
     parser.add_argument('--layout', help='Antenna array layout', dest='layout', default=None, type=str, metavar='layout', required=False)
+    parser.add_argument('--layout-fraction', help='Fraction of original antenna array layout', dest='layout_fraction', default=1.0, type=float, metavar='layout_fraction', required=False)    
     parser.add_argument('--layout-file', help='Antenna array layout file', dest='layout_file', default=None, type=str, metavar='layout_file', required=False)
 
     args = vars(parser.parse_args())
@@ -43,11 +44,14 @@ def main():
     max_n_timestamps = args['ntmax']
     nts = args['nts']
     array_layout = args['layout']
+    layout_fraction = args['layout_fraction']
     layout_file = args['layout_file']
+    if (layout_fraction <= 0.0) or (layout_fraction > 1.0):
+        raise ValueError('Fraction of original layout has to lie in the range 0-1')
     
     # Antenna initialization
     
-    lat = -26.701 # Latitude of MWA in degrees
+    # lat = -26.701 # Latitude of MWA in degrees
     lat = -30.7224 # Latitude of HERA in degrees    
     f0 = 150e6 # Center frequency
     nchan = 2 * nts # number of frequency channels, factor 2 for padding before FFT
@@ -95,7 +99,15 @@ def main():
     ant_info2 = ant_info1[core_ind2,:]
     ant_info2 = ant_info2 - NP.mean(ant_info2, axis=0, keepdims=True)
     ant_id2 = ant_id1[core_ind2]
-    
+        
+    orig_n_antennas = ant_info2.shape[0]
+    final_n_antennas = NP.round(layout_fraction*ant_info2.shape[0]).astype(int)
+    if final_n_antennas <= 1: final_n_antennas = 2
+    ant_seed = 10
+    randstate = NP.random.RandomState(ant_seed)
+    randint = NP.sort(randstate.choice(ant_info2.shape[0], final_n_antennas, replace=False))
+    ant_info2 = ant_info2[randint,:]
+    ant_id2 = ant_id2[randint]
     n_antennas = ant_info2.shape[0]
     
     f_center = f0
