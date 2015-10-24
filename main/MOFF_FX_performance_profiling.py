@@ -8,7 +8,7 @@ import matplotlib.colors as PLTC
 from matplotlib import ticker
 import scipy.constants as FCNST
 import progressbar as PGB
-import antenna_array as AA
+import antenna_array_for_profiler as AA
 import geometry as GEOM
 import sim_observe as SIM
 import my_DSP_modules as DSP

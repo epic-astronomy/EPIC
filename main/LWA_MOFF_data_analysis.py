@@ -149,7 +149,6 @@ with PyCallGraph(output=graphviz, config=config):
 
     beam = imgobj.beam['P1']
     
-    # PDB.set_trace()
     fig = PLT.figure()
     ax = fig.add_subplot(111)
     imgplot = ax.imshow(NP.mean(avg_img[:,:,bchan:echan+1], axis=2), aspect='equal', origin='lower', extent=(imgobj.gridl.min(), imgobj.gridl.max(), imgobj.gridm.min(), imgobj.gridm.max()))

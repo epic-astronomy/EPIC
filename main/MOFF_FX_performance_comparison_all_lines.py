@@ -450,6 +450,11 @@ big_ax.set_ylabel(r'$\tau_A$ [s]', fontsize=16, weight='medium', labelpad=30)
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_accumulate_performance_comparison_overall.png', bbox_inches=0)
 
 fig = PLT.figure(figsize=(6,6))
+ax = fig.add_subplots(111)
+
+
+
+fig = PLT.figure(figsize=(6,6))
 ax = fig.add_subplot(111)
 for pi,npx in enumerate(NP.unique(n_pix)):
     ind = n_pix == npx
