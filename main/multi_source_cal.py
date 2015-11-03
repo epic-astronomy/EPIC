@@ -8,7 +8,7 @@ import geometry as GEOM
 import sim_observe as SIM
 import my_DSP_modules as DSP
 import ipdb as PDB
-import MOFF_cal
+import EPICal
 import aperture as APR
 
 #@profile
@@ -119,7 +119,7 @@ calarr={}
 ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
 
 for pol in ['P1','P2']:
-    calarr[pol] = MOFF_cal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
+    calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
     #calarr[pol].scramble_gains(0.5)
 
 # Create array of gains to watch them change
