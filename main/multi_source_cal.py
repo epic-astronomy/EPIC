@@ -10,11 +10,14 @@ import my_DSP_modules as DSP
 import ipdb as PDB
 import EPICal
 import aperture as APR
+import time
+
+t1=time.time()
 
 #@profile
 #def main():
-cal_iter=500
-itr = 25*cal_iter
+cal_iter=10
+itr = 20*cal_iter
 rxr_noise = 0.0
 model_frac = 1.0 # fraction of total sky flux to model
 
@@ -87,9 +90,9 @@ antpos_info = aar.antenna_positions(sort=True)
 
 #### Set up sky model
 
-n_src = 5
+n_src = 1
 lmrad = NP.random.uniform(low=0.0,high=0.1,size=n_src).reshape(-1,1)**(0.5)
-lmrad[-1]=0.00
+lmrad[-1]=0.0
 lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
 #lmrad[0] = 0.0
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
@@ -119,8 +122,9 @@ calarr={}
 ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
 
 for pol in ['P1','P2']:
-    calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
-    #calarr[pol].scramble_gains(0.5)
+    #calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
+    calarr[pol] = EPICal.cal2(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,gain_factor=0.5,inv_gains=False,sky_model=sky_model)
+
 
 # Create array of gains to watch them change
 ncal=itr/cal_iter
@@ -188,7 +192,7 @@ for i in xrange(itr):
     imgobj.imagr(weighting='natural',pol='P1',pad=0,verbose=False,grid_map_method=grid_map_method,cal_loop=True,stack=False)
 
     # update calibration
-    calarr['P1'].update_cal(tempdata,imgobj,0)
+    calarr['P1'].update_cal(tempdata,imgobj)
 
     if i == 0:
         avg_img = imgobj.img['P1'].copy()
@@ -217,11 +221,16 @@ for i in xrange(itr):
 
 
 
-    if True in NP.isnan(calarr['P1'].temp_gains):
+    if True in NP.isnan(calarr['P1'].cal_corr):
+    #if True in NP.isnan(calarr['P1'].temp_gains):
         print 'NAN in calibration gains! exiting!'
         break
 
     avg_img /= itr
+
+t2=time.time()
+
+print 'Full loop took ', t2-t1, 'seconds'
 #    PDB.set_trace()
 
 
