@@ -17,7 +17,7 @@ t1=time.time()
 #@profile
 #def main():
 cal_iter=10
-itr = 20*cal_iter
+itr = 100*cal_iter
 rxr_noise = 0.0
 model_frac = 1.0 # fraction of total sky flux to model
 
@@ -90,9 +90,9 @@ antpos_info = aar.antenna_positions(sort=True)
 
 #### Set up sky model
 
-n_src = 1
-lmrad = NP.random.uniform(low=0.0,high=0.1,size=n_src).reshape(-1,1)**(0.5)
-lmrad[-1]=0.0
+n_src = 2
+lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
+lmrad[-1]=0.05
 lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
 #lmrad[0] = 0.0
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
@@ -233,8 +233,44 @@ t2=time.time()
 print 'Full loop took ', t2-t1, 'seconds'
 #    PDB.set_trace()
 
+### Do some plotting
 
-#if __name__=='__main__':
-#    main()
-    
+f_images = PLT.figure("Images",figsize=(15,5))
+ax1 = PLT.subplot(121)
+imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+xlim([-.3,.3])
+ylim([-.3,.3])
+ax2 = PLT.subplot(122)
+imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
+xlim([-.3,.3])
+ylim([-.3,.3])
+
+# remove some arbitrary phases.
+data = gain_stack[1:-1,:,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[-2,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[-2,calarr['P1'].ref_ant,2])
+true_g = calarr['P1'].sim_gains[:,2]
+
+# Phase and amplitude convergence
+f_phases = PLT.figure("Phases")
+f_amps = PLT.figure("Amplitudes")
+for i in xrange(gain_stack.shape[1]):
+    PLT.figure(f_phases.number)
+    #plot(NP.angle(gain_stack[1:-1,i,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(calarr['P1'].sim_gains[i,2]*gain_stack[-2,calarr['P1'].ref_ant,2])))
+    plot(NP.angle(data[:,i]*NP.conj(true_g[i])))
+    PLT.figure(f_amps.number)
+    #plot(NP.abs(gain_stack[1:-1,i,2])/abs(calarr['P1'].sim_gains[i,2]))
+    plot(NP.abs(data[:,i]/true_g[i]))
+
+# Histogram
+f_hist = PLT.figure("Histogram")
+PLT.hist(NP.real(data[-1,:]-true_g),histtype='step')
+PLT.hist(NP.imag(data[-1,:]-true_g),histtype='step')
+
+# Expected noise
+#Nmeas_eff = itr
+Nmeas_eff = 100
+visvar = NP.sum(sky_model[:,2,3])**2 / Nmeas_eff
+gvar = 4*NP.pi**2 * visvar / NP.sum(abs(true_g.reshape(1,calarr['P1'].n_ant) * calarr['P1'].model_vis[:,:,2])**2,axis=1) 
+
+
 
