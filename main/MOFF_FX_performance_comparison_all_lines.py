@@ -318,6 +318,8 @@ t_FX_gridding = t_iar_grid + t_iar_NN + t_iar_wtsnorm + t_iar_smgen
 t_FX_FFT = t_iar_beam_fft + t_iar_img_fft
 t_FX_imaging = t_FX_FFT + t_iar_img_stack + t_iar_beam_stack
 
+PDB.set_trace()
+
 p_MOFF_FFT = NP.polyfit(NP.log10(nchan*n_pix_img*NP.log2(n_pix_img)*n_acc), NP.log10(t_MOFF_FFT), 1)
 coeff_MOFF_FFT = 10**p_MOFF_FFT[1]
 
