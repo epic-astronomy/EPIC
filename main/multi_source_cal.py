@@ -16,8 +16,8 @@ t1=time.time()
 
 #@profile
 #def main():
-cal_iter=10
-itr = 100*cal_iter
+cal_iter=500
+itr = 105*cal_iter
 rxr_noise = 0.0
 model_frac = 1.0 # fraction of total sky flux to model
 
@@ -90,14 +90,14 @@ antpos_info = aar.antenna_positions(sort=True)
 
 #### Set up sky model
 
-n_src = 2
+n_src = 10
 lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
-lmrad[-1]=0.05
+lmrad[-1]=0.0
 lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
 #lmrad[0] = 0.0
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
 #src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**(4))
-src_flux = NP.sort((NP.random.uniform(low=0.5,high=1.0,size=n_src)))
+src_flux = NP.sort((NP.random.uniform(low=0.3,high=0.7,size=n_src)))
 #src_flux[-2]=0.8
 src_flux[-1]=1.0
 tot_flux=NP.sum(src_flux)
@@ -255,10 +255,8 @@ f_phases = PLT.figure("Phases")
 f_amps = PLT.figure("Amplitudes")
 for i in xrange(gain_stack.shape[1]):
     PLT.figure(f_phases.number)
-    #plot(NP.angle(gain_stack[1:-1,i,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(calarr['P1'].sim_gains[i,2]*gain_stack[-2,calarr['P1'].ref_ant,2])))
     plot(NP.angle(data[:,i]*NP.conj(true_g[i])))
     PLT.figure(f_amps.number)
-    #plot(NP.abs(gain_stack[1:-1,i,2])/abs(calarr['P1'].sim_gains[i,2]))
     plot(NP.abs(data[:,i]/true_g[i]))
 
 # Histogram
@@ -268,9 +266,10 @@ PLT.hist(NP.imag(data[-1,:]-true_g),histtype='step')
 
 # Expected noise
 #Nmeas_eff = itr
-Nmeas_eff = 100
+#Nmeas_eff = 100
+Nmeas_eff = cal_iter / (1-calarr['P1'].gain_factor)
 visvar = NP.sum(sky_model[:,2,3])**2 / Nmeas_eff
-gvar = 4*NP.pi**2 * visvar / NP.sum(abs(true_g.reshape(1,calarr['P1'].n_ant) * calarr['P1'].model_vis[:,:,2])**2,axis=1) 
+gvar = 4 * visvar / (NP.sum(abs(true_g.reshape(1,calarr['P1'].n_ant) * calarr['P1'].model_vis[:,:,2])**2,axis=1) - NP.abs(true_g * NP.diag(calarr['P1'].model_vis[:,:,2])))
 
 
 
