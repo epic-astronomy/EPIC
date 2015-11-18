@@ -16,8 +16,8 @@ t1=time.time()
 
 #@profile
 #def main():
-cal_iter=500
-itr = 105*cal_iter
+cal_iter=20
+itr = 20*cal_iter
 rxr_noise = 0.0
 model_frac = 1.0 # fraction of total sky flux to model
 
@@ -90,9 +90,9 @@ antpos_info = aar.antenna_positions(sort=True)
 
 #### Set up sky model
 
-n_src = 10
+n_src = 2
 lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
-lmrad[-1]=0.0
+lmrad[-1]=0.05
 lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
 #lmrad[0] = 0.0
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
@@ -123,7 +123,7 @@ ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
 
 for pol in ['P1','P2']:
     #calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
-    calarr[pol] = EPICal.cal2(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,gain_factor=0.5,inv_gains=False,sky_model=sky_model)
+    calarr[pol] = EPICal.cal(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,gain_factor=0.5,inv_gains=False,sky_model=sky_model)
 
 
 # Create array of gains to watch them change
@@ -234,6 +234,7 @@ print 'Full loop took ', t2-t1, 'seconds'
 #    PDB.set_trace()
 
 ### Do some plotting
+# TODO: change to object oriented plotting
 
 f_images = PLT.figure("Images",figsize=(15,5))
 ax1 = PLT.subplot(121)
