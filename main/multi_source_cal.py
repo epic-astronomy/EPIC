@@ -16,9 +16,9 @@ t1=time.time()
 
 #@profile
 #def main():
-cal_iter=20
+cal_iter = 100
 itr = 20*cal_iter
-rxr_noise = 0.0
+rxr_noise = 5.0
 model_frac = 1.0 # fraction of total sky flux to model
 
 grid_map_method='sparse'
@@ -121,9 +121,11 @@ sky_model=sky_model[-ind:,:,:]
 calarr={}
 ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
 
+auto_noise_model = rxr_noise
+
 for pol in ['P1','P2']:
     #calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
-    calarr[pol] = EPICal.cal(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,gain_factor=0.5,inv_gains=False,sky_model=sky_model)
+    calarr[pol] = EPICal.cal(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,gain_factor=0.5,inv_gains=False,sky_model=sky_model,auto_noise_model=auto_noise_model,exclude_autos=True)
 
 
 # Create array of gains to watch them change
@@ -172,7 +174,7 @@ for i in xrange(itr):
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
     #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
-    tempdata += rxr_noise * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
+    tempdata += NP.sqrt(rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
     #amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
     # Apply calibration and put back into antenna array

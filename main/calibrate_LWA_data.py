@@ -125,7 +125,7 @@ cal_freqs = NP.interp(cal_fi,fi,freqs)
 auto_noise_model = 0.25 * NP.sum(sky_model[:,0,3]) # roughly rxr:sky based on Ellingson, 2013
 #auto_noise_model=0.0
 for pol in ['P1','P2']:
-    calarr[pol] = EPICal.cal(cal_freqs,antpos,pol=pol,sim_mode=False,n_iter=cal_iter,gain_factor=0.25,inv_gains=False,sky_model=sky_model,freq_ave=bchan,auto_noise_model=auto_noise_model,phase_fit=False)
+    calarr[pol] = EPICal.cal(cal_freqs,antpos,pol=pol,sim_mode=False,n_iter=cal_iter,gain_factor=0.25,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False)
 
 # Create array of gains to watch them change
 ncal=max_n_timestamps/cal_iter
@@ -255,13 +255,13 @@ print 'Full loop took ', t2-t1, 'seconds'
 f_images = PLT.figure("Images",figsize=(15,5))
 ax1 = PLT.subplot(121)
 imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
-xlim([-.3,.3])
-ylim([-.3,.3])
+xlim([-1.0,1.0])
+ylim([-1.0,1.0])
 ax2 = PLT.subplot(122)
 imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
 plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
-xlim([-.3,.3])
-ylim([-.3,.3])
+xlim([-1.0,1.0])
+ylim([-1.0,1.0])
 
 # remove some arbitrary phases.
 #data = gain_stack[1:-1,:,bchan+1]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[-2,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[-2,calarr['P1'].ref_ant,2])
