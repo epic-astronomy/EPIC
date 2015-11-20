@@ -16,9 +16,9 @@ t1=time.time()
 
 #@profile
 #def main():
-cal_iter = 100
-itr = 20*cal_iter
-rxr_noise = 5.0
+cal_iter = 200
+itr = 25*cal_iter
+rxr_noise = 0.0
 model_frac = 1.0 # fraction of total sky flux to model
 
 grid_map_method='sparse'
@@ -90,26 +90,29 @@ antpos_info = aar.antenna_positions(sort=True)
 
 #### Set up sky model
 
-n_src = 2
-lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
+src_seed = 50 # fix the seed
+rstate = NP.random.RandomState(src_seed)
+NP.random.seed(src_seed)
+
+n_src = 5
+#lmrad = rstate.uniform(low=0.0,high=0.2,size=n_src).reshape(-1,1)
+lmrad = rstate.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5) # uniform distributed
 lmrad[-1]=0.05
-lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
-#lmrad[0] = 0.0
-skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
-#src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**(4))
+lmang = rstate.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
+skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
+skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
 src_flux = NP.sort((NP.random.uniform(low=0.3,high=0.7,size=n_src)))
-#src_flux[-2]=0.8
 src_flux[-1]=1.0
+#src_flux = 10.0*NP.ones(n_src)
+#src_flux = 10.0*NP.array([.853,.968,.959,.906,.916,.511,.903,.671,.691,.941])
+#src_flux = 3.0*NP.array([.853,4*.968,.959,.906,.916,.511,.903,.671,.691,.941])
+
 tot_flux=NP.sum(src_flux)
 frac_flux=0.0
 ind=0
 while frac_flux < model_frac:
     ind+=1
     frac_flux=NP.sum(src_flux[-ind:])/tot_flux
-
-
-nvect = NP.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) 
-skypos = NP.hstack((skypos,nvect))
 
 sky_model = NP.zeros((n_src,nchan,4))
 sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
@@ -121,12 +124,10 @@ sky_model=sky_model[-ind:,:,:]
 calarr={}
 ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
 
-auto_noise_model = rxr_noise
+#auto_noise_model = rxr_noise
 
 for pol in ['P1','P2']:
-    #calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
-    calarr[pol] = EPICal.cal(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.5,inv_gains=False,sky_model=sky_model,auto_noise_model=auto_noise_model,exclude_autos=True)
-
+    calarr[pol] = EPICal.cal(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.35,inv_gains=False,sky_model=sky_model,exclude_autos=False)
 
 # Create array of gains to watch them change
 ncal=itr/cal_iter
@@ -173,7 +174,6 @@ for i in xrange(itr):
     #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
     tempdata += NP.sqrt(rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
-    #amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
     # Apply calibration and put back into antenna array
     aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata)
 
@@ -203,18 +203,18 @@ for i in xrange(itr):
         cali += 1
         gain_stack[cali,:,:] = calarr['P1'].curr_gains
 
+        PLT.close('all')
+        f_phases = PLT.figure("Phases")
+
     else:
         avg_img = avg_img+imgobj.img['P1'].copy()
         temp_im = temp_im+imgobj.img['P1'][:,:,2].copy()
 
-        temp_amp += NP.abs(tempdata[0,:])**2
         if i % cal_iter == 0:
             im_stack[cali,:,:] = temp_im/cal_iter
             temp_im[:] = 0.0
             gain_stack[cali,:,:] = calarr['P1'].curr_gains
             cali += 1
-
-
 
     if True in NP.isnan(calarr['P1'].cal_corr):
     #if True in NP.isnan(calarr['P1'].temp_gains):
@@ -233,11 +233,11 @@ print 'Full loop took ', t2-t1, 'seconds'
 
 f_images = PLT.figure("Images",figsize=(15,5))
 ax1 = PLT.subplot(121)
-imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()))
 xlim([-.3,.3])
 ylim([-.3,.3])
 ax2 = PLT.subplot(122)
-imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()))
 plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
 xlim([-.3,.3])
 ylim([-.3,.3])

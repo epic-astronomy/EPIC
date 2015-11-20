@@ -125,7 +125,7 @@ cal_freqs = NP.interp(cal_fi,fi,freqs)
 auto_noise_model = 0.25 * NP.sum(sky_model[:,0,3]) # roughly rxr:sky based on Ellingson, 2013
 #auto_noise_model=0.0
 for pol in ['P1','P2']:
-    calarr[pol] = EPICal.cal(cal_freqs,antpos,pol=pol,sim_mode=False,n_iter=cal_iter,gain_factor=0.25,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False)
+    calarr[pol] = EPICal.cal(cal_freqs,antpos,pol=pol,sim_mode=False,n_iter=cal_iter,damping_factor=0.75,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False)
 
 # Create array of gains to watch them change
 ncal=max_n_timestamps/cal_iter
