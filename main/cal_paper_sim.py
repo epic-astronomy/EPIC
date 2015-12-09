@@ -11,12 +11,13 @@ import ipdb as PDB
 import EPICal
 import aperture as APR
 import time
+import pickle
 
 t1=time.time()
 
 #@profile
 #def main():
-cal_iter = 200
+cal_iter = 400
 itr = 25*cal_iter
 rxr_noise = 0.0
 model_frac = 1.0 # fraction of total sky flux to model
@@ -94,7 +95,7 @@ src_seed = 50 # fix the seed
 rstate = NP.random.RandomState(src_seed)
 NP.random.seed(src_seed)
 
-n_src = 5
+n_src = 10
 #lmrad = rstate.uniform(low=0.0,high=0.2,size=n_src).reshape(-1,1)
 lmrad = rstate.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5) # uniform distributed
 lmrad[-1]=0.05
@@ -134,6 +135,9 @@ ncal=itr/cal_iter
 cali=0
 gain_stack = NP.zeros((ncal+1,ant_info.shape[0],nchan),dtype=NP.complex64)
 
+PLT.ion()
+PLT.show()
+
 for i in xrange(itr):
     print i
     # simulate
@@ -172,8 +176,8 @@ for i in xrange(itr):
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
     #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
-    tempdata += NP.sqrt(rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
+    tempdata += NP.sqrt(rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
     # Apply calibration and put back into antenna array
     aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata)
 
@@ -199,12 +203,8 @@ for i in xrange(itr):
         im_stack[cali,:,:] = avg_img[:,:,2].copy()
         temp_im = avg_img[:,:,2]
 
-        gain_stack[cali,:,:] = calarr['P1'].sim_gains
-        cali += 1
         gain_stack[cali,:,:] = calarr['P1'].curr_gains
-
-        PLT.close('all')
-        f_phases = PLT.figure("Phases")
+        cali += 1
 
     else:
         avg_img = avg_img+imgobj.img['P1'].copy()
@@ -215,6 +215,14 @@ for i in xrange(itr):
             temp_im[:] = 0.0
             gain_stack[cali,:,:] = calarr['P1'].curr_gains
             cali += 1
+
+            data = gain_stack[0:cali,:,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[1,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[1,calarr['P1'].ref_ant,2])
+            true_g = calarr['P1'].sim_gains[:,2]
+
+            PLT.cla()
+            for ant in xrange(gain_stack.shape[1]):
+                PLT.plot(NP.angle(data[:,ant]*NP.conj(true_g[ant])))
+            PLT.draw()
 
     if True in NP.isnan(calarr['P1'].cal_corr):
     #if True in NP.isnan(calarr['P1'].temp_gains):
@@ -243,7 +251,7 @@ xlim([-.3,.3])
 ylim([-.3,.3])
 
 # remove some arbitrary phases.
-data = gain_stack[1:-1,:,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[-2,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[-2,calarr['P1'].ref_ant,2])
+data = gain_stack[0:-1,:,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[1,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[1,calarr['P1'].ref_ant,2])
 true_g = calarr['P1'].sim_gains[:,2]
 
 # Phase and amplitude convergence
@@ -254,6 +262,15 @@ for i in xrange(gain_stack.shape[1]):
     plot(NP.angle(data[:,i]*NP.conj(true_g[i])))
     PLT.figure(f_amps.number)
     plot(NP.abs(data[:,i]/true_g[i]))
+PLT.figure(f_phases.number)
+xlim([0,20])
+ylim([-NP.pi,NP.pi])
+xlabel('Calibration Iteration')
+ylabel('Phase error (rad)')
+PLT.figure(f_amps.number)
+xlim([0,20])
+xlabel('Calibration Iteration')
+ylabel('Relative amplitude')
 
 # Histogram
 f_hist = PLT.figure("Histogram")
@@ -263,9 +280,12 @@ PLT.hist(NP.imag(data[-1,:]-true_g),histtype='step')
 # Expected noise
 #Nmeas_eff = itr
 #Nmeas_eff = 100
-Nmeas_eff = cal_iter / (1-calarr['P1'].gain_factor)
+Nmeas_eff = cal_iter / (calarr['P1'].damping_factor)
 visvar = NP.sum(sky_model[:,2,3])**2 / Nmeas_eff
 gvar = 4 * visvar / (NP.sum(abs(true_g.reshape(1,calarr['P1'].n_ant) * calarr['P1'].model_vis[:,:,2])**2,axis=1) - NP.abs(true_g * NP.diag(calarr['P1'].model_vis[:,:,2])))
 
+
+with open('/data2/beards/tmp/sim_run.pickle','w') as f:
+    pickle.dump([calarr,gain_stack,im_stack,sky_model,cal_iter],f)
 
 

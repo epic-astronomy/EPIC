@@ -17,8 +17,8 @@ t1=time.time()
 #@profile
 #def main():
 cal_iter = 100
-itr = 20*cal_iter
-rxr_noise = 5.0
+itr = 15*cal_iter
+rxr_noise = 5000000000.0
 model_frac = 1.0 # fraction of total sky flux to model
 
 grid_map_method='sparse'
@@ -84,7 +84,7 @@ for i in xrange(n_antennas):
 
 aar.grid(xypad=2*NP.max([ant_sizex,ant_sizey]))
 
-antpos_info = aar.antenna_positions(sort=True)
+antpos_info = aar.antenna_positions(sort=True, centering=True)
 
 
 
@@ -125,7 +125,7 @@ auto_noise_model = rxr_noise
 
 for pol in ['P1','P2']:
     #calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
-    calarr[pol] = EPICal.cal(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.5,inv_gains=False,sky_model=sky_model,auto_noise_model=auto_noise_model,exclude_autos=True)
+    calarr[pol] = EPICal.cal(freqs,antpos_info['positions'],pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.35,inv_gains=False,sky_model=sky_model,exclude_autos=True)
 
 
 # Create array of gains to watch them change
@@ -171,8 +171,11 @@ for i in xrange(itr):
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
     #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
-    tempdata += NP.sqrt(rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
+    #ind=NP.round(NP.random.uniform(low=0.0,high=tempdata.shape[0]-1,size=13))
+    #ind=ind.astype(int)
+    #tempdata[ind,2] = NP.nan
+    tempdata += NP.sqrt(rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
     #amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
     # Apply calibration and put back into antenna array
     aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata)
@@ -207,7 +210,6 @@ for i in xrange(itr):
         avg_img = avg_img+imgobj.img['P1'].copy()
         temp_im = temp_im+imgobj.img['P1'][:,:,2].copy()
 
-        temp_amp += NP.abs(tempdata[0,:])**2
         if i % cal_iter == 0:
             im_stack[cali,:,:] = temp_im/cal_iter
             temp_im[:] = 0.0
@@ -263,7 +265,7 @@ PLT.hist(NP.imag(data[-1,:]-true_g),histtype='step')
 # Expected noise
 #Nmeas_eff = itr
 #Nmeas_eff = 100
-Nmeas_eff = cal_iter / (1-calarr['P1'].gain_factor)
+Nmeas_eff = cal_iter / (calarr['P1'].damping_factor)
 visvar = NP.sum(sky_model[:,2,3])**2 / Nmeas_eff
 gvar = 4 * visvar / (NP.sum(abs(true_g.reshape(1,calarr['P1'].n_ant) * calarr['P1'].model_vis[:,:,2])**2,axis=1) - NP.abs(true_g * NP.diag(calarr['P1'].model_vis[:,:,2])))
 
