@@ -49,16 +49,18 @@ npol = du.npol
 ant_data = du.data
 
 # Make some choices about the analysis
-cal_iter = 15
-max_n_timestamps = 5*cal_iter
+cal_iter = 10
+max_n_timestamps = 10*cal_iter
 bchan = 300 # beginning channel (to cut out edges of the bandpass)
 echan = 725 # ending channel
 max_antenna_radius = 75.0 # meters. To cut outtrigger(s)
 pols = ['P1']
 npol_use = len(pols)
-use_GSM = True
+use_GSM = False
+test_sim = False
+apply_delays = False
 
-add_rxr_noise = 0 # for testing
+add_rxr_noise = 0000000 # for testing
 
 #### Antenna and array initialization
 
@@ -93,6 +95,8 @@ ant_aprtr = APR.Aperture(pol_type=ant_pol_type, kernel_type=ant_kerntype,
 if identical_antennas:
     ant_aprtrs = [ant_aprtr] * n_antennas
 
+
+#ant_info[:,3]=0.0 #### COMMENT OUT WHEN RUNNING FOR REAL!
 # Set up antenna array
 ants = []
 aar = AA.AntennaArray()
@@ -160,7 +164,6 @@ if use_GSM:
     sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
     sky_model[:,:,3] = src_flux.reshape(n_src,1)
 
-
 else:
     n_src = 2 # Just Cyg A and Cas A for now
     skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184]])
@@ -175,6 +178,20 @@ else:
     sky_model[:,:,3] = src_flux.reshape(n_src,1)
 
     #sky_model=sky_model[0,:,:].reshape(1,-1,4)
+if test_sim:
+    n_src = 2
+    skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184]])
+    #skypos=NP.array([0.07725,0.116067]).reshape(n_src,2)
+    #skypos=NP.array([[0.1725,0.00316067],[0.40582995,0.528184]]) # use to debug
+    src_flux = NP.array([16611.68,17693.9])
+    #src_flux = NP.array([16611.68]).reshape(n_src,1)
+    nvect = NP.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) 
+    skypos = NP.hstack((skypos,nvect))
+
+    sky_model = NP.zeros((n_src,nchan,4))
+    sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
+    sky_model[:,:,3] = src_flux.reshape(n_src,1)
+
 
 ####  set up calibration
 calarr={}
@@ -186,7 +203,7 @@ auto_noise_model = 0.25 * NP.sum(sky_model[:,0,3]) # roughly rxr:sky based on El
 #auto_noise_model=0.0
 curr_gains = 0.1*NP.ones((n_antennas,len(cal_freqs)),dtype=NP.complex64)
 for pol in pols:
-    calarr[pol] = EPICal.cal(cal_freqs,antpos_info['positions'],pol=pol,sim_mode=False,n_iter=cal_iter,damping_factor=0.5,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False,curr_gains=curr_gains,ref_ant=5)
+    calarr[pol] = EPICal.cal(cal_freqs,antpos_info['positions'],pol=pol,sim_mode=False,n_iter=cal_iter,damping_factor=0.5,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False,curr_gains=curr_gains,ref_ant=5,flatten_array=True)
 
 # Create array of gains to watch them change
 ncal=max_n_timestamps/cal_iter
@@ -196,11 +213,20 @@ amp_stack = NP.zeros((ncal+1,nchan),dtype=NP.float64)
 amp_full_stack = NP.zeros((max_n_timestamps,nchan),dtype=NP.float64)
 temp_amp = NP.zeros(nchan,dtype=NP.float64)
 
-PLT.ion()
-PLT.show()
+#PLT.ion()
+#PLT.show()
 
 for i in xrange(max_n_timestamps):
     print i
+
+    if test_sim:
+        # simulate 
+        E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
+                                                    flux_ref=src_flux, skypos=skypos, antpos=antpos_info['positions'],tshift=False)
+        for ia, label in enumerate(antid):
+            ind = antpos_info['labels'].index(label)
+            ant_data[i,ia,:,:] = E_timeseries_dict['Et'][:,ind].reshape(1,1,nts,1)
+
 
     timestamp = timestamps[i]
     update_info={}
@@ -226,13 +252,15 @@ for i in xrange(max_n_timestamps):
         adict['flags'] = {}
         adict['stack'] = True
         adict['wtsinfo'] = {}
-        adict['delaydict'] = {}
+        if apply_delays:
+            adict['delaydict'] = {}
         for ip,pol in enumerate(pols):
             adict['flags'][pol] = False
-            adict['delaydict'][pol] = {}
-            adict['delaydict'][pol]['frequencies'] = freqs
-            adict['delaydict'][pol]['delays'] = cable_delays[antennas == label]
-            adict['delaydict'][pol]['fftshifted'] = True
+            if apply_delays:
+                adict['delaydict'][pol] = {}
+                adict['delaydict'][pol]['frequencies'] = freqs
+                adict['delaydict'][pol]['delays'] = cable_delays[antennas == label]
+                adict['delaydict'][pol]['fftshifted'] = True
             adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
             adict['Et'][pol] = ant_data[i,ia,:,ip]
             if NP.any(NP.isnan(adict['Et'][pol])):
@@ -254,7 +282,8 @@ for i in xrange(max_n_timestamps):
         aar.caldata[pol]=aar.get_E_fields(pol,sort=True)
         tempdata=aar.caldata[pol]['E-fields'][0,:,:].copy()
         # add rxr noise for testing
-        #tempdata = NP.sqrt(add_rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
+        if test_sim:
+            tempdata += NP.sqrt(add_rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
         # Apply calibration and put back into antenna array
         #aar.caldata[pol]['E-fields'][0,:,:]=NP.ones((n_antennas,nchan),NP.complex64)
         aar.caldata[pol]['E-fields'][0,:,:]=calarr[pol].apply_cal(tempdata)
@@ -298,10 +327,10 @@ for i in xrange(max_n_timestamps):
             temp_amp[:] = 0.0
             cali += 1
 
-            PLT.cla()
-            for ant in xrange(gain_stack.shape[1]):
-                PLT.plot(NP.angle(gain_stack[0:cali,ant,bchan+1]))
-            PLT.draw()
+            #PLT.cla()
+            #for ant in xrange(gain_stack.shape[1]):
+            #    PLT.plot(NP.angle(gain_stack[0:cali,ant,bchan+1]))
+            #PLT.draw()
 
 
 
@@ -329,7 +358,8 @@ xlim([-1.0,1.0])
 ylim([-1.0,1.0])
 ax2 = PLT.subplot(122)
 imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
-plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
+if not use_GSM:
+    plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
 xlim([-1.0,1.0])
 ylim([-1.0,1.0])
 

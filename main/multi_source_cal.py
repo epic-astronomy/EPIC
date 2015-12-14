@@ -16,10 +16,11 @@ t1=time.time()
 
 #@profile
 #def main():
-cal_iter = 100
+cal_iter = 50
 itr = 15*cal_iter
-rxr_noise = 5000000000.0
+rxr_noise = 10000.0
 model_frac = 1.0 # fraction of total sky flux to model
+mimic_lwa = True
 
 grid_map_method='sparse'
 #grid_map_method='regular'
@@ -90,16 +91,29 @@ antpos_info = aar.antenna_positions(sort=True, centering=True)
 
 #### Set up sky model
 
-n_src = 2
-lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
-lmrad[-1]=0.05
-lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
-#lmrad[0] = 0.0
-skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
-#src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**(4))
-src_flux = NP.sort((NP.random.uniform(low=0.3,high=0.7,size=n_src)))
-#src_flux[-2]=0.8
-src_flux[-1]=1.0
+if mimic_lwa:
+
+    rxr_noise = 10000.0
+
+    n_src = 2 # Just Cyg A and Cas A for now
+    skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184]])
+    #skypos=NP.array([[0.1725,0.00316067],[0.40582995,0.528184]]) # use to debug
+    src_flux = NP.array([16611.68,17693.9])
+    src_flux[1] = src_flux[1] * 0.57 # Manually adjusting by a rough factor of the beam because the cal module doesn't do it (yet)
+
+
+else:
+    n_src = 2
+    lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
+    lmrad[-1]=0.05
+    lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
+    #lmrad[0] = 0.0
+    skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
+    #src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**(4))
+    src_flux = NP.sort((NP.random.uniform(low=0.3,high=0.7,size=n_src)))
+    #src_flux[-2]=0.8
+    src_flux[-1]=1.0
+
 tot_flux=NP.sum(src_flux)
 frac_flux=0.0
 ind=0
