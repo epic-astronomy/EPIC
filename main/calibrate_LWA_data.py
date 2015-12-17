@@ -203,7 +203,7 @@ auto_noise_model = 0.25 * NP.sum(sky_model[:,0,3]) # roughly rxr:sky based on El
 #auto_noise_model=0.0
 curr_gains = 0.1*NP.ones((n_antennas,len(cal_freqs)),dtype=NP.complex64)
 for pol in pols:
-    calarr[pol] = EPICal.cal(cal_freqs,antpos_info['positions'],pol=pol,sim_mode=False,n_iter=cal_iter,damping_factor=0.5,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False,curr_gains=curr_gains,ref_ant=5,flatten_array=True)
+    calarr[pol] = EPICal.cal(cal_freqs,antpos_info['positions'],pol=pol,sim_mode=False,n_iter=cal_iter,damping_factor=0.7,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False,curr_gains=curr_gains,ref_ant=5,flatten_array=True)
 
 # Create array of gains to watch them change
 ncal=max_n_timestamps/cal_iter
@@ -216,8 +216,9 @@ temp_amp = NP.zeros(nchan,dtype=NP.float64)
 #PLT.ion()
 #PLT.show()
 
+master_pb = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} time stamps '.format(max_n_timestamps), PGB.ETA()], maxval=max_n_timestamps).start()
+
 for i in xrange(max_n_timestamps):
-    print i
 
     if test_sim:
         # simulate 
@@ -235,7 +236,7 @@ for i in xrange(max_n_timestamps):
     update_info['antenna_array']['timestamp']=timestamp
 
     print 'Consolidating Antenna updates...'
-    progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(n_antennas), PGB.ETA()], maxval=n_antennas).start()
+    #progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(n_antennas), PGB.ETA()], maxval=n_antennas).start()
     antnum = 0
     for ia, label in enumerate(antid):
         adict={}
@@ -270,9 +271,9 @@ for i in xrange(max_n_timestamps):
             
         update_info['antennas'] += [adict]
 
-        progress.update(antnum+1)
+        #progress.update(antnum+1)
         antnum += 1
-    progress.finish()
+    #progress.finish()
 
     aar.update(update_info, parallel=False, verbose=False)
 
@@ -342,6 +343,9 @@ for i in xrange(max_n_timestamps):
 
     avg_img /= max_n_timestamps
 
+    master_pb.update(i+1)
+master_pb.finish()
+
 #imgobj.accumulate(tbinsize=None)
 #imgobj.removeAutoCorr(forceeval=True, datapool='avg', pad=0)
 t2=time.time()
@@ -374,18 +378,20 @@ for i in xrange(gain_stack.shape[1]):
     plot(NP.angle(data[:,i]*NP.conj(true_g[i])))
     PLT.figure(f_amps.number)
     plot(NP.abs(data[:,i]/true_g[i]))
+PLT.figure(f_phases.number)
+xlabel('Calibration iteration')
+ylabel('Calibration phase')
+PLT.figure(f_amps.number)
+xlabel('Calibration iteration')
+ylabel('Calibration amplitude')
 
-# Histogram
-#f_hist = PLT.figure("Histogram")
-#PLT.hist(NP.real(data[-1,:]-true_g),histtype='step')
-#PLT.hist(NP.imag(data[-1,:]-true_g),histtype='step')
+# Get an approximation to the dynamic range 
+# - just use median within beam instead of rms
+drange = NP.zeros(im_stack.shape[0])
+ind = NP.where(NP.sqrt(imgobj.gridl**2 + imgobj.gridm**2) < 0.3)
 
-# Expected noise
-#Nmeas_eff = itr
-#Nmeas_eff = 100
-#Nmeas_eff = cal_iter / (1-calarr['P1'].gain_factor)
-#visvar = NP.sum(sky_model[:,2,3])**2 / Nmeas_eff
-#gvar = 4 * visvar / (NP.sum(abs(true_g.reshape(1,calarr['P1'].n_ant) * calarr['P1'].model_vis[:,:,2])**2,axis=1) - NP.abs(true_g * NP.diag(calarr['P1'].model_vis[:,:,2])))
-
+for i in NP.arange(im_stack.shape[0]):
+    tempim = im_stack[i,:,:]
+    drange[i] = NP.max(tempim[ind])/NP.median(tempim[ind])
 
 

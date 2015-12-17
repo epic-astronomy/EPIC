@@ -16,7 +16,7 @@ t1=time.time()
 
 #@profile
 #def main():
-cal_iter = 50
+cal_iter = 20
 itr = 15*cal_iter
 rxr_noise = 10000.0
 model_frac = 1.0 # fraction of total sky flux to model
@@ -94,6 +94,7 @@ antpos_info = aar.antenna_positions(sort=True, centering=True)
 if mimic_lwa:
 
     rxr_noise = 10000.0
+    #rxr_noise = 0000.0
 
     n_src = 2 # Just Cyg A and Cas A for now
     skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184]])
