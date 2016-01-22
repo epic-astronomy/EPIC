@@ -17,10 +17,10 @@ t1=time.time()
 #@profile
 #def main():
 cal_iter = 20
-itr = 15*cal_iter
-rxr_noise = 10000.0
+itr = 20*cal_iter
+rxr_noise = 00000.0
 model_frac = 1.0 # fraction of total sky flux to model
-mimic_lwa = True
+mimic_lwa = False
 
 grid_map_method='sparse'
 #grid_map_method='regular'
@@ -104,9 +104,9 @@ if mimic_lwa:
 
 
 else:
-    n_src = 2
+    n_src = 1
     lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
-    lmrad[-1]=0.05
+    lmrad[-1]=0.00
     lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
     #lmrad[0] = 0.0
     skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
@@ -140,7 +140,7 @@ auto_noise_model = rxr_noise
 
 for pol in ['P1','P2']:
     #calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
-    calarr[pol] = EPICal.cal(freqs,antpos_info['positions'],pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.35,inv_gains=False,sky_model=sky_model,exclude_autos=True)
+    calarr[pol] = EPICal.cal(freqs,antpos_info['positions'],pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.35,inv_gains=False,sky_model=sky_model,exclude_autos=True,n_cal_sources=1)
 
 
 # Create array of gains to watch them change
