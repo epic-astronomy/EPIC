@@ -21,6 +21,7 @@ import healpy as HP
 import aipy
 from astropy.coordinates import Galactic, FK5
 from astropy import units
+import astropy.time as AT
 import ipdb as PDB
 import pickle
 from scipy import interpolate
@@ -50,7 +51,8 @@ ant_data = du.data
 
 # Make some choices about the analysis
 cal_iter = 10
-max_n_timestamps = 10*cal_iter
+max_n_timestamps = 31*cal_iter
+min_timestamp = 0
 bchan = 300 # beginning channel (to cut out edges of the bandpass)
 echan = 725 # ending channel
 max_antenna_radius = 75.0 # meters. To cut outtrigger(s)
@@ -58,7 +60,18 @@ pols = ['P1']
 npol_use = len(pols)
 use_GSM = False
 test_sim = False
-apply_delays = False
+scramble_gains = 0.0 # apply a jitter
+apply_delays = True
+
+#initial_gains_file = '/home/beards/temp/gains3.npy'
+# gains.npy - made from all antennas. I think something went wrong with it.
+# gains2.npy - made using unflagged ants, cal_iter=10, using 3 sources
+# gains3.npy - same as 2, but w/ cal_iter=30
+# gains4.npy - used 3 as initial condition and repeated through data file.
+initial_gains_file = None
+
+#ant_flag = NP.array([116,161,198,239]) # observed to get unstable cal solutions. try flagging to see if the rest improve
+ant_flag = NP.array([28,54,116,131,161,198,239]) # observed to get unstable cal solutions. try flagging to see if the rest improve
 
 add_rxr_noise = 0000000 # for testing
 
@@ -68,9 +81,16 @@ add_rxr_noise = 0000000 # for testing
 core_ind = NP.logical_and((NP.abs(antpos[:,0]) < max_antenna_radius), (NP.abs(antpos[:,1]) < max_antenna_radius))
 antid = antid[core_ind]
 antpos = antpos[core_ind,:]
+ant_data = ant_data[:,core_ind,:,:]
+
+# Flag antennas by removing them
+if ant_flag is not None:
+    antid = NP.delete(antid,ant_flag)
+    antpos = NP.delete(antpos,ant_flag,axis=0)
+    ant_data = NP.delete(ant_data,ant_flag,axis=1)
 ant_info = NP.hstack((antid.reshape(-1,1),antpos))
 n_antennas = ant_info.shape[0]
-ant_data = ant_data[:,core_ind,:,:]
+
 
 # Read in cable delays
 stand_cable_delays = NP.loadtxt('/data3/t_nithyanandan/project_MOFF/data/samples/cable_delays.txt', skiprows=1)
@@ -115,12 +135,12 @@ if max_n_timestamps is None:
 else:
     max_n_timestamps = min(max_n_timestamps, len(timestamps))
 
-timestamps = timestamps[:max_n_timestamps]
+timestamps = timestamps[min_timestamp:min_timestamp+max_n_timestamps]
 
 #### Set up sky model
+lst = 299.28404*NP.pi/180
 if use_GSM:
     print 'Getting the GSM'
-    lst = 299.28404*NP.pi/180
     nside = 128
     # Load in GSM
     gsm = GlobalSkyModel()
@@ -155,6 +175,7 @@ if use_GSM:
     # attenuate by one factor of the beam
     beam_interp = interpolate.griddata((smalll,smallm),smallb,(xyz[0,:],xyz[1,:]),method='linear')
     src_flux = sky * beam_interp # name to match other sky model version
+    #src_flux = sky * beam_interp # another factor
 
     print 'Finished applying beam'
     
@@ -165,13 +186,26 @@ if use_GSM:
     sky_model[:,:,3] = src_flux.reshape(n_src,1)
 
 else:
-    n_src = 2 # Just Cyg A and Cas A for now
-    skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184]])
-    #skypos=NP.array([[0.1725,0.00316067],[0.40582995,0.528184]]) # use to debug
+    #n_src = 3 # Just Cyg A and Cas A, and another one near Cyg A for now
+    #skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184],[.081,.114]])
+    #src_flux = NP.array([16611.68,17693.9,2624.76])
+    
+    # data were taken 2011 Sept 21 3:09 UTC
+    jyear = '2011.736156' # very approximate. Should get a better value at some point.
+    n_src = 2
+    radec = NP.array([[5.233686583,0.71094094367],[6.12377129663,1.02645722192]])
+    for i in NP.arange(n_src):
+        radec[i,:] = aipy.coord.convert(radec[i,:],'eq','eq',iepoch=ephem.J2000,oepoch=jyear)
+    eq = aipy.coord.radec2eq((-lst+radec[:,0],radec[:,1]))
+    skypos = NP.transpose(NP.dot(aipy.coord.eq2top_m(0,lat*NP.pi/180),eq))
+
+    #n_src = 2 # Just Cyg A and Cas A for now
+    #skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184]])
     src_flux = NP.array([16611.68,17693.9])
+    
     src_flux[1] = src_flux[1] * 0.57 # Manually adjusting by a rough factor of the beam because the cal module doesn't do it (yet)
-    nvect = NP.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) 
-    skypos = NP.hstack((skypos,nvect))
+    #nvect = NP.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) 
+    #skypos = NP.hstack((skypos,nvect))
 
     sky_model = NP.zeros((n_src,nchan,4))
     sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
@@ -201,9 +235,18 @@ cal_freqs = NP.interp(cal_fi,fi,freqs)
 # auto noise term
 auto_noise_model = 0.25 * NP.sum(sky_model[:,0,3]) # roughly rxr:sky based on Ellingson, 2013
 #auto_noise_model=0.0
-curr_gains = 0.1*NP.ones((n_antennas,len(cal_freqs)),dtype=NP.complex64)
+curr_gains = 0.25*NP.ones((n_antennas,len(cal_freqs)),dtype=NP.complex64)
+freq_ave = bchan
 for pol in pols:
-    calarr[pol] = EPICal.cal(cal_freqs,antpos_info['positions'],pol=pol,sim_mode=False,n_iter=cal_iter,damping_factor=0.7,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False,curr_gains=curr_gains,ref_ant=5,flatten_array=True)
+    calarr[pol] = EPICal.cal(cal_freqs,antpos_info['positions'],pol=pol,sim_mode=False,n_iter=cal_iter,damping_factor=0.7,inv_gains=False,sky_model=sky_model,freq_ave=bchan,exclude_autos=True,phase_fit=False,curr_gains=curr_gains,ref_ant=5,flatten_array=True,n_cal_sources=1)
+    if scramble_gains > 0:
+        for i in NP.arange(NP.ceil(NP.float(nchan)/freq_ave)):
+            mini = i*freq_ave
+            maxi = NP.min((nchan,(i+1)*freq_ave))
+            calarr[pol].curr_gains[:,mini:maxi] += NP.random.normal(0,NP.sqrt(scramble_gains),(n_antennas,1)) + 1j * NP.random.normal(0,NP.sqrt(scramble_gains),(n_antennas,1))
+
+if initial_gains_file is not None:
+    calarr['P1'].curr_gains = NP.load(initial_gains_file)
 
 # Create array of gains to watch them change
 ncal=max_n_timestamps/cal_iter
@@ -263,7 +306,7 @@ for i in xrange(max_n_timestamps):
                 adict['delaydict'][pol]['delays'] = cable_delays[antennas == label]
                 adict['delaydict'][pol]['fftshifted'] = True
             adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
-            adict['Et'][pol] = ant_data[i,ia,:,ip]
+            adict['Et'][pol] = ant_data[i+min_timestamp,ia,:,ip]
             if NP.any(NP.isnan(adict['Et'][pol])):
                 adict['flags'][pol] = True
             else:
@@ -308,7 +351,11 @@ for i in xrange(max_n_timestamps):
     if i == 0:
         avg_img = imgobj.img['P1'].copy()
         im_stack = NP.zeros((ncal+1,avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
-        im_stack[cali,:,:] = NP.mean(avg_img[:,:,bchan:echan].copy(),axis=2)
+        uv = NP.fft.fftshift(NP.fft.fft2(NP.mean(avg_img[:,:,bchan:echan].copy(),axis=2)))
+        uv[126:131,125:132]=0
+        uv[125:132,126:131]=0
+
+        im_stack[cali,:,:] = NP.real(NP.fft.ifft2(NP.fft.fftshift(uv)))
         temp_im = avg_img[:,:,bchan+1]
 
         temp_amp = NP.abs(tempdata[0,:])**2
@@ -321,7 +368,12 @@ for i in xrange(max_n_timestamps):
 
         temp_amp += NP.abs(tempdata[0,:])**2
         if i % cal_iter == 0:
-            im_stack[cali,:,:] = temp_im/cal_iter
+            uv = NP.fft.fftshift(NP.fft.fft2(temp_im))/cal_iter
+            uv[126:131,125:132]=0
+            uv[125:132,126:131]=0
+
+            im_stack[cali,:,:] = NP.real(NP.fft.ifft2(NP.fft.fftshift(uv)))
+        
             temp_im[:] = 0.0
             gain_stack[cali,:,:] = calarr['P1'].curr_gains
             amp_stack[cali,:] = temp_amp/cal_iter
@@ -355,27 +407,61 @@ print 'Full loop took ', t2-t1, 'seconds'
 
 ### Do some plotting
 
+# Manually remove the autos...
+#pre_uv = NP.fft.fftshift(NP.fft.fft2(im_stack[1,:,:]))
+#post_uv = NP.fft.fftshift(NP.fft.fft2(im_stack[-2,:,:]))
+#pre_uv[126:131,125:132]=0
+#pre_uv[125:132,126:131]=0
+#post_uv[126:131,125:132]=0
+#post_uv[125:132,126:131]=0
+
+#pre_im = NP.real(NP.fft.ifft2(NP.fft.fftshift(pre_uv)))
+#post_im = NP.real(NP.fft.ifft2(NP.fft.fftshift(post_uv)))
+pre_im = im_stack[1,:,:]
+post_im = im_stack[-2,:,:]
+
+nanind = NP.where(imgobj.gridl**2 + imgobj.gridm**2 > 1.0)
+pre_im[nanind] = NP.nan
+post_im[nanind] = NP.nan
+
 f_images = PLT.figure("Images",figsize=(15,5))
 ax1 = PLT.subplot(121)
-imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+#imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+imshow(pre_im,aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
 xlim([-1.0,1.0])
 ylim([-1.0,1.0])
-ax2 = PLT.subplot(122)
-imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+clim([0.0*NP.nanmin(pre_im),0.5*NP.nanmax(pre_im)])
 if not use_GSM:
     plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
+ax2 = PLT.subplot(122)
+#imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+imshow(post_im,aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
 xlim([-1.0,1.0])
 ylim([-1.0,1.0])
+clim([0.0*NP.nanmin(post_im),0.5*NP.nanmax(post_im)])
+
+if not use_GSM:
+    plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
 
 data = gain_stack[0:-1,:,bchan+1]
 true_g = NP.ones(n_antennas)
+
+# Get an approximation to the dynamic range 
+# - just use median within beam instead of rms
+drange = NP.zeros(im_stack.shape[0])
+ind = NP.where(NP.sqrt(imgobj.gridl**2 + imgobj.gridm**2) < 0.3)
+
+for i in NP.arange(im_stack.shape[0]):
+    tempim = im_stack[i,:,:].copy()
+    tempim[nanind] = NP.nan
+    drange[i] = NP.nanmax(tempim)/NP.nanmedian(NP.abs(tempim - NP.nanmedian(tempim)))
 
 # Phase and amplitude convergence
 f_phases = PLT.figure("Phases")
 f_amps = PLT.figure("Amplitudes")
 for i in xrange(gain_stack.shape[1]):
     PLT.figure(f_phases.number)
-    plot(NP.angle(data[:,i]*NP.conj(true_g[i])))
+    plot(NP.unwrap(NP.angle(data[:,i]*NP.conj(true_g[i]))))
     PLT.figure(f_amps.number)
     plot(NP.abs(data[:,i]/true_g[i]))
 PLT.figure(f_phases.number)
@@ -384,14 +470,4 @@ ylabel('Calibration phase')
 PLT.figure(f_amps.number)
 xlabel('Calibration iteration')
 ylabel('Calibration amplitude')
-
-# Get an approximation to the dynamic range 
-# - just use median within beam instead of rms
-drange = NP.zeros(im_stack.shape[0])
-ind = NP.where(NP.sqrt(imgobj.gridl**2 + imgobj.gridm**2) < 0.3)
-
-for i in NP.arange(im_stack.shape[0]):
-    tempim = im_stack[i,:,:]
-    drange[i] = NP.max(tempim[ind])/NP.median(tempim[ind])
-
 
