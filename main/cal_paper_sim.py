@@ -11,16 +11,16 @@ import ipdb as PDB
 import EPICal
 import aperture as APR
 import time
+import pickle
 
 t1=time.time()
 
 #@profile
 #def main():
-cal_iter = 20
-itr = 20*cal_iter
-rxr_noise = 00000.0
+cal_iter = 400
+itr = 25*cal_iter
+rxr_noise = 0.0
 model_frac = 1.0 # fraction of total sky flux to model
-mimic_lwa = False
 
 grid_map_method='sparse'
 #grid_map_method='regular'
@@ -85,35 +85,28 @@ for i in xrange(n_antennas):
 
 aar.grid(xypad=2*NP.max([ant_sizex,ant_sizey]))
 
-antpos_info = aar.antenna_positions(sort=True, centering=True)
+antpos_info = aar.antenna_positions(sort=True)
 
 
 
 #### Set up sky model
 
-if mimic_lwa:
+src_seed = 50 # fix the seed
+rstate = NP.random.RandomState(src_seed)
+NP.random.seed(src_seed)
 
-    rxr_noise = 10000.0
-    #rxr_noise = 0000.0
-
-    n_src = 2 # Just Cyg A and Cas A for now
-    skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184]])
-    #skypos=NP.array([[0.1725,0.00316067],[0.40582995,0.528184]]) # use to debug
-    src_flux = NP.array([16611.68,17693.9])
-    src_flux[1] = src_flux[1] * 0.57 # Manually adjusting by a rough factor of the beam because the cal module doesn't do it (yet)
-
-
-else:
-    n_src = 1
-    lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
-    lmrad[-1]=0.00
-    lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
-    #lmrad[0] = 0.0
-    skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
-    #src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**(4))
-    src_flux = NP.sort((NP.random.uniform(low=0.3,high=0.7,size=n_src)))
-    #src_flux[-2]=0.8
-    src_flux[-1]=1.0
+n_src = 10
+#lmrad = rstate.uniform(low=0.0,high=0.2,size=n_src).reshape(-1,1)
+lmrad = rstate.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5) # uniform distributed
+lmrad[-1]=0.05
+lmang = rstate.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
+skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
+skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
+src_flux = NP.sort((NP.random.uniform(low=0.3,high=0.7,size=n_src)))
+src_flux[-1]=1.0
+#src_flux = 10.0*NP.ones(n_src)
+#src_flux = 10.0*NP.array([.853,.968,.959,.906,.916,.511,.903,.671,.691,.941])
+#src_flux = 3.0*NP.array([.853,4*.968,.959,.906,.916,.511,.903,.671,.691,.941])
 
 tot_flux=NP.sum(src_flux)
 frac_flux=0.0
@@ -121,10 +114,6 @@ ind=0
 while frac_flux < model_frac:
     ind+=1
     frac_flux=NP.sum(src_flux[-ind:])/tot_flux
-
-
-nvect = NP.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) 
-skypos = NP.hstack((skypos,nvect))
 
 sky_model = NP.zeros((n_src,nchan,4))
 sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
@@ -136,17 +125,18 @@ sky_model=sky_model[-ind:,:,:]
 calarr={}
 ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
 
-auto_noise_model = rxr_noise
+#auto_noise_model = rxr_noise
 
 for pol in ['P1','P2']:
-    #calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
-    calarr[pol] = EPICal.cal(freqs,antpos_info['positions'],pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.35,inv_gains=False,sky_model=sky_model,exclude_autos=True,n_cal_sources=1)
-
+    calarr[pol] = EPICal.cal(freqs,ant_pos,pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.35,inv_gains=False,sky_model=sky_model,exclude_autos=False)
 
 # Create array of gains to watch them change
 ncal=itr/cal_iter
 cali=0
 gain_stack = NP.zeros((ncal+1,ant_info.shape[0],nchan),dtype=NP.complex64)
+
+PLT.ion()
+PLT.show()
 
 for i in xrange(itr):
     print i
@@ -187,11 +177,7 @@ for i in xrange(itr):
     tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
     #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
-    #ind=NP.round(NP.random.uniform(low=0.0,high=tempdata.shape[0]-1,size=13))
-    #ind=ind.astype(int)
-    #tempdata[ind,2] = NP.nan
     tempdata += NP.sqrt(rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
-    #amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
     # Apply calibration and put back into antenna array
     aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata)
 
@@ -217,9 +203,8 @@ for i in xrange(itr):
         im_stack[cali,:,:] = avg_img[:,:,2].copy()
         temp_im = avg_img[:,:,2]
 
-        gain_stack[cali,:,:] = calarr['P1'].sim_gains
-        cali += 1
         gain_stack[cali,:,:] = calarr['P1'].curr_gains
+        cali += 1
 
     else:
         avg_img = avg_img+imgobj.img['P1'].copy()
@@ -231,7 +216,13 @@ for i in xrange(itr):
             gain_stack[cali,:,:] = calarr['P1'].curr_gains
             cali += 1
 
+            data = gain_stack[0:cali,:,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[1,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[1,calarr['P1'].ref_ant,2])
+            true_g = calarr['P1'].sim_gains[:,2]
 
+            PLT.cla()
+            for ant in xrange(gain_stack.shape[1]):
+                PLT.plot(NP.angle(data[:,ant]*NP.conj(true_g[ant])))
+            PLT.draw()
 
     if True in NP.isnan(calarr['P1'].cal_corr):
     #if True in NP.isnan(calarr['P1'].temp_gains):
@@ -250,17 +241,17 @@ print 'Full loop took ', t2-t1, 'seconds'
 
 f_images = PLT.figure("Images",figsize=(15,5))
 ax1 = PLT.subplot(121)
-imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()))
 xlim([-.3,.3])
 ylim([-.3,.3])
 ax2 = PLT.subplot(122)
-imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
+imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()))
 plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
 xlim([-.3,.3])
 ylim([-.3,.3])
 
 # remove some arbitrary phases.
-data = gain_stack[1:-1,:,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[-2,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[-2,calarr['P1'].ref_ant,2])
+data = gain_stack[0:-1,:,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[1,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[1,calarr['P1'].ref_ant,2])
 true_g = calarr['P1'].sim_gains[:,2]
 
 # Phase and amplitude convergence
@@ -271,6 +262,15 @@ for i in xrange(gain_stack.shape[1]):
     plot(NP.angle(data[:,i]*NP.conj(true_g[i])))
     PLT.figure(f_amps.number)
     plot(NP.abs(data[:,i]/true_g[i]))
+PLT.figure(f_phases.number)
+xlim([0,20])
+ylim([-NP.pi,NP.pi])
+xlabel('Calibration Iteration')
+ylabel('Phase error (rad)')
+PLT.figure(f_amps.number)
+xlim([0,20])
+xlabel('Calibration Iteration')
+ylabel('Relative amplitude')
 
 # Histogram
 f_hist = PLT.figure("Histogram")
@@ -284,5 +284,8 @@ Nmeas_eff = cal_iter / (calarr['P1'].damping_factor)
 visvar = NP.sum(sky_model[:,2,3])**2 / Nmeas_eff
 gvar = 4 * visvar / (NP.sum(abs(true_g.reshape(1,calarr['P1'].n_ant) * calarr['P1'].model_vis[:,:,2])**2,axis=1) - NP.abs(true_g * NP.diag(calarr['P1'].model_vis[:,:,2])))
 
+
+with open('/data2/beards/tmp/sim_run.pickle','w') as f:
+    pickle.dump([calarr,gain_stack,im_stack,sky_model,cal_iter],f)
 
 
