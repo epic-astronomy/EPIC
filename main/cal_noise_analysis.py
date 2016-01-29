@@ -14,13 +14,15 @@ import time
 
 t1=time.time()
 
-#@profile
-#def main():
-cal_iter = 500
-itr = 15*cal_iter
-rxr_noise = 20.0
-model_frac = 1.0 # fraction of total sky flux to model
-mimic_lwa = False
+## Run the following lines at main level:
+# noises = NP.array([10.0,15.0,20.0,25.0])
+# cal_iters = NP.array([50,100,150,200,300,500,700])
+# variances=NP.zeros((len(noises),len(cal_iters),2))
+# for noisei,rxr_noise in enumerate(noises):
+#   for cal_iteri,cal_iter in enumerate(cal_iters):
+#       execfile('/home/beards/code/python/EPIC/main/cal_noise_analysis.py')
+
+itr = 5*cal_iter
 
 grid_map_method='sparse'
 #grid_map_method='regular'
@@ -83,45 +85,22 @@ for i in xrange(n_antennas):
     ants += [ant]
     aar = aar + ant
 
-aar.grid(xypad=2*NP.max([ant_sizex,ant_sizey]))
+aar.grid(xypad=2*NP.max([ant_sizex,ant_sizey]),uvspacing=2.0)
 
 antpos_info = aar.antenna_positions(sort=True, centering=True)
 
-
-
 #### Set up sky model
 
-if mimic_lwa:
-
-    rxr_noise = 10000.0
-    #rxr_noise = 0000.0
-
-    n_src = 2 # Just Cyg A and Cas A for now
-    skypos=NP.array([[0.007725,0.116067],[0.40582995,0.528184]])
-    #skypos=NP.array([[0.1725,0.00316067],[0.40582995,0.528184]]) # use to debug
-    src_flux = NP.array([16611.68,17693.9])
-    src_flux[1] = src_flux[1] * 0.57 # Manually adjusting by a rough factor of the beam because the cal module doesn't do it (yet)
-
-
-else:
-    n_src = 1
-    lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
-    lmrad[-1]=0.00
-    lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
-    #lmrad[0] = 0.0
-    skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
-    #src_flux = NP.sort((NP.random.uniform(low=0,high=1.0,size=n_src))**(4))
-    src_flux = NP.sort((NP.random.uniform(low=0.3,high=0.7,size=n_src)))
-    #src_flux[-2]=0.8
-    src_flux[-1]=1.0
-
-tot_flux=NP.sum(src_flux)
-frac_flux=0.0
-ind=0
-while frac_flux < model_frac:
-    ind+=1
-    frac_flux=NP.sum(src_flux[-ind:])/tot_flux
-
+src_seed = 50
+rstate = NP.random.RandomState(src_seed)
+NP.random.seed(src_seed)
+n_src = 1
+lmrad = NP.random.uniform(low=0.0,high=0.05,size=n_src).reshape(-1,1)**(0.5)
+lmrad[-1]=0.00
+lmang = NP.random.uniform(low=0.0,high=2*NP.pi,size=n_src).reshape(-1,1)
+skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang)))
+src_flux = NP.sort((NP.random.uniform(low=0.2,high=0.5,size=n_src)))
+src_flux[-1]=1.0
 
 nvect = NP.sqrt(1.0-NP.sum(skypos**2, axis=1)).reshape(-1,1) 
 skypos = NP.hstack((skypos,nvect))
@@ -129,70 +108,61 @@ skypos = NP.hstack((skypos,nvect))
 sky_model = NP.zeros((n_src,nchan,4))
 sky_model[:,:,0:3] = skypos.reshape(n_src,1,3)
 sky_model[:,:,3] = src_flux.reshape(n_src,1)
-#sky_model=sky_model[0,:,:].reshape(1,nchan,4)
-sky_model=sky_model[-ind:,:,:]
 
 ####  set up calibration
 calarr={}
 ant_pos = ant_info[:,1:] # I'll let the cal class put it in wavelengths.
 
-auto_noise_model = rxr_noise
-
 for pol in ['P1','P2']:
-    #calarr[pol] = EPICal.cal(ant_pos,freqs,n_iter=cal_iter,sim_mode=True,sky_model=sky_model,gain_factor=0.5,pol=pol,cal_method='multi_source',inv_gains=False)
     calarr[pol] = EPICal.cal(freqs,antpos_info['positions'],pol=pol,sim_mode=True,n_iter=cal_iter,damping_factor=0.35,inv_gains=False,sky_model=sky_model,exclude_autos=True,n_cal_sources=1)
     calarr[pol].sim_gains = NP.ones(calarr[pol].sim_gains.shape,dtype=NP.complex64)
 
-# Create array of gains to watch them change
-ncal=itr/cal_iter
-cali=0
-gain_stack = NP.zeros((ncal+1,ant_info.shape[0],nchan),dtype=NP.complex64)
-
 for i in xrange(itr):
+    print rxr_noise
+    print cal_iter
     print i
     # simulate
-    E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
+    if i == 0:
+        E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
                                                     flux_ref=src_flux, skypos=skypos, antpos=antpos_info['positions'],tshift=False)
 
-    timestamp = str(DT.datetime.now())
-    update_info={}
-    update_info['antennas']=[]
-    update_info['antenna_array']={}
-    update_info['antenna_array']['timestamp']=timestamp
-    for label in aar.antennas:
-        adict={}
-        adict['label']=label
-        adict['action']='modify'
-        adict['timestamp']=timestamp
-        ind = antpos_info['labels'].index(label)
-        adict['t'] = E_timeseries_dict['t']
-        adict['gridfunc_freq'] = 'scale'
-        adict['gridmethod'] = 'NN'
-        adict['distNN'] = 3.0
-        adict['Et'] = {}
-        adict['flags'] = {}
-        adict['wtsinfo'] = {}
-        for pol in ['P1','P2']:
-            adict['flags'][pol] = False
-            adict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
-            adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+        timestamp = str(DT.datetime.now())
+        update_info={}
+        update_info['antennas']=[]
+        update_info['antenna_array']={}
+        update_info['antenna_array']['timestamp']=timestamp
+        for label in aar.antennas:
+            adict={}
+            adict['label']=label
+            adict['action']='modify'
+            adict['timestamp']=timestamp
+            ind = antpos_info['labels'].index(label)
+            adict['t'] = E_timeseries_dict['t']
+            adict['gridfunc_freq'] = 'scale'
+            adict['gridmethod'] = 'NN'
+            adict['distNN'] = 3.0
+            adict['Et'] = {}
+            adict['flags'] = {}
+            adict['wtsinfo'] = {}
+            for pol in ['P1','P2']:
+                adict['flags'][pol] = False
+                adict['Et'][pol] = E_timeseries_dict['Et'][:,ind]
+                adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
 
-        update_info['antennas'] += [adict]
+            update_info['antennas'] += [adict]
 
-    aar.update(update_info, parallel=False, verbose=False, nproc=16)
+        aar.update(update_info, parallel=False, verbose=False, nproc=16)
 
     ### Calibration steps
     # read in data array
     aar.caldata['P1']=aar.get_E_fields('P1',sort=True)
-    tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
-    #tempdata[:,2]/=NP.abs(tempdata[0,2]) # uncomment this line to make noise = 0 for single source
+    if i == 0:
+        tempdata=aar.caldata['P1']['E-fields'][0,:,:].copy()
+    else:
+        tempdata[:,1] = NP.sqrt(src_flux/2) * (NP.random.normal(loc=0.0, scale=1.0) + 1j * NP.random.normal(loc=0.0, scale=1.0))
+
     tempdata = calarr['P1'].apply_cal(tempdata,meas=True)
-    #ind=NP.round(NP.random.uniform(low=0.0,high=tempdata.shape[0]-1,size=13))
-    #ind=ind.astype(int)
-    #tempdata[ind,2] = NP.nan
     tempdata += NP.sqrt(rxr_noise) / NP.sqrt(2) * (NP.random.normal(loc=0.0, scale=1, size=tempdata.shape) + 1j * NP.random.normal(loc=0.0, scale=1, size=tempdata.shape))
-    #amp_full_stack[i,:] = NP.abs(tempdata[0,:])**2
-    # Apply calibration and put back into antenna array
     aar.caldata['P1']['E-fields'][0,:,:]=calarr['P1'].apply_cal(tempdata)
 
     if grid_map_method == 'regular':
@@ -211,81 +181,44 @@ for i in xrange(itr):
     # update calibration
     calarr['P1'].update_cal(tempdata,imgobj)
 
-    if i == 0:
-        avg_img = imgobj.img['P1'].copy()
-        im_stack = NP.zeros((ncal,avg_img.shape[0],avg_img.shape[1]),dtype=NP.double)
-        im_stack[cali,:,:] = avg_img[:,:,2].copy()
-        temp_im = avg_img[:,:,2]
-
-        gain_stack[cali,:,:] = calarr['P1'].sim_gains
-        cali += 1
-        gain_stack[cali,:,:] = calarr['P1'].curr_gains
-
-    else:
-        avg_img = avg_img+imgobj.img['P1'].copy()
-        temp_im = temp_im+imgobj.img['P1'][:,:,2].copy()
-
-        if i % cal_iter == 0:
-            im_stack[cali,:,:] = temp_im/cal_iter
-            temp_im[:] = 0.0
-            gain_stack[cali,:,:] = calarr['P1'].curr_gains
-            cali += 1
-
-
-
     if True in NP.isnan(calarr['P1'].cal_corr):
-    #if True in NP.isnan(calarr['P1'].temp_gains):
         print 'NAN in calibration gains! exiting!'
         break
 
-    avg_img /= itr
 
 t2=time.time()
 
 print 'Full loop took ', t2-t1, 'seconds'
-#    PDB.set_trace()
-
-### Do some plotting
-# TODO: change to object oriented plotting
-
-f_images = PLT.figure("Images",figsize=(15,5))
-ax1 = PLT.subplot(121)
-imshow(im_stack[1,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
-xlim([-.3,.3])
-ylim([-.3,.3])
-ax2 = PLT.subplot(122)
-imshow(im_stack[-2,:,:],aspect='equal',origin='lower',extent=(imgobj.gridl.min(),imgobj.gridl.max(),imgobj.gridm.min(),imgobj.gridm.max()),interpolation='none')
-plot(sky_model[:,0,0],sky_model[:,0,1],'o',mfc='none',mec='red',mew=1,ms=10)
-xlim([-.3,.3])
-ylim([-.3,.3])
-
-# remove some arbitrary phases.
-data = gain_stack[1:-1,:,2]*calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*NP.conj(gain_stack[-2,calarr['P1'].ref_ant,2])/NP.abs(calarr['P1'].sim_gains[calarr['P1'].ref_ant,2]*gain_stack[-2,calarr['P1'].ref_ant,2])
-true_g = calarr['P1'].sim_gains[:,2]
-
-# Phase and amplitude convergence
-f_phases = PLT.figure("Phases")
-f_amps = PLT.figure("Amplitudes")
-for i in xrange(gain_stack.shape[1]):
-    PLT.figure(f_phases.number)
-    plot(NP.angle(data[:,i]*NP.conj(true_g[i])))
-    PLT.figure(f_amps.number)
-    plot(NP.abs(data[:,i]/true_g[i]))
-
-# Histogram
-f_hist = PLT.figure("Histogram")
-PLT.hist(NP.real(data[-1,:]-true_g),histtype='step')
-PLT.hist(NP.imag(data[-1,:]-true_g),histtype='step')
 
 # Expected noise
-#Nmeas_eff = itr
-#Nmeas_eff = 100
-Nmeas_eff = cal_iter / (calarr['P1'].damping_factor)
-#visvar = NP.sum(sky_model[:,2,3])**2 / Nmeas_eff
-#gvar = 4 * visvar / (NP.sum(abs(true_g.reshape(1,calarr['P1'].n_ant) * calarr['P1'].model_vis[:,:,2])**2,axis=1) - NP.abs(true_g * NP.diag(calarr['P1'].model_vis[:,:,2])))
-var_exp = NP.sum(NP.abs(calarr['P1'].model_vis[1,:,2])**2/(4.0*rxr_noise**2))**(-1)/Nmeas_eff # don't bother with noise for ref antenna
-var_meas1 = NP.var(calarr['P1'].curr_gains[1:,2])
-var_meas2 = NP.mean(NP.var(gain_stack[1:-2,1:,2],axis=0))
+#Nmeas_eff = cal_iter / (1-calarr['P1'].damping_factor)
+Nmeas_eff = cal_iter * (1-calarr['P1'].damping_factor**2) / (1-calarr['P1'].damping_factor)**2
+#tot_noise = NP.sqrt(rxr_noise**2 + src_flux[0]**2*n_antennas)
+tot_noise = rxr_noise #+ NP.sum(src_flux)
+var_exp = NP.sum(NP.abs(calarr['P1'].model_vis[1,:,1])**2/(4.0*tot_noise**2))**(-1)/Nmeas_eff 
+var_meas = NP.var(calarr['P1'].curr_gains[1:,1]) # don't bother with noise for ref antenna
 
+variances[noisei,cal_iteri,0] = var_exp
+variances[noisei,cal_iteri,1] = var_meas
 
+# Plot...
+# colors= ['k','r','b','g','k','r','b','g']
+# for line in xrange(variances.shape[0]):
+#     plot(cal_iters,variances[line,:,0],color=colors[line],lw=2)
+#     plot(cal_iters,variances[line,:,1],'--',color=colors[line],lw=2)
+# yscale('log')
 
+# plot(cal_iters,variances[0,:,0],color='k',lw=2)
+# plot(cal_iters,variances[0,:,1],'--',color='k',lw=2)
+# plot(cal_iters,variances[1,:,0],color='r',lw=2)
+# plot(cal_iters,variances[1,:,1],'--',color='r',lw=2)
+# plot(cal_iters,variances[2,:,0],color='b',lw=2)
+# plot(cal_iters,variances[2,:,1],'--',color='b',lw=2)
+# #plot(cal_iters,variances[3,:,0],color='g',lw=2)
+# #plot(cal_iters,variances[3,:,1],'--',color='g',lw=2)
+# yscale('log')
+# black_line = Line2D([],[], color='k', lw=2, label='line 1')
+# red_line = Line2D([],[], color='r', lw=2, label='line 2')
+# blue_line = Line2D([],[], color='b', lw=2, label='line 3')
+# green_line = Line2D([],[], color='g', lw=2, label='line 4')
+# legend(handles=[black_line,red_line,blue_line,green_line()])
