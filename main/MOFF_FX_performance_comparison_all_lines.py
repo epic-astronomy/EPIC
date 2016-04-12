@@ -6,93 +6,110 @@ import glob
 import ipdb as PDB
 
 time_scale_ind = 1 - 1
-bl_stacked_X_ind = 30 - 1
-bl_acc_ind = 341 - 1
-bl_avg_ind = 398 - 1
-iar_acc_ind = 493 - 1
-iar_grid_ind = 546 - 1
-iar_NN_ind = 683 - 1
-iar_wtsnorm_ind1 = 747 - 1
-iar_wtsnorm_ind2 = 751 - 1
-iar_wtsnorm_ind3 = 752 - 1
-iar_smgen_ind1 = 796 - 1
-iar_smgen_ind2 = 797 - 1
-iar_smgen_ind3 = 798 - 1
-iar_getvis_ind = 841 - 1
-iar_smdot_ind1 = 860 - 1
-iar_smdot_ind2 = 861 - 1
-iar_update_pp_ind1 = 1386 - 1
-iar_update_pp_ind2 = 1387 - 1
-iar_update_pp_ind3 = 1389 - 1
-iar_img_smapply_ind = 1542 - 1
-iar_beam_fft_ind = 1588 - 1
-iar_img_fft_ind = 1589 - 1
-iar_img_stack_ind1 = 1650 - 1
-iar_beam_stack_ind1 = 1651 - 1
+bl_stacked_X_ind = 663 - 1
+bl_acc_ind = 1963 - 1
+bl_avg_ind = 2020 - 1
+iar_acc_ind = 2941 - 1
+iar_grid_ind = 2994 - 1
+iar_NN_ind = 4048 - 1
+iar_wtsnorm_ind1 = 4112 - 1
+iar_wtsnorm_ind2 = 4116 - 1
+iar_wtsnorm_ind3 = 4117 - 1
+iar_smgen_ind1 = 4161 - 1
+iar_smgen_ind2 = 4162 - 1
+iar_smgen_ind3 = 4163 - 1
+iar_getvis_ind = 4206 - 1
+iar_smdot_ind1 = 4225 - 1
+iar_smdot_ind2 = 4226 - 1
+iar_update_pp_ind1 = 5932 - 1
+iar_update_pp_ind2 = 5933 - 1
+iar_update_pp_ind3 = 5935 - 1
+iar_img_smapply_ind = 6561 - 1
+iar_beam_fft_ind = 6607 - 1
+iar_img_fft_ind = 6608 - 1
+iar_img_stack_ind1 = 6669 - 1
+iar_beam_stack_ind1 = 6670 - 1
 
-aar_grid_ind = 2393 - 1
-aar_NN_ind = 2531 - 1
-aar_wtsnorm_ind1 = 2594 - 1
-aar_wtsnorm_ind2 = 2598 - 1
-aar_wtsnorm_ind3 = 2599 - 1
-aar_smgen_ind1 = 2641 - 1
-aar_smgen_ind2 = 2642 - 1
-aar_smgen_ind3 = 2643 - 1
-aar_getEf_ind = 2695 - 1
-aar_smdot_ind1 = 2716 - 1
-aar_smdot_ind2 = 2717 - 1
-aar_update_pp_ind1 = 3027 - 1
-aar_update_pp_ind2 = 3028 - 1
-aar_update_pp_ind3 = 3030 - 1
-aar_img_smapply_ind = 1485 - 1
-aar_beam_fft_ind = 1506 - 1
-aar_img_fft_ind = 1507 - 1
-aar_beam_square_ind = 1521 - 1
-aar_img_square_ind = 1523 - 1
-aar_img_stack_ind1 = 1650 - 1
-aar_img_stack_ind2 = 1655 - 1
-aar_beam_stack_ind1 = 1651 - 1
-aar_beam_stack_ind2 = 1656 - 1
-aar_img_acc_ind = 1720 - 1
-aar_beam_acc_ind = 1721 - 1
-aar_img_avg_ind = 1797 - 1
-aar_beam_avg_ind = 1798 - 1
-aar_zsp_NN_ind = 1886 - 1
-aar_zsp_est_ind = 1966 - 1
-aar_nzsp_vis_ind = 1977 - 1
-aar_nzsp_wts_ind = 1978 - 1
-aar_nzsp_wts_pad_ind = 1980 - 1
-aar_nzsp_wts_fftshift_ind = 1981 - 1
-aar_nzsp_beam_fft_ind = 1982 - 1
-aar_nzsp_vis_pad_ind = 1986 - 1
-aar_nzsp_vis_fftshift_ind = 1987 - 1
-aar_nzsp_img_fft_ind = 1988 - 1
+aar_grid_ind = 8884 - 1
+aar_NN_ind = 9949 - 1
+aar_wtsnorm_ind1 = 10012 - 1
+aar_wtsnorm_ind2 = 10016 - 1
+aar_wtsnorm_ind3 = 10017 - 1
+aar_smgen_ind1 = 10059 - 1
+aar_smgen_ind2 = 10060 - 1
+aar_smgen_ind3 = 10061 - 1
+aar_getEf_ind = 10113 - 1
+aar_smdot_ind1 = 10134 - 1
+aar_smdot_ind2 = 10135 - 1
+aar_update_pp_ind1 = 10930 - 1
+aar_update_pp_ind2 = 10931 - 1
+aar_update_pp_ind3 = 10933 - 1
+aar_img_smapply_ind = 6504 - 1
+aar_beam_fft_ind = 6525 - 1
+aar_img_fft_ind = 6526 - 1
+aar_beam_square_ind = 6540 - 1
+aar_img_square_ind = 6542 - 1
+aar_img_stack_ind1 = 6669 - 1
+aar_img_stack_ind2 = 6674 - 1
+aar_beam_stack_ind1 = 6670 - 1
+aar_beam_stack_ind2 = 6675 - 1
+aar_img_acc_ind = 6739 - 1
+aar_beam_acc_ind = 6740 - 1
+aar_img_avg_ind = 6816 - 1
+aar_beam_avg_ind = 6817 - 1
+aar_zsp_NN_ind = 6905 - 1
+aar_zsp_est_ind = 7031 - 1
+aar_nzsp_vis_ind = 7042 - 1
+aar_nzsp_wts_ind = 7043 - 1
+aar_nzsp_wts_pad_ind = 7045 - 1
+aar_nzsp_wts_fftshift_ind = 7046 - 1
+aar_nzsp_beam_fft_ind = 7047 - 1
+aar_nzsp_vis_pad_ind = 7051 - 1
+aar_nzsp_vis_fftshift_ind = 7052 - 1
+aar_nzsp_img_fft_ind = 7053 - 1
 
-main_aar_update_pp_ind = 3228 - 1
-main_aar_genmap_ind = 3233 - 1
-main_aar_imagr_ind = 3239 - 1
-main_aar_img_acc_ind = 3241 - 1
-main_aar_rmzsp_ind = 3242 - 1
+main_aar_update_pp_ind = 11171 - 1
+main_aar_genmap_ind = 11176 - 1
+main_aar_imagr_ind = 11182 - 1
+main_aar_img_acc_ind = 11184 - 1
+main_aar_rmzsp_ind = 11185 - 1
 
-main_iar_stack_ind = 3260 - 1
-main_iar_acc_ind = 3263 - 1
-main_iar_update_pp_ind = 3282 - 1
-main_iar_genmap_ind = 3288 - 1
-main_iar_imagr_ind = 3291 - 1
+main_iar_stack_ind = 11203 - 1
+main_iar_acc_ind = 11206 - 1
+main_iar_update_pp_ind = 11225 - 1
+main_iar_genmap_ind = 11231 - 1
+main_iar_imagr_ind = 11234 - 1
 
-fullfnames = glob.glob('/data3/t_nithyanandan/project_MOFF/simulated/MWA/profiling/FX_serial_all_lines/*.txt')
+# main_aar_update_pp_ind = 11159 - 1
+# main_aar_genmap_ind = 11164 - 1
+# main_aar_imagr_ind = 11170 - 1
+# main_aar_img_acc_ind = 11172 - 1
+# main_aar_rmzsp_ind = 11173 - 1
+
+# main_iar_stack_ind = 11191 - 1
+# main_iar_acc_ind = 11194 - 1
+# main_iar_update_pp_ind = 11213 - 1
+# main_iar_genmap_ind = 11219 - 1
+# main_iar_imagr_ind = 11222 - 1
+
+fullfnames = glob.glob('/data3/t_nithyanandan/project_MOFF/simulated/MWA/profiling/FX_serial_all_lines/*HEX*fillfrac*.txt')
 fnames = [fname.split('/')[-1] for fname in fullfnames]
-bw_str = [fname.split('_')[4] for fname in fnames]
-n_ant_str = [fname.split('_')[8] for fname in fnames]
-n_acc_str = [fname.split('_')[10] for fname in fnames]
-n_pix_str = [fname.split('_')[12] for fname in fnames]
-rnum_str = [fname.split('_')[14] for fname in fnames]
+bw_str = [fname.split('_')[6] for fname in fnames]
+n_ant_str = [fname.split('_')[10] for fname in fnames]
+n_ant_total_str = [fname.split('_')[12] for fname in fnames]
+n_acc_str = [fname.split('_')[14] for fname in fnames]
+n_pix_str = [fname.split('_')[16] for fname in fnames]
+fillfrac_str = [fname.split('_')[19] for fname in fnames]
+rnum_str = [fname.split('_')[20] for fname in fnames]
+rnum_str = [rnumstr.split('.')[0] for rnumstr in rnum_str]
 nchan_str = [bwstr.split('x')[0] for bwstr in bw_str]
 freq_resolution_str = [bwstr.split('x')[1] for bwstr in bw_str]
 
 n_ant = NP.asarray(map(int, n_ant_str))
+n_ant_total = NP.asarray(map(int, n_ant_total_str))
 n_acc = NP.asarray(map(int, n_acc_str))
 n_pix = NP.asarray(map(int, n_pix_str))
+fillfrac = NP.asarray(map(float, fillfrac_str))
 nchan = NP.asarray(map(int, nchan_str))
 freq_resolution = NP.asarray(map(float, freq_resolution_str))
 bw = nchan * freq_resolution
@@ -109,6 +126,7 @@ for fi,fullfname in enumerate(fullfnames):
         if len_lines is None:
             len_lines = len(lines)
         elif len_lines != len(lines):
+            PDB.set_trace()
             raise ValueError('Number of lines in files incomatible with each other')
         lines_lol += [lines]
 
@@ -300,6 +318,8 @@ t_FX_gridding = t_iar_grid + t_iar_NN + t_iar_wtsnorm + t_iar_smgen
 t_FX_FFT = t_iar_beam_fft + t_iar_img_fft
 t_FX_imaging = t_FX_FFT + t_iar_img_stack + t_iar_beam_stack
 
+PDB.set_trace()
+
 p_MOFF_FFT = NP.polyfit(NP.log10(nchan*n_pix_img*NP.log2(n_pix_img)*n_acc), NP.log10(t_MOFF_FFT), 1)
 coeff_MOFF_FFT = 10**p_MOFF_FFT[1]
 
@@ -399,21 +419,6 @@ ax.set_xscale('log')
 
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_squaring_performance_overall.png', bbox_inches=0)
 
-fig = PLT.figure()
-ax = fig.add_subplot(111)
-for nacci,nacc in enumerate(uniq_n_acc):
-    ind = n_acc == nacc
-    ax.plot(nchan[ind]*n_pix_img[ind]*n_acc[ind], t_MOFF_squaring[ind], mrkrs[nacci], color='black', mfc='none', label=r'$n_A=$'+'{0:0d}'.format(nacc))
-ax.set_xlim(0.5*NP.min(nchan*n_pix_img*n_acc), 2*NP.max(nchan*n_pix_img*n_acc))
-ax.set_ylim(0.5*t_MOFF_squaring.min(), 2*t_MOFF_squaring.max())
-ax.legend(loc='upper left', frameon=True, fontsize=12)
-ax.set_xlabel(r'$n_A.n_f.n_p$', fontsize=16, weight='medium')
-ax.set_ylabel(r'$\tau$ (Squaring) [s]', fontsize=16, weight='medium')
-ax.set_yscale('log')
-ax.set_xscale('log')
-
-PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_squaring_performance_overall.png', bbox_inches=0)
-
 fig, axs = PLT.subplots(ncols=2, sharey=True)
 for c in range(2):
     if c == 0:
@@ -445,3 +450,17 @@ big_ax.set_yticks([])
 big_ax.set_ylabel(r'$\tau_A$ [s]', fontsize=16, weight='medium', labelpad=30)
 
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_accumulate_performance_comparison_overall.png', bbox_inches=0)
+
+fig = PLT.figure(figsize=(6,6))
+ax = fig.add_subplots(111)
+
+
+
+fig = PLT.figure(figsize=(6,6))
+ax = fig.add_subplot(111)
+for pi,npx in enumerate(NP.unique(n_pix)):
+    ind = n_pix == npx
+    ax.plot(fillfrac[ind], t_MOFF_FFT[ind]/nchan[ind]/n_acc[ind], mrkrs[pi], color='black', mfc='none', label=r'$n_g=$'+'{0:0d}'.format(npx))
+ax.legend(loc='lower right', frameon=True, fontsize=12)
+ax.set_xlabel(r'$\rho$ [%]')
+ax.set_ylabel(r'$\tau_{FFT}$'+'['+r'$\mu$'+'s]')
