@@ -1,14 +1,13 @@
 import numpy as NP
-import scipy.constants as FCNST
-import progressbar as PGB
 from astropy.io import ascii
-import antenna_array as AA
-import geometry as GEOM
+import my_DSP_modules as DSP
 import catalog as SM
 import sim_observe as SIM
-import my_DSP_modules as DSP
-import my_operations as OPS
+import antenna_array as AA
 import aperture as APR
+import ipdb as PDB
+
+max_n_timestamps = 4
 
 # Antenna initialization
 
@@ -42,6 +41,7 @@ channel_width = 40e3
 bandwidth = nchan * channel_width
 dt = 1/bandwidth
 MOFF_tbinsize = None
+FX_tbinsize = None
 
 ant_pol_type = 'dual'
 ant_kerntype = {pol: 'func' for pol in ['P1','P2']}
@@ -56,7 +56,6 @@ ant_kernshapeparms = {pol: {'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 
 ant_aprtr = APR.Aperture(pol_type=ant_pol_type, kernel_type=ant_kerntype,
                          shape=ant_kernshape, parms=ant_kernshapeparms,
                          lkpinfo=ant_lookupinfo, load_lookup=True)
-
 if identical_antennas:
     ant_aprtrs = [ant_aprtr] * n_antennas
 
@@ -69,6 +68,8 @@ for i in xrange(n_antennas):
     aar = aar + ant
 
 aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
+
+# Set up sky model
 
 custom_catalog_file = '/data3/t_nithyanandan/foregrounds/PS_catalog.txt'
 catdata = ascii.read(custom_catalog_file, comment='#', header_start=0, data_start=1)
@@ -94,5 +95,6 @@ flux_unit = 'Jy'
 
 skymod = SM.SkyModel(catlabel, aar.f, NP.hstack((ra_deg.reshape(-1,1), dec_deg.reshape(-1,1))), 'func', spec_parms=spec_parms, src_shape=NP.hstack((majax.reshape(-1,1),minax.reshape(-1,1),NP.zeros(fint.size).reshape(-1,1))), src_shape_units=['degree','degree','degree'])
 
-esim = SIM.AntennaArraySimulator(aar, skymodel=skymod)
-hemind = esim.upper_hemisphere(60.0, obs_date='2015/11/23')
+PDB.set_trace()
+esim = SIM.AntennaArraySimulator(aar, skymod, identical_antennas=True)
+hemind = esim.upper_hemisphere(4.0, obs_date='2015/11/23')
