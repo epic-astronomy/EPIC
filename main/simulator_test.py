@@ -97,4 +97,5 @@ skymod = SM.SkyModel(catlabel, aar.f, NP.hstack((ra_deg.reshape(-1,1), dec_deg.r
 
 PDB.set_trace()
 esim = SIM.AntennaArraySimulator(aar, skymod, identical_antennas=True)
-hemind = esim.upper_hemisphere(4.0, obs_date='2015/11/23')
+hemind, altaz = esim.upper_hemisphere(4.0, obs_date='2015/11/23')
+vbeams = esim.generate_voltage_pattern(altaz)
