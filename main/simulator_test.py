@@ -95,8 +95,11 @@ flux_unit = 'Jy'
 
 skymod = SM.SkyModel(catlabel, aar.f, NP.hstack((ra_deg.reshape(-1,1), dec_deg.reshape(-1,1))), 'func', spec_parms=spec_parms, src_shape=NP.hstack((majax.reshape(-1,1),minax.reshape(-1,1),NP.zeros(fint.size).reshape(-1,1))), src_shape_units=['degree','degree','degree'])
 
+obsrun_initparms = {'obs_date': '2015/11/23', 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': 1.0}
+
 PDB.set_trace()
 esim = SIM.AntennaArraySimulator(aar, skymod, identical_antennas=True)
 hemind, altaz = esim.upper_hemisphere(4.0, obs_date='2015/11/23')
 vbeams = esim.generate_voltage_pattern(altaz)
 esim.observe(0.0, 'altaz', 'altaz', obs_date='2015/11/23')
+esim.observing_run(obsrun_initparms, obsmode='track', duration=1e-4)
