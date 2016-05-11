@@ -99,7 +99,7 @@ obsrun_initparms = {'obs_date': '2015/11/23', 'phase_center': [90.0, 270.0], 'po
 
 PDB.set_trace()
 esim = SIM.AntennaArraySimulator(aar, skymod, identical_antennas=True)
-hemind, altaz = esim.upper_hemisphere(4.0, obs_date='2015/11/23')
-vbeams = esim.generate_voltage_pattern(altaz)
-esim.observe(0.0, 'altaz', 'altaz', obs_date='2015/11/23')
+# hemind, altaz = esim.upper_hemisphere(4.0, obs_date='2015/11/23')
+# vbeams = esim.generate_voltage_pattern(altaz)
+# esim.observe(0.0, 'altaz', 'altaz', obs_date='2015/11/23')
 esim.observing_run(obsrun_initparms, obsmode='track', duration=1e-4)
