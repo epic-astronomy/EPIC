@@ -1,7 +1,7 @@
 import numpy as NP
 from astropy.io import ascii
-import my_DSP_modules as DSP
-import catalog as SM
+from astroutils import DSP_modules as DSP
+from astroutils import catalog as SM
 import sim_observe as SIM
 import antenna_array as AA
 import aperture as APR
