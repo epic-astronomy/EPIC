@@ -1,11 +1,15 @@
 import numpy as NP
+import ephem as EP
 from astropy.io import ascii
+import matplotlib.pyplot as PLT
 from astroutils import DSP_modules as DSP
 from astroutils import catalog as SM
+from astroutils import geometry as GEOM
 import sim_observe as SIM
 import antenna_array as AA
 import aperture as APR
 import ipdb as PDB
+import progressbar as PGB
 
 max_n_timestamps = 4
 
@@ -17,6 +21,8 @@ f0 = 150e6 # Center frequency
 nts = 32 # number of time samples in a time-series
 nchan = 2 * nts # number of frequency channels, factor 2 for padding before FFT
 
+grid_map_method = 'sparse'
+# grid_map_method = 'regular'
 identical_antennas = False
 antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
 ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3)) 
@@ -121,14 +127,175 @@ flux_unit = 'Jy'
 skymod_init_parms = {'name': catlabel, 'frequency': sim_aar.f, 'location': NP.hstack((ra_deg.reshape(-1,1), dec_deg.reshape(-1,1))), 'spec_type': 'func', 'spec_parms': spec_parms, 'src_shape': NP.hstack((majax.reshape(-1,1),minax.reshape(-1,1),NP.zeros(fint.size).reshape(-1,1))), 'src_shape_units': ['degree','degree','degree']}
 skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 
-obsrun_initparms = {'obs_date': '2015/11/23', 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': 1.0}
+obs_date = '2015/11/23'
+lst = 0.0 # in hours
+obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
 
 esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
-esim.observing_run(obsrun_initparms, obsmode='track', duration=1e-3)
-esim.generate_E_timeseries(operand='recent')
+esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3)
+esim.generate_E_timeseries(operand='stack')
 esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/trial1', compress=True)
 
-antpos_info = aar.antenna_positions(sort=True, centering=True)
-efimgmax = []
-for i in xrange(max_n_timestamps):
-    pass
+PDB.set_trace()
+antpos_info = proc_aar.antenna_positions(sort=True, centering=True)
+sim_efimgmax = []
+for it in xrange(max_n_timestamps):
+    timestamp = esim.timestamps[it]
+    update_info = {}
+    update_info['antennas'] = []
+    update_info['antenna_array'] = {}
+    update_info['antenna_array']['timestamp'] = timestamp
+
+    print 'Consolidating Antenna updates...'
+    progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(n_antennas), PGB.ETA()], maxval=n_antennas).start()
+    antnum = 0
+    for label in sim_aar.antennas:
+        adict = {}
+        adict['label'] = label
+        adict['action'] = 'modify'
+        adict['timestamp'] = timestamp
+        ind = antpos_info['labels'].index(label)
+        adict['t'] = esim.t
+        adict['gridfunc_freq'] = 'scale'    
+        adict['gridmethod'] = 'NN'
+        adict['distNN'] = 3.0
+        adict['tol'] = 1.0e-6
+        adict['maxmatch'] = 1
+        adict['Et'] = {}
+        adict['flags'] = {}
+        adict['stack'] = True
+        adict['wtsinfo'] = {}
+        for pol in ['P1', 'P2']:
+            adict['flags'][pol] = False
+            adict['Et'][pol] = esim.Et_stack[pol][:,ind,it]
+            adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
+            # adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+        update_info['antennas'] += [adict]
+
+        progress.update(antnum+1)
+        antnum += 1
+    progress.finish()
+    
+    sim_aar.update(update_info, parallel=True, verbose=True)
+    if grid_map_method == 'regular':
+        sim_aar.grid_convolve_new(pol='P1', method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')    
+    else:
+        if it == 0:
+            sim_aar.genMappingMatrix(pol='P1', method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, gridfunc_freq='scale', wts_change=False, parallel=False)
+
+    if it == 0:
+        sim_efimgobj = AA.NewImage(antenna_array=sim_aar, pol='P1')
+    else:
+        sim_efimgobj.update(antenna_array=sim_aar, reset=True)
+    sim_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
+
+    if it == 0:
+        sim_efimgobj = AA.NewImage(antenna_array=sim_aar, pol='P1')
+    else:
+        sim_efimgobj.update(antenna_array=sim_aar, reset=True)
+    sim_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
+
+sim_efimgobj.accumulate(tbinsize=MOFF_tbinsize)
+sim_efimgobj.evalAutoCorr(forceeval=True)
+sim_efimgobj.evalPowerPattern()
+sim_efimgobj.removeAutoCorr(forceeval=True, datapool='avg')
+avg_sim_efimg = sim_efimgobj.nzsp_img_avg['P1']
+if avg_sim_efimg.ndim == 4:
+    avg_sim_efimg = avg_sim_efimg[0,:,:,:]
+
+proc_efimgmax = []
+for it in xrange(max_n_timestamps):
+    timestamp = esim.timestamps[it]
+    update_info = {}
+    update_info['antennas'] = []
+    update_info['antenna_array'] = {}
+    update_info['antenna_array']['timestamp'] = timestamp
+
+    print 'Consolidating Antenna updates...'
+    progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(n_antennas), PGB.ETA()], maxval=n_antennas).start()
+    antnum = 0
+    for label in proc_aar.antennas:
+        adict = {}
+        adict['label'] = label
+        adict['action'] = 'modify'
+        adict['timestamp'] = timestamp
+        ind = antpos_info['labels'].index(label)
+        adict['t'] = esim.t
+        adict['gridfunc_freq'] = 'scale'    
+        adict['gridmethod'] = 'NN'
+        adict['distNN'] = 3.0
+        adict['tol'] = 1.0e-6
+        adict['maxmatch'] = 1
+        adict['Et'] = {}
+        adict['flags'] = {}
+        adict['stack'] = True
+        adict['wtsinfo'] = {}
+        for pol in ['P1', 'P2']:
+            adict['flags'][pol] = False
+            adict['Et'][pol] = esim.Et_stack[pol][:,ind,it]
+            adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt'}]
+            # adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+        update_info['antennas'] += [adict]
+
+        progress.update(antnum+1)
+        antnum += 1
+    progress.finish()
+    
+    proc_aar.update(update_info, parallel=True, verbose=True)
+    if grid_map_method == 'regular':
+        proc_aar.grid_convolve_new(pol='P1', method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=True, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')    
+    else:
+        if it == 0:
+            proc_aar.genMappingMatrix(pol='P1', method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=True, gridfunc_freq='scale', wts_change=False, parallel=False)
+
+    if it == 0:
+        proc_efimgobj = AA.NewImage(antenna_array=proc_aar, pol='P1')
+    else:
+        proc_efimgobj.update(antenna_array=proc_aar, reset=True)
+    proc_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
+
+    if it == 0:
+        proc_efimgobj = AA.NewImage(antenna_array=proc_aar, pol='P1')
+    else:
+        proc_efimgobj.update(antenna_array=proc_aar, reset=True)
+    proc_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
+
+proc_efimgobj.accumulate(tbinsize=MOFF_tbinsize)
+proc_efimgobj.evalAutoCorr(forceeval=True)
+proc_efimgobj.evalPowerPattern()
+proc_efimgobj.removeAutoCorr(forceeval=True, datapool='avg')
+avg_proc_efimg = proc_efimgobj.nzsp_img_avg['P1']
+if avg_proc_efimg.ndim == 4:
+    avg_proc_efimg = avg_proc_efimg[0,:,:,:]
+
+src_radec = skymod.location
+
+lstobj = EP.FixedBody()
+lstobj._epoch = obs_date
+lstobj._ra = NP.radians(lst * 15.0)
+lstobj._dec = NP.radians(latitude)
+lstobj.compute(esim.observer)
+lst_adjusted = NP.degrees(lstobj.ra)
+
+src_hadec = NP.hstack((lst_adjusted - src_radec[:,0].reshape(-1,1), src_radec[:,1].reshape(-1,1)))
+src_altaz = GEOM.hadec2altaz(src_hadec, latitude=latitude, units='degrees')
+src_dircos = GEOM.altaz2dircos(src_altaz, units='degrees')
+
+fig, axs = PLT.subplots(nrows=2, ncols=1, figsize=(3.5,7), sharex=True, sharey=True)
+axs[0].imshow(avg_proc_efimg[:,:,proc_efimgobj.f.size/2], origin='lower', extent=(proc_efimgobj.gridl.min(), proc_efimgobj.gridl.max(), proc_efimgobj.gridm.min(), proc_efimgobj.gridm.max()), interpolation='none')
+axs[0].set_xlim(-0.70,0.70)
+axs[0].set_ylim(-0.70,0.70)    
+axs[0].set_aspect('equal')
+axs[0].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+# axs[0].set_xlabel('l', fontsize=18, weight='medium')
+# axs[0].set_ylabel('m', fontsize=18, weight='medium')                
+
+axs[1].imshow(avg_sim_efimg[:,:,sim_efimgobj.f.size/2], origin='lower', extent=(sim_efimgobj.gridl.min(), sim_efimgobj.gridl.max(), sim_efimgobj.gridm.min(), sim_efimgobj.gridm.max()), interpolation='none')
+axs[1].set_xlim(-0.70,0.70)
+axs[1].set_ylim(-0.70,0.70)    
+axs[1].set_aspect('equal')
+axs[1].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+# axs[1].set_xlabel('l', fontsize=18, weight='medium')
+# axs[1].set_ylabel('m', fontsize=18, weight='medium')                
+
+fig.subplots_adjust(hspace=0, wspace=0)
