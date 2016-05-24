@@ -136,8 +136,23 @@ esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3)
 esim.generate_E_timeseries(operand='stack')
 esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/trial1', compress=True)
 
-PDB.set_trace()
 antpos_info = proc_aar.antenna_positions(sort=True, centering=True)
+
+### Verification with older E-timeseries simulation
+lstobj = EP.FixedBody()
+lstobj._epoch = obs_date
+lstobj._ra = NP.radians(lst * 15.0)
+lstobj._dec = NP.radians(latitude)
+lstobj.compute(esim.observer)
+lst_temp = NP.degrees(lstobj.ra)
+
+skypos_hadec = NP.hstack((lst_temp - skymod.location[:,0], skymod.location[:,1]))
+skypos_altaz = GEOM.hadec2altaz(skypos_hadec, latitude, units='degrees')
+skypos_dircos = GEOM.altaz2dircos(skypos_altaz, units='degrees')
+E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width, flux_ref=skymod.spec_parms['flux-scale'], spectral_index=skymod.spec_parms['power-law-index'], skypos=skypos_dircos, antpos=antpos_info['positions'], tshift=False, voltage_pattern=None)
+
+### Continue with simulation
+
 sim_efimgmax = []
 for it in xrange(max_n_timestamps):
     timestamp = esim.timestamps[it]
