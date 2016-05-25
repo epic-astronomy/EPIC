@@ -64,8 +64,8 @@ ant_kernshapeparms_choices = [ant_kernshapeparms1, ant_kernshapeparms2]
 ant_kernshape_choices = [ant_kernshape1, ant_kernshape2]
 
 aprtr_seed = 50
-randstate = NP.random.RandomState(aprtr_seed)
-random_aprtr_inds = randstate.choice(2, size=n_antennas, replace=True)
+aprtr_randstate = NP.random.RandomState(aprtr_seed)
+random_aprtr_inds = aprtr_randstate.choice(2, size=n_antennas, replace=True)
 
 sim_ant_aprtrs = []
 if identical_antennas:
@@ -132,7 +132,7 @@ lst = 0.0 # in hours
 obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
 
 esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
-esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3)
+esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3, randomseed=200)
 esim.generate_E_timeseries(operand='stack')
 esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/trial1', compress=True)
 
@@ -146,7 +146,7 @@ lstobj._dec = NP.radians(latitude)
 lstobj.compute(esim.observer)
 lst_temp = NP.degrees(lstobj.ra)
 
-skypos_hadec = NP.hstack((lst_temp - skymod.location[:,0], skymod.location[:,1]))
+skypos_hadec = NP.hstack((lst_temp - skymod.location[:,0].reshape(-1,1), skymod.location[:,1].reshape(-1,1)))
 skypos_altaz = GEOM.hadec2altaz(skypos_hadec, latitude, units='degrees')
 skypos_dircos = GEOM.altaz2dircos(skypos_altaz, units='degrees')
 E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width, flux_ref=skymod.spec_parms['flux-scale'], spectral_index=skymod.spec_parms['power-law-index'], skypos=skypos_dircos, antpos=antpos_info['positions'], tshift=False, voltage_pattern=None)
