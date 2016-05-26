@@ -1,10 +1,13 @@
 import numpy as NP
 import ephem as EP
-from astropy.io import ascii
+import healpy as HP
+import scipy.constants as FCNST
+from astropy.io import ascii, fits
 import matplotlib.pyplot as PLT
 from astroutils import DSP_modules as DSP
 from astroutils import catalog as SM
 from astroutils import geometry as GEOM
+from astroutils import constants as CNST
 import sim_observe as SIM
 import antenna_array as AA
 import aperture as APR
@@ -20,6 +23,9 @@ longitude = +116.670815 # Longitude of MWA in degrees
 f0 = 150e6 # Center frequency
 nts = 32 # number of time samples in a time-series
 nchan = 2 * nts # number of frequency channels, factor 2 for padding before FFT
+
+obs_date = '2015/11/23'
+lst = 0.0 # in hours
 
 grid_map_method = 'sparse'
 # grid_map_method = 'regular'
@@ -102,37 +108,209 @@ proc_aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
 
 # Set up sky model
 
-custom_catalog_file = '/data3/t_nithyanandan/foregrounds/PS_catalog.txt'
-catdata = ascii.read(custom_catalog_file, comment='#', header_start=0, data_start=1)
-ra_deg = catdata['RA'].data
-dec_deg = catdata['DEC'].data
-fint = catdata['F_INT'].data
-spindex = catdata['SPINDEX'].data
-majax = catdata['MAJAX'].data
-minax = catdata['MINAX'].data
-pa = catdata['PA'].data
-freq_custom = 0.15 # in GHz
-freq_catalog = freq_custom * 1e9 + NP.zeros(fint.size)
-catlabel = NP.repeat('custom', fint.size)
+fg_str = 'dsm'
+use_GSM = False
+use_DSM = False
+use_CSM = False
+use_custom = False
+use_random = False
 
-spec_parms = {}
-spec_parms['name'] = NP.repeat('power-law', ra_deg.size)
-spec_parms['power-law-index'] = spindex
-spec_parms['freq-ref'] = freq_catalog + NP.zeros(ra_deg.size)
-spec_parms['flux-scale'] = fint
-spec_parms['flux-offset'] = NP.zeros(ra_deg.size)
-spec_parms['freq-width'] = NP.zeros(ra_deg.size)
-flux_unit = 'Jy'
+if fg_str == 'asm':
+    use_GSM = True
+elif fg_str == 'dsm':
+    use_DSM = True
+elif fg_str == 'csm':
+    use_CSM = True
+elif fg_str == 'custom':
+    use_custom = True
+elif fg_str == 'random':
+    use_random = True
 
-skymod_init_parms = {'name': catlabel, 'frequency': sim_aar.f, 'location': NP.hstack((ra_deg.reshape(-1,1), dec_deg.reshape(-1,1))), 'spec_type': 'func', 'spec_parms': spec_parms, 'src_shape': NP.hstack((majax.reshape(-1,1),minax.reshape(-1,1),NP.zeros(fint.size).reshape(-1,1))), 'src_shape_units': ['degree','degree','degree']}
+if use_custom:
+    custom_catalog_file = '/data3/t_nithyanandan/foregrounds/PS_catalog.txt'
+    catdata = ascii.read(custom_catalog_file, comment='#', header_start=0, data_start=1)
+    ra_deg = catdata['RA'].data
+    dec_deg = catdata['DEC'].data
+    fint = catdata['F_INT'].data
+    spindex = catdata['SPINDEX'].data
+    majax = catdata['MAJAX'].data
+    minax = catdata['MINAX'].data
+    pa = catdata['PA'].data
+    freq_custom = 0.15 # in GHz
+    freq_catalog = freq_custom * 1e9 + NP.zeros(fint.size)
+    catlabel = NP.repeat('custom', fint.size)
+    
+    spec_parms = {}
+    spec_parms['name'] = NP.repeat('power-law', ra_deg.size)
+    spec_parms['power-law-index'] = spindex
+    spec_parms['freq-ref'] = freq_catalog + NP.zeros(ra_deg.size)
+    spec_parms['flux-scale'] = fint
+    spec_parms['flux-offset'] = NP.zeros(ra_deg.size)
+    spec_parms['freq-width'] = NP.zeros(ra_deg.size)
+    flux_unit = 'Jy'
+elif use_random:
+    src_seed = 50
+    rstate = NP.random.RandomState(src_seed)
+    NP.random.seed(src_seed)
+    n_src = 10
+    lmrad = rstate.uniform(low=0.0, high=0.3, size=n_src).reshape(-1,1)
+    lmang = rstate.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
+    skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
+    skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
+    skypos_altaz = GEOM.dircos2altaz(skypos, units='degrees')
+    skypos_hadec = GEOM.altaz2hadec(skypos_altaz, latitude, units='degrees')
+    ra_deg = 15.0*lst - skypos_hadec[:,0]
+    dec_deg = skypos_hadec[:,1]
+    skypos_radec = NP.hstack((15.0*lst - skypos_hadec[:,0].reshape(-1,1), skypos_hadec[:,1].reshape(-1,1)))
+    src_flux = 10.0*(1.0 + NP.random.rand(n_src))
+
+    catlabel = NP.repeat('random', n_src)
+    spindex = NP.zeros(n_src)
+    majax = NP.zeros(n_src)
+    minax = NP.zeros(n_src)
+    pa = NP.zeros(n_src)
+    freq_catalog = sim_aar.f
+    
+    spec_parms = {}
+    spec_parms['name'] = NP.repeat('power-law', n_src)
+    spec_parms['power-law-index'] = spindex
+    spec_parms['freq-ref'] = freq_catalog 
+    spec_parms['flux-scale'] = src_flux
+    spec_parms['flux-offset'] = NP.zeros(n_src)
+    spec_parms['freq-width'] = NP.zeros(n_src)
+    flux_unit = 'Jy'
+elif use_CSM:
+    spindex_rms = 0.0
+    SUMSS_file = '/data3/t_nithyanandan/foregrounds/sumsscat.Mar-11-2008.txt'
+    freq_SUMSS = 0.843 # in GHz
+    catalog = NP.loadtxt(SUMSS_file, usecols=(0,1,2,3,4,5,10,12,13,14,15,16))
+    ra_deg_SUMSS = 15.0 * (catalog[:,0] + catalog[:,1]/60.0 + catalog[:,2]/3.6e3)
+    dec_dd = NP.loadtxt(SUMSS_file, usecols=(3,), dtype="|S3")
+    sgn_dec_str = NP.asarray([dec_dd[i][0] for i in range(dec_dd.size)])
+    sgn_dec = 1.0*NP.ones(dec_dd.size)
+    sgn_dec[sgn_dec_str == '-'] = -1.0
+    dec_deg_SUMSS = sgn_dec * (NP.abs(catalog[:,3]) + catalog[:,4]/60.0 + catalog[:,5]/3.6e3)
+    fmajax = catalog[:,7]
+    fminax = catalog[:,8]
+    fpa = catalog[:,9]
+    dmajax = catalog[:,10]
+    dminax = catalog[:,11]
+    PS_ind = NP.logical_and(dmajax == 0.0, dminax == 0.0)
+    ra_deg_SUMSS = ra_deg_SUMSS[PS_ind]
+    dec_deg_SUMSS = dec_deg_SUMSS[PS_ind]
+    fint = catalog[PS_ind,6] * 1e-3
+    spindex_SUMSS = -0.83 + spindex_rms * NP.random.randn(fint.size)
+
+    fmajax = fmajax[PS_ind]
+    fminax = fminax[PS_ind]
+    fpa = fpa[PS_ind]
+    dmajax = dmajax[PS_ind]
+    dminax = dminax[PS_ind]
+    bright_source_ind = fint >= 90.0 * (freq_SUMSS*1e9/sim_aar.f0)**spindex_SUMSS
+    # bright_source_ind = NP.logical_and(fint >= 10.0 * (freq_SUMSS*1e9/sim_aar.f0)**spindex_SUMSS, fint <= 20.0 * (freq_SUMSS*1e9/sim_aar.f0)**spindex_SUMSS)
+    ra_deg_SUMSS = ra_deg_SUMSS[bright_source_ind]
+    dec_deg_SUMSS = dec_deg_SUMSS[bright_source_ind]
+    fint = fint[bright_source_ind]
+    fmajax = fmajax[bright_source_ind]
+    fminax = fminax[bright_source_ind]
+    fpa = fpa[bright_source_ind]
+    dmajax = dmajax[bright_source_ind]
+    dminax = dminax[bright_source_ind]
+    spindex_SUMSS = spindex_SUMSS[bright_source_ind]
+    valid_ind = NP.logical_and(fmajax > 0.0, fminax > 0.0)
+    ra_deg_SUMSS = ra_deg_SUMSS[valid_ind]
+    dec_deg_SUMSS = dec_deg_SUMSS[valid_ind]
+    fint = fint[valid_ind]
+    fmajax = fmajax[valid_ind]
+    fminax = fminax[valid_ind]
+    fpa = fpa[valid_ind]
+    spindex_SUMSS = spindex_SUMSS[valid_ind]
+    freq_catalog = freq_SUMSS*1e9 + NP.zeros(fint.size)
+    catlabel = NP.repeat('SUMSS', fint.size)
+    ra_deg = ra_deg_SUMSS + 0.0
+    dec_deg = dec_deg_SUMSS
+    spindex = spindex_SUMSS
+    majax = fmajax/3.6e3
+    minax = fminax/3.6e3
+    fluxes = fint + 0.0
+    freq_NVSS = 1.4 # in GHz
+    hdulist = fits.open('/data3/t_nithyanandan/foregrounds/NVSS_catalog.fits')
+    ra_deg_NVSS = hdulist[1].data['RA(2000)']
+    dec_deg_NVSS = hdulist[1].data['DEC(2000)']
+    nvss_fpeak = hdulist[1].data['PEAK INT']
+    nvss_majax = hdulist[1].data['MAJOR AX']
+    nvss_minax = hdulist[1].data['MINOR AX']
+    hdulist.close()
+    spindex_NVSS = -0.83 + spindex_rms * NP.random.randn(nvss_fpeak.size)
+
+    not_in_SUMSS_ind = dec_deg_NVSS > -30.0
+    # not_in_SUMSS_ind = NP.logical_and(dec_deg_NVSS > -30.0, dec_deg_NVSS <= min(90.0, latitude+90.0))
+    
+    bright_source_ind = nvss_fpeak >= 90.0 * (freq_NVSS*1e9/sim_aar.f0)**(spindex_NVSS)
+    # bright_source_ind = NP.logical_and(nvss_fpeak >= 10.0 * (freq_NVSS*1e9/sim_aar.f0)**spindex_NVSS, nvss_fpeak <= 20.0 * (freq_NVSS*1e9/sim_aar.f0)**spindex_NVSS)    
+    PS_ind = NP.sqrt(nvss_majax**2-(0.75/60.0)**2) < 14.0/3.6e3
+    count_valid = NP.sum(NP.logical_and(NP.logical_and(not_in_SUMSS_ind, bright_source_ind), PS_ind))
+    nvss_fpeak = nvss_fpeak[NP.logical_and(NP.logical_and(not_in_SUMSS_ind, bright_source_ind), PS_ind)]
+    freq_catalog = NP.concatenate((freq_catalog, freq_NVSS*1e9 + NP.zeros(count_valid)))
+    catlabel = NP.concatenate((catlabel, NP.repeat('NVSS',count_valid)))
+    ra_deg = NP.concatenate((ra_deg, ra_deg_NVSS[NP.logical_and(NP.logical_and(not_in_SUMSS_ind, bright_source_ind), PS_ind)]))
+    dec_deg = NP.concatenate((dec_deg, dec_deg_NVSS[NP.logical_and(NP.logical_and(not_in_SUMSS_ind, bright_source_ind), PS_ind)]))
+    spindex = NP.concatenate((spindex, spindex_NVSS[NP.logical_and(NP.logical_and(not_in_SUMSS_ind, bright_source_ind), PS_ind)]))
+    majax = NP.concatenate((majax, nvss_majax[NP.logical_and(NP.logical_and(not_in_SUMSS_ind, bright_source_ind), PS_ind)]))
+    minax = NP.concatenate((minax, nvss_minax[NP.logical_and(NP.logical_and(not_in_SUMSS_ind, bright_source_ind), PS_ind)]))
+    fluxes = NP.concatenate((fluxes, nvss_fpeak))
+
+    spec_type = 'func'
+    spec_parms = {}
+    spec_parms['name'] = NP.repeat('power-law', ra_deg.size)
+    spec_parms['power-law-index'] = spindex
+    spec_parms['freq-ref'] = freq_catalog + NP.zeros(ra_deg.size)
+    spec_parms['flux-scale'] = fluxes
+    spec_parms['flux-offset'] = NP.zeros(ra_deg.size)
+    spec_parms['freq-width'] = NP.zeros(ra_deg.size)
+    flux_unit = 'Jy'
+elif use_DSM:
+    nside = 64
+    dsm_file = '/data3/t_nithyanandan/foregrounds/gsmdata_{0:.1f}_MHz_nside_{1:0d}.fits'.format(sim_aar.f0*1e-6, nside)
+    hdulist = fits.open(dsm_file)
+    pixres = hdulist[0].header['PIXAREA']
+    dsm_table = hdulist[1].data
+    ra_deg_DSM = dsm_table['RA']
+    dec_deg_DSM = dsm_table['DEC']
+    temperatures = dsm_table['T_{0:.0f}'.format(sim_aar.f0/1e6)]
+    fluxes_DSM = temperatures * (2.0 * FCNST.k * sim_aar.f0**2 / FCNST.c**2) * pixres / CNST.Jy
+    flux_unit = 'Jy'
+    spindex = dsm_table['spindex'] + 2.0
+    freq_DSM = sim_aar.f0/1e9 # in GHz
+    freq_catalog = freq_DSM * 1e9 + NP.zeros(fluxes_DSM.size)
+    catlabel = NP.repeat('DSM', fluxes_DSM.size)
+    ra_deg = ra_deg_DSM
+    dec_deg = dec_deg_DSM
+    majax = NP.degrees(HP.nside2resol(nside)) * NP.ones(fluxes_DSM.size)
+    minax = NP.degrees(HP.nside2resol(nside)) * NP.ones(fluxes_DSM.size)
+    # majax = NP.degrees(NP.sqrt(HP.nside2pixarea(64)*4/NP.pi) * NP.ones(fluxes_DSM.size))
+    # minax = NP.degrees(NP.sqrt(HP.nside2pixarea(64)*4/NP.pi) * NP.ones(fluxes_DSM.size))
+    fluxes = fluxes_DSM
+    hdulist.close()
+
+    spec_type = 'func'
+    spec_parms = {}
+    # spec_parms['name'] = NP.repeat('tanh', ra_deg.size)
+    spec_parms['name'] = NP.repeat('power-law', ra_deg.size)
+    spec_parms['power-law-index'] = spindex
+    # spec_parms['freq-ref'] = freq/1e9 + NP.zeros(ra_deg.size)
+    spec_parms['freq-ref'] = freq_catalog + NP.zeros(ra_deg.size)
+    spec_parms['flux-scale'] = fluxes
+    spec_parms['flux-offset'] = NP.zeros(ra_deg.size)
+    spec_parms['freq-width'] = NP.zeros(ra_deg.size)
+
+skymod_init_parms = {'name': catlabel, 'frequency': sim_aar.f, 'location': NP.hstack((ra_deg.reshape(-1,1), dec_deg.reshape(-1,1))), 'spec_type': 'func', 'spec_parms': spec_parms, 'src_shape': NP.hstack((majax.reshape(-1,1),minax.reshape(-1,1),NP.zeros(catlabel.size).reshape(-1,1))), 'src_shape_units': ['degree','degree','degree']}
 skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 
-obs_date = '2015/11/23'
-lst = 0.0 # in hours
 obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
 
 esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
-esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3, randomseed=200)
+esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3, randomseed=200, parallel=True, nproc=16)
 esim.generate_E_timeseries(operand='stack')
 esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/trial1', compress=True)
 
@@ -151,7 +329,7 @@ skypos_altaz = GEOM.hadec2altaz(skypos_hadec, latitude, units='degrees')
 skypos_dircos = GEOM.altaz2dircos(skypos_altaz, units='degrees')
 E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width, flux_ref=skymod.spec_parms['flux-scale'], spectral_index=skymod.spec_parms['power-law-index'], skypos=skypos_dircos, antpos=antpos_info['positions'], tshift=False, voltage_pattern=None)
 
-### Continue with simulation
+### Continue with imaging
 
 sim_efimgmax = []
 for it in xrange(max_n_timestamps):
@@ -197,12 +375,6 @@ for it in xrange(max_n_timestamps):
     else:
         if it == 0:
             sim_aar.genMappingMatrix(pol='P1', method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, gridfunc_freq='scale', wts_change=False, parallel=False)
-
-    if it == 0:
-        sim_efimgobj = AA.NewImage(antenna_array=sim_aar, pol='P1')
-    else:
-        sim_efimgobj.update(antenna_array=sim_aar, reset=True)
-    sim_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
 
     if it == 0:
         sim_efimgobj = AA.NewImage(antenna_array=sim_aar, pol='P1')
@@ -269,12 +441,6 @@ for it in xrange(max_n_timestamps):
         proc_efimgobj.update(antenna_array=proc_aar, reset=True)
     proc_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
 
-    if it == 0:
-        proc_efimgobj = AA.NewImage(antenna_array=proc_aar, pol='P1')
-    else:
-        proc_efimgobj.update(antenna_array=proc_aar, reset=True)
-    proc_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
-
 proc_efimgobj.accumulate(tbinsize=MOFF_tbinsize)
 proc_efimgobj.evalAutoCorr(forceeval=True)
 proc_efimgobj.evalPowerPattern()
@@ -301,7 +467,7 @@ axs[0].imshow(avg_proc_efimg[:,:,proc_efimgobj.f.size/2], origin='lower', extent
 axs[0].set_xlim(-0.70,0.70)
 axs[0].set_ylim(-0.70,0.70)    
 axs[0].set_aspect('equal')
-axs[0].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+# axs[0].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 # axs[0].set_xlabel('l', fontsize=18, weight='medium')
 # axs[0].set_ylabel('m', fontsize=18, weight='medium')                
 
@@ -309,7 +475,7 @@ axs[1].imshow(avg_sim_efimg[:,:,sim_efimgobj.f.size/2], origin='lower', extent=(
 axs[1].set_xlim(-0.70,0.70)
 axs[1].set_ylim(-0.70,0.70)    
 axs[1].set_aspect('equal')
-axs[1].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+# axs[1].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 # axs[1].set_xlabel('l', fontsize=18, weight='medium')
 # axs[1].set_ylabel('m', fontsize=18, weight='medium')                
 
