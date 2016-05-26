@@ -310,7 +310,7 @@ skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
 
 esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
-esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3, randomseed=200, parallel=True, nproc=16)
+esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3, randomseed=200, parallel_genvb=False, parallel_genEf=True, nproc=12)
 esim.generate_E_timeseries(operand='stack')
 esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/trial1', compress=True)
 
