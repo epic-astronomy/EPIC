@@ -8,6 +8,7 @@ from astroutils import DSP_modules as DSP
 from astroutils import catalog as SM
 from astroutils import geometry as GEOM
 from astroutils import constants as CNST
+import data_interface as DI
 import sim_observe as SIM
 import antenna_array as AA
 import aperture as APR
@@ -17,6 +18,9 @@ import progressbar as PGB
 max_n_timestamps = 4
 
 # Antenna initialization
+
+use_MWA_core = False
+use_LWA1 = True
 
 latitude = -26.701 # Latitude of MWA in degrees
 longitude = +116.670815 # Longitude of MWA in degrees
@@ -30,13 +34,26 @@ lst = 0.0 # in hours
 grid_map_method = 'sparse'
 # grid_map_method = 'regular'
 identical_antennas = False
-antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
-ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3)) 
-ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
+if use_MWA_core:
+    max_antenna_radius = 150.0
+    antenna_file = '/data3/t_nithyanandan/project_MWA/MWA_128T_antenna_locations_MNRAS_2012_Beardsley_et_al.txt'
+    ant_info = NP.loadtxt(antenna_file, skiprows=6, comments='#', usecols=(0,1,2,3)) 
+    ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
+    core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < max_antenna_radius), (NP.abs(ant_info[:,2]) < max_antenna_radius))
+    ant_info = ant_info[core_ind,:]
+elif use_LWA1:
+    infile = '/data3/t_nithyanandan/project_MOFF/data/samples/lwa_data.CDF.fits'
+    max_antenna_radius = 75.0
+    du = DI.DataHandler(indata=infile)
+    antid = NP.asarray(du.antid, dtype=NP.int)
+    antpos = du.antpos
+    core_ind = NP.logical_and((NP.abs(antpos[:,0]) < max_antenna_radius), (NP.abs(antpos[:,1]) < max_antenna_radius))
+    antid = antid[core_ind]
+    antpos = antpos[core_ind,:]
+    ant_info = NP.hstack((antid.reshape(-1,1), antpos))
+else:
+    raise ValueError('Invalid observatory specified')
 
-# core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 800.0), (NP.abs(ant_info[:,2]) < 800.0))
-core_ind = NP.logical_and((NP.abs(ant_info[:,1]) < 150.0), (NP.abs(ant_info[:,2]) < 150.0))
-ant_info = ant_info[core_ind,:]
 ant_info[:,1:] = ant_info[:,1:] - NP.mean(ant_info[:,1:], axis=0, keepdims=True)
 
 n_antennas = ant_info.shape[0]
@@ -310,10 +327,12 @@ skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
 
 esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
-esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-3, randomseed=200, parallel_genvb=False, parallel_genEf=False, nproc=None)
-PDB.set_trace()
+esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-4, randomseed=200, parallel_genvb=False, parallel_genEf=False, nproc=None)
 esim.generate_E_timeseries(operand='stack')
-esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/trial1', compress=True)
+if use_DSM:
+    esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/DSM_LWA1array_with_square_circular_tiles', compress=True)
+else:
+    esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/trial1', compress=True)
 
 antpos_info = proc_aar.antenna_positions(sort=True, centering=True)
 
