@@ -19,8 +19,8 @@ max_n_timestamps = 4
 
 # Antenna initialization
 
-use_MWA_core = False
-use_LWA1 = True
+use_MWA_core = True
+use_LWA1 = False
 
 latitude = -26.701 # Latitude of MWA in degrees
 longitude = +116.670815 # Longitude of MWA in degrees
@@ -125,7 +125,7 @@ proc_aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
 
 # Set up sky model
 
-fg_str = 'dsm'
+fg_str = 'random'
 use_GSM = False
 use_DSM = False
 use_CSM = False
