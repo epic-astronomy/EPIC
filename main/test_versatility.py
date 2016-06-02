@@ -4,6 +4,7 @@ import healpy as HP
 import scipy.constants as FCNST
 from astropy.io import ascii, fits
 import matplotlib.pyplot as PLT
+import matplotlib.patches as patches
 from astroutils import DSP_modules as DSP
 from astroutils import catalog as SM
 from astroutils import geometry as GEOM
@@ -19,8 +20,8 @@ max_n_timestamps = 4
 
 # Antenna initialization
 
-use_MWA_core = True
-use_LWA1 = False
+use_MWA_core = False
+use_LWA1 = True
 
 latitude = -26.701 # Latitude of MWA in degrees
 longitude = +116.670815 # Longitude of MWA in degrees
@@ -186,7 +187,7 @@ elif use_random:
     majax = NP.zeros(n_src)
     minax = NP.zeros(n_src)
     pa = NP.zeros(n_src)
-    freq_catalog = sim_aar.f
+    freq_catalog = sim_aar.f0 + NP.zeros(n_src)
     
     spec_parms = {}
     spec_parms['name'] = NP.repeat('power-law', n_src)
@@ -196,6 +197,10 @@ elif use_random:
     spec_parms['flux-offset'] = NP.zeros(n_src)
     spec_parms['freq-width'] = NP.zeros(n_src)
     flux_unit = 'Jy'
+
+    box_center = NP.hstack((skypos[:,:2], f0+NP.zeros(n_src).reshape(-1,1))).tolist()
+    box_size = 0.04 + NP.zeros(n_src).reshape(-1,1)
+    box_size = box_size.tolist()
 elif use_CSM:
     spindex_rms = 0.0
     SUMSS_file = '/data3/t_nithyanandan/foregrounds/sumsscat.Mar-11-2008.txt'
@@ -409,6 +414,7 @@ sim_efimgobj.removeAutoCorr(forceeval=True, datapool='avg')
 avg_sim_efimg = sim_efimgobj.nzsp_img_avg['P1']
 if avg_sim_efimg.ndim == 4:
     avg_sim_efimg = avg_sim_efimg[0,:,:,:]
+sim_boxstats = sim_efimgobj.getStats(box_type='square', box_center=box_center, box_size=box_size, rms_box_scale_factor=3.0, coords='physical', datapool='avg')
 
 proc_efimgmax = []
 for it in xrange(max_n_timestamps):
@@ -468,6 +474,7 @@ proc_efimgobj.removeAutoCorr(forceeval=True, datapool='avg')
 avg_proc_efimg = proc_efimgobj.nzsp_img_avg['P1']
 if avg_proc_efimg.ndim == 4:
     avg_proc_efimg = avg_proc_efimg[0,:,:,:]
+proc_boxstats = proc_efimgobj.getStats(box_type='square', box_center=box_center, box_size=box_size, rms_box_scale_factor=10.0, coords='physical', datapool='avg')
 
 src_radec = skymod.location
 
@@ -484,19 +491,29 @@ src_dircos = GEOM.altaz2dircos(src_altaz, units='degrees')
 
 fig, axs = PLT.subplots(nrows=2, ncols=1, figsize=(3.5,7), sharex=True, sharey=True)
 axs[0].imshow(avg_proc_efimg[:,:,proc_efimgobj.f.size/2], origin='lower', extent=(proc_efimgobj.gridl.min(), proc_efimgobj.gridl.max(), proc_efimgobj.gridm.min(), proc_efimgobj.gridm.max()), interpolation='none')
+for i,bc in enumerate(box_center):
+    axs[0].add_patch(patches.Rectangle((bc[0]-0.5*box_size[i][0], bc[1]-0.5*box_size[i][0]), box_size[i][0], box_size[i][0], fill=False))
+# axs[0].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 axs[0].set_xlim(-0.70,0.70)
 axs[0].set_ylim(-0.70,0.70)    
 axs[0].set_aspect('equal')
-# axs[0].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 # axs[0].set_xlabel('l', fontsize=18, weight='medium')
 # axs[0].set_ylabel('m', fontsize=18, weight='medium')                
 
 axs[1].imshow(avg_sim_efimg[:,:,sim_efimgobj.f.size/2], origin='lower', extent=(sim_efimgobj.gridl.min(), sim_efimgobj.gridl.max(), sim_efimgobj.gridm.min(), sim_efimgobj.gridm.max()), interpolation='none')
+for i,bc in enumerate(box_center):
+    axs[1].add_patch(patches.Rectangle((bc[0]-0.5*box_size[i][0], bc[1]-0.5*box_size[i][0]), box_size[i][0], box_size[i][0], fill=False))
+# axs[1].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 axs[1].set_xlim(-0.70,0.70)
 axs[1].set_ylim(-0.70,0.70)    
 axs[1].set_aspect('equal')
-# axs[1].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
 # axs[1].set_xlabel('l', fontsize=18, weight='medium')
 # axs[1].set_ylabel('m', fontsize=18, weight='medium')                
 
 fig.subplots_adjust(hspace=0, wspace=0)
+
+fig = PLT.figure()
+ax = fig.add_subplot(111)
+for si,stats in enumerate(sim_boxstats):
+    ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak'][0]/src_flux[si], 'o', mfc='none', mec='black', mew=1, ms=8)
+    ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak'][0]/src_flux[si], '+', mfc='none', mec='black', mew=1, ms=8)
