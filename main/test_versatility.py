@@ -20,8 +20,8 @@ max_n_timestamps = 4
 
 # Antenna initialization
 
-use_MWA_core = False
-use_LWA1 = True
+use_MWA_core = True
+use_LWA1 = False
 
 latitude = -26.701 # Latitude of MWA in degrees
 longitude = +116.670815 # Longitude of MWA in degrees
@@ -103,11 +103,12 @@ else:
 sim_ants = []
 sim_aar = AA.AntennaArray()
 for ai in xrange(n_antennas):
-    sim_ant = AA.Antenna('{0:0d}'.format(int(ant_info[ai,0])), latitude, longitude, ant_info[ai,1:], f0, nsamples=nts, aperture=sim_ant_aprtrs[ai])
+    sim_ant = AA.Antenna('{0:0d}'.format(int(ant_info[ai,0])), str(random_aprtr_inds[ai]), latitude, longitude, ant_info[ai,1:], f0, nsamples=nts, aperture=sim_ant_aprtrs[ai])
     sim_ant.f = sim_ant.f0 + DSP.spectax(2*nts, dt, shift=True)
     sim_ants += [sim_ant]
     sim_aar = sim_aar + sim_ant
 
+sim_aar.pairTypetags()
 sim_aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
         
 proc_ant_aprtrs = []
@@ -117,11 +118,12 @@ proc_ant_aprtrs = [proc_ant_aprtr] * n_antennas
 proc_ants = []
 proc_aar = AA.AntennaArray()
 for ai in xrange(n_antennas):
-    proc_ant = AA.Antenna('{0:0d}'.format(int(ant_info[ai,0])), latitude, longitude, ant_info[ai,1:], f0, nsamples=nts, aperture=proc_ant_aprtrs[ai])
+    proc_ant = AA.Antenna('{0:0d}'.format(int(ant_info[ai,0])), str(0), latitude, longitude, ant_info[ai,1:], f0, nsamples=nts, aperture=proc_ant_aprtrs[ai])
     proc_ant.f = proc_ant.f0 + DSP.spectax(2*nts, dt, shift=True)
     proc_ants += [proc_ant]
     proc_aar = proc_aar + proc_ant
 
+proc_aar.pairTypetags()
 proc_aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
 
 # Set up sky model
