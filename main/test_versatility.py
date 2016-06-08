@@ -410,9 +410,9 @@ for it in xrange(max_n_timestamps):
     sim_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
 
 sim_efimgobj.accumulate(tbinsize=MOFF_tbinsize)
-sim_efimgobj.evalAutoCorr(forceeval=True)
+sim_efimgobj.evalAutoCorr(forceeval=False)
 sim_efimgobj.evalPowerPattern()
-sim_efimgobj.removeAutoCorr(forceeval=True, datapool='avg')
+sim_efimgobj.removeAutoCorr(forceeval=False, datapool='avg')
 avg_sim_efimg = sim_efimgobj.nzsp_img_avg['P1']
 if avg_sim_efimg.ndim == 4:
     avg_sim_efimg = avg_sim_efimg[0,:,:,:]
@@ -470,9 +470,9 @@ for it in xrange(max_n_timestamps):
     proc_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
 
 proc_efimgobj.accumulate(tbinsize=MOFF_tbinsize)
-proc_efimgobj.evalAutoCorr(forceeval=True)
+proc_efimgobj.evalAutoCorr(forceeval=False)
 proc_efimgobj.evalPowerPattern()
-proc_efimgobj.removeAutoCorr(forceeval=True, datapool='avg')
+proc_efimgobj.removeAutoCorr(forceeval=False, datapool='avg')
 avg_proc_efimg = proc_efimgobj.nzsp_img_avg['P1']
 if avg_proc_efimg.ndim == 4:
     avg_proc_efimg = avg_proc_efimg[0,:,:,:]
