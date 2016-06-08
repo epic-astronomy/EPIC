@@ -128,12 +128,13 @@ proc_aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
 
 # Set up sky model
 
-fg_str = 'random'
+fg_str = 'nonphysical'
 use_GSM = False
 use_DSM = False
 use_CSM = False
 use_custom = False
 use_random = False
+use_nonphysical = False
 
 if fg_str == 'asm':
     use_GSM = True
@@ -145,6 +146,8 @@ elif fg_str == 'custom':
     use_custom = True
 elif fg_str == 'random':
     use_random = True
+elif fg_str == 'nonphysical':
+    use_nonphysical = True
 
 if use_custom:
     custom_catalog_file = '/data3/t_nithyanandan/foregrounds/PS_catalog.txt'
@@ -177,6 +180,55 @@ elif use_random:
     lmang = rstate.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
     skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
     skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
+    skypos_altaz = GEOM.dircos2altaz(skypos, units='degrees')
+    skypos_hadec = GEOM.altaz2hadec(skypos_altaz, latitude, units='degrees')
+    ra_deg = 15.0*lst - skypos_hadec[:,0]
+    dec_deg = skypos_hadec[:,1]
+    skypos_radec = NP.hstack((15.0*lst - skypos_hadec[:,0].reshape(-1,1), skypos_hadec[:,1].reshape(-1,1)))
+    src_flux = 10.0*(1.0 + NP.random.rand(n_src))
+
+    catlabel = NP.repeat('random', n_src)
+    spindex = NP.zeros(n_src)
+    majax = NP.zeros(n_src)
+    minax = NP.zeros(n_src)
+    pa = NP.zeros(n_src)
+    freq_catalog = sim_aar.f0 + NP.zeros(n_src)
+    
+    spec_parms = {}
+    spec_parms['name'] = NP.repeat('power-law', n_src)
+    spec_parms['power-law-index'] = spindex
+    spec_parms['freq-ref'] = freq_catalog 
+    spec_parms['flux-scale'] = src_flux
+    spec_parms['flux-offset'] = NP.zeros(n_src)
+    spec_parms['freq-width'] = NP.zeros(n_src)
+    flux_unit = 'Jy'
+
+    box_center = NP.hstack((skypos[:,:2], f0+NP.zeros(n_src).reshape(-1,1))).tolist()
+    box_size = 0.04 + NP.zeros(n_src).reshape(-1,1)
+    box_size = box_size.tolist()
+elif use_nonphysical:
+    n_src = 10
+    lmrad1 = 0.05 + 0.25/(0.5*n_src)*NP.arange(n_src/2).reshape(-1,1)
+    lmang1 = NP.pi/4 + NP.zeros(n_src/2).reshape(-1,1)
+    skypos1 = NP.hstack((lmrad1 * NP.cos(lmang1), lmrad1 * NP.sin(lmang1))).reshape(-1,2)
+    lmrad2 = 0.05 + 0.25/(0.5*n_src)*NP.arange(n_src/2).reshape(-1,1)
+    lmang2 = NP.zeros(n_src/2).reshape(-1,1)
+    skypos2 = NP.hstack((lmrad2 * NP.cos(lmang2), lmrad2 * NP.sin(lmang2))).reshape(-1,2)
+    skypos12 = NP.vstack((skypos1, skypos2))
+    skypos = -skypos12
+
+    # lmrad3 = 0.05 + 0.25/(0.25*n_src)*NP.arange(n_src/4).reshape(-1,1)
+    # lmang3 = NP.zeros(n_src/4).reshape(-1,1)
+    # skypos3 = NP.hstack((lmrad3 * NP.cos(lmang3), lmrad3 * NP.sin(lmang3))).reshape(-1,2)
+    # lmrad4 = 0.05 + 0.25/(0.25*n_src)*NP.arange(n_src/4).reshape(-1,1)
+    # lmang4 = NP.pi + NP.zeros(n_src/4).reshape(-1,1)
+    # skypos4 = NP.hstack((lmrad4 * NP.cos(lmang4), lmrad4 * NP.sin(lmang4))).reshape(-1,2)
+    # skypos34 = NP.vstack((skypos3, skypos4))
+
+    # skypos = NP.vstack((skypos12, skypos34))
+
+    skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
+    
     skypos_altaz = GEOM.dircos2altaz(skypos, units='degrees')
     skypos_hadec = GEOM.altaz2hadec(skypos_altaz, latitude, units='degrees')
     ra_deg = 15.0*lst - skypos_hadec[:,0]
@@ -328,6 +380,7 @@ elif use_DSM:
     spec_parms['flux-offset'] = NP.zeros(ra_deg.size)
     spec_parms['freq-width'] = NP.zeros(ra_deg.size)
 
+PDB.set_trace()
 skymod_init_parms = {'name': catlabel, 'frequency': sim_aar.f, 'location': NP.hstack((ra_deg.reshape(-1,1), dec_deg.reshape(-1,1))), 'spec_type': 'func', 'spec_parms': spec_parms, 'src_shape': NP.hstack((majax.reshape(-1,1),minax.reshape(-1,1),NP.zeros(catlabel.size).reshape(-1,1))), 'src_shape_units': ['degree','degree','degree']}
 skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 
@@ -517,5 +570,16 @@ fig.subplots_adjust(hspace=0, wspace=0)
 fig = PLT.figure()
 ax = fig.add_subplot(111)
 for si,stats in enumerate(sim_boxstats):
-    ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak'][0]/src_flux[si], 'o', mfc='none', mec='black', mew=1, ms=8)
-    ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak'][0]/src_flux[si], '+', mfc='none', mec='black', mew=1, ms=8)
+    if fg_str == 'nonphysical':
+        if si < n_src/2:
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak'][0]/src_flux[si], 'o', mfc='none', mec='red', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak'][0]/src_flux[si], '+', mfc='none', mec='red', mew=1, ms=8)
+        else:
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak'][0]/src_flux[si], 'o', mfc='none', mec='black', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak'][0]/src_flux[si], '+', mfc='none', mec='black', mew=1, ms=8)
+    else:
+        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak'][0]/src_flux[si], 'o', mfc='none', mec='black', mew=1, ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak'][0]/src_flux[si], '+', mfc='none', mec='black', mew=1, ms=8)
+ax.set_yscale('log')
+ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[si,:2]**2)).max())
+ax.set_xlabel('lm radius')
