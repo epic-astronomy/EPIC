@@ -4,6 +4,7 @@ import healpy as HP
 import scipy.constants as FCNST
 from astropy.io import ascii, fits
 import matplotlib.pyplot as PLT
+import matplotlib.colors as PLTC
 import matplotlib.patches as patches
 from astroutils import DSP_modules as DSP
 from astroutils import catalog as SM
@@ -135,6 +136,7 @@ use_CSM = False
 use_custom = False
 use_random = False
 use_nonphysical = False
+use_zenith = False
 
 if fg_str == 'asm':
     use_GSM = True
@@ -148,6 +150,8 @@ elif fg_str == 'random':
     use_random = True
 elif fg_str == 'nonphysical':
     use_nonphysical = True
+elif fg_str == 'zenith':
+    use_zenith = True
 
 if use_custom:
     custom_catalog_file = '/data3/t_nithyanandan/foregrounds/PS_catalog.txt'
@@ -229,6 +233,36 @@ elif use_nonphysical:
 
     skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
     
+    skypos_altaz = GEOM.dircos2altaz(skypos, units='degrees')
+    skypos_hadec = GEOM.altaz2hadec(skypos_altaz, latitude, units='degrees')
+    ra_deg = 15.0*lst - skypos_hadec[:,0]
+    dec_deg = skypos_hadec[:,1]
+    skypos_radec = NP.hstack((15.0*lst - skypos_hadec[:,0].reshape(-1,1), skypos_hadec[:,1].reshape(-1,1)))
+    src_flux = 10.0*(1.0 + NP.random.rand(n_src))
+
+    catlabel = NP.repeat('random', n_src)
+    spindex = NP.zeros(n_src)
+    majax = NP.zeros(n_src)
+    minax = NP.zeros(n_src)
+    pa = NP.zeros(n_src)
+    freq_catalog = sim_aar.f0 + NP.zeros(n_src)
+    
+    spec_parms = {}
+    spec_parms['name'] = NP.repeat('power-law', n_src)
+    spec_parms['power-law-index'] = spindex
+    spec_parms['freq-ref'] = freq_catalog 
+    spec_parms['flux-scale'] = src_flux
+    spec_parms['flux-offset'] = NP.zeros(n_src)
+    spec_parms['freq-width'] = NP.zeros(n_src)
+    flux_unit = 'Jy'
+
+    box_center = NP.hstack((skypos[:,:2], f0+NP.zeros(n_src).reshape(-1,1))).tolist()
+    box_size = 0.04 + NP.zeros(n_src).reshape(-1,1)
+    box_size = box_size.tolist()
+elif use_zenith:
+    skypos = NP.asarray([0.0, 0.0]).reshape(1,-1)
+    skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
+    n_src = skypos.shape[0]
     skypos_altaz = GEOM.dircos2altaz(skypos, units='degrees')
     skypos_hadec = GEOM.altaz2hadec(skypos_altaz, latitude, units='degrees')
     ra_deg = 15.0*lst - skypos_hadec[:,0]
@@ -573,14 +607,14 @@ ax = fig.add_subplot(111)
 for si,stats in enumerate(sim_boxstats):
     if fg_str == 'nonphysical':
         if si < n_src/2:
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak'][0]/src_flux[si], 'o', mfc='none', mec='red', mew=1, ms=8)
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak'][0]/src_flux[si], '+', mfc='none', mec='red', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['P1'][si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['P1'][si,nchan/2], '+', mfc='none', mec='red', mew=1, ms=8)
         else:
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak'][0]/src_flux[si], 'o', mfc='none', mec='black', mew=1, ms=8)
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak'][0]/src_flux[si], '+', mfc='none', mec='black', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['P1'][si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['P1'][si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
     else:
-        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak'][0]/src_flux[si], 'o', mfc='none', mec='black', mew=1, ms=8)
-        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak'][0]/src_flux[si], '+', mfc='none', mec='black', mew=1, ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['P1'][si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['P1'][si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
 ax.set_yscale('log')
 ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[si,:2]**2)).max())
 ax.set_xlabel('lm radius')
