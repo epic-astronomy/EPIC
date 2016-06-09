@@ -380,7 +380,6 @@ elif use_DSM:
     spec_parms['flux-offset'] = NP.zeros(ra_deg.size)
     spec_parms['freq-width'] = NP.zeros(ra_deg.size)
 
-PDB.set_trace()
 skymod_init_parms = {'name': catlabel, 'frequency': sim_aar.f, 'location': NP.hstack((ra_deg.reshape(-1,1), dec_deg.reshape(-1,1))), 'spec_type': 'func', 'spec_parms': spec_parms, 'src_shape': NP.hstack((majax.reshape(-1,1),minax.reshape(-1,1),NP.zeros(catlabel.size).reshape(-1,1))), 'src_shape_units': ['degree','degree','degree']}
 skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 
@@ -469,6 +468,7 @@ sim_efimgobj.removeAutoCorr(forceeval=False, datapool='avg')
 avg_sim_efimg = sim_efimgobj.nzsp_img_avg['P1']
 if avg_sim_efimg.ndim == 4:
     avg_sim_efimg = avg_sim_efimg[0,:,:,:]
+sim_pb_skypos = sim_efimgobj.evalPowerPatternSkypos(skypos, datapool='avg')
 sim_boxstats = sim_efimgobj.getStats(box_type='square', box_center=box_center, box_size=box_size, rms_box_scale_factor=3.0, coords='physical', datapool='avg')
 
 proc_efimgmax = []
@@ -529,6 +529,7 @@ proc_efimgobj.removeAutoCorr(forceeval=False, datapool='avg')
 avg_proc_efimg = proc_efimgobj.nzsp_img_avg['P1']
 if avg_proc_efimg.ndim == 4:
     avg_proc_efimg = avg_proc_efimg[0,:,:,:]
+proc_pb_skypos = proc_efimgobj.evalPowerPatternSkypos(skypos, datapool='avg')
 proc_boxstats = proc_efimgobj.getStats(box_type='square', box_center=box_center, box_size=box_size, rms_box_scale_factor=10.0, coords='physical', datapool='avg')
 
 src_radec = skymod.location
