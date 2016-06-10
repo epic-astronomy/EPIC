@@ -580,7 +580,7 @@ src_altaz = GEOM.hadec2altaz(src_hadec, latitude=latitude, units='degrees')
 src_dircos = GEOM.altaz2dircos(src_altaz, units='degrees')
 
 fig, axs = PLT.subplots(nrows=2, ncols=1, figsize=(3.5,7), sharex=True, sharey=True)
-axs[0].imshow(avg_proc_efimg[:,:,proc_efimgobj.f.size/2], origin='lower', extent=(proc_efimgobj.gridl.min(), proc_efimgobj.gridl.max(), proc_efimgobj.gridm.min(), proc_efimgobj.gridm.max()), interpolation='none')
+axs[0].imshow(NP.mean(avg_proc_efimg, axis=2), origin='lower', extent=(proc_efimgobj.gridl.min(), proc_efimgobj.gridl.max(), proc_efimgobj.gridm.min(), proc_efimgobj.gridm.max()), interpolation='none')
 for i,bc in enumerate(box_center):
     axs[0].add_patch(patches.Rectangle((bc[0]-0.5*box_size[i][0], bc[1]-0.5*box_size[i][0]), box_size[i][0], box_size[i][0], fill=False))
 # axs[0].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
@@ -590,7 +590,7 @@ axs[0].set_aspect('equal')
 # axs[0].set_xlabel('l', fontsize=18, weight='medium')
 # axs[0].set_ylabel('m', fontsize=18, weight='medium')                
 
-axs[1].imshow(avg_sim_efimg[:,:,sim_efimgobj.f.size/2], origin='lower', extent=(sim_efimgobj.gridl.min(), sim_efimgobj.gridl.max(), sim_efimgobj.gridm.min(), sim_efimgobj.gridm.max()), interpolation='none')
+axs[1].imshow(NP.mean(avg_sim_efimg, axis=2), origin='lower', extent=(sim_efimgobj.gridl.min(), sim_efimgobj.gridl.max(), sim_efimgobj.gridm.min(), sim_efimgobj.gridm.max()), interpolation='none')
 for i,bc in enumerate(box_center):
     axs[1].add_patch(patches.Rectangle((bc[0]-0.5*box_size[i][0], bc[1]-0.5*box_size[i][0]), box_size[i][0], box_size[i][0], fill=False))
 # axs[1].plot(src_dircos[:,0], src_dircos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
