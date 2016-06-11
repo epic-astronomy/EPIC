@@ -498,12 +498,12 @@ for it in xrange(max_n_timestamps):
 # pb = sim_aar.evalAntennaPairPBeam(typetag_pair={'1': '0', '2': '1'}, skypos=None)
 sim_efimgobj.accumulate(tbinsize=MOFF_tbinsize)
 sim_efimgobj.evalAutoCorr(forceeval=False)
-sim_efimgobj.evalPowerPattern()
+sim_pb_skypos = sim_efimgobj.evalPowerPattern(skypos=skypos)
 sim_efimgobj.removeAutoCorr(forceeval=False, datapool='avg')
 avg_sim_efimg = sim_efimgobj.nzsp_img_avg['P1']
 if avg_sim_efimg.ndim == 4:
     avg_sim_efimg = avg_sim_efimg[0,:,:,:]
-sim_pb_skypos = sim_efimgobj.evalPowerPatternSkypos(skypos, datapool='avg')
+# sim_pb_skypos = sim_efimgobj.evalPowerPatternSkypos(skypos, datapool='avg')
 sim_boxstats = sim_efimgobj.getStats(box_type='square', box_center=box_center, box_size=box_size, rms_box_scale_factor=3.0, coords='physical', datapool='avg')
 
 proc_efimgmax = []
@@ -559,12 +559,12 @@ for it in xrange(max_n_timestamps):
 
 proc_efimgobj.accumulate(tbinsize=MOFF_tbinsize)
 proc_efimgobj.evalAutoCorr(forceeval=False)
-proc_efimgobj.evalPowerPattern()
+proc_pb_skypos = proc_efimgobj.evalPowerPattern(skypos=skypos)
 proc_efimgobj.removeAutoCorr(forceeval=False, datapool='avg')
 avg_proc_efimg = proc_efimgobj.nzsp_img_avg['P1']
 if avg_proc_efimg.ndim == 4:
     avg_proc_efimg = avg_proc_efimg[0,:,:,:]
-proc_pb_skypos = proc_efimgobj.evalPowerPatternSkypos(skypos, datapool='avg')
+# proc_pb_skypos = proc_efimgobj.evalPowerPatternSkypos(skypos, datapool='avg')
 proc_boxstats = proc_efimgobj.getStats(box_type='square', box_center=box_center, box_size=box_size, rms_box_scale_factor=10.0, coords='physical', datapool='avg')
 
 src_radec = skymod.location
@@ -608,14 +608,14 @@ ax = fig.add_subplot(111)
 for si,stats in enumerate(sim_boxstats):
     if fg_str == 'nonphysical':
         if si < n_src/2:
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['P1'][si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['P1'][si,nchan/2], '+', mfc='none', mec='red', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['pb']['P1'][si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['pb']['P1'][si,nchan/2], '+', mfc='none', mec='red', mew=1, ms=8)
         else:
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['P1'][si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['P1'][si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['pb']['P1'][si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['pb']['P1'][si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
     else:
-        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['P1'][si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
-        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['P1'][si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['pb']['P1'][si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['pb']['P1'][si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
 ax.set_yscale('log')
 ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[si,:2]**2)).max())
 ax.set_xlabel('lm radius')
