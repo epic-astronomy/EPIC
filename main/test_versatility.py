@@ -495,6 +495,7 @@ for it in xrange(max_n_timestamps):
         sim_efimgobj.update(antenna_array=sim_aar, reset=True)
     sim_efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=True, grid_map_method=grid_map_method, cal_loop=False)
 
+# pb = sim_aar.evalAntennaPairPBeam(typetag_pair={'1': '0', '2': '1'}, skypos=None)
 sim_efimgobj.accumulate(tbinsize=MOFF_tbinsize)
 sim_efimgobj.evalAutoCorr(forceeval=False)
 sim_efimgobj.evalPowerPattern()
