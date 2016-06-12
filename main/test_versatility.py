@@ -17,7 +17,7 @@ import aperture as APR
 import ipdb as PDB
 import progressbar as PGB
 
-max_n_timestamps = 4
+duration = 4e-4
 
 # Antenna initialization
 
@@ -73,18 +73,21 @@ bandwidth = nchan * channel_width
 dt = 1/bandwidth
 MOFF_tbinsize = None
 FX_tbinsize = None
+max_n_timestamps = int(duration * channel_width)
 
 ant_pol_type = 'dual'
 ant_kerntype = {pol: 'func' for pol in ['P1','P2']}
 ant_kernshape1 = {pol: 'rect' for pol in ['P1','P2']}
-ant_kernshape2 = {pol: 'circular' for pol in ['P1','P2']}
+ant_kernshape2 = {pol: 'rect' for pol in ['P1','P2']}
+# ant_kernshape2 = {pol: 'circular' for pol in ['P1','P2']}
 ant_lookupinfo = None
 # ant_kerntype = {pol: 'lookup' for pol in ['P1','P2']}
 # ant_kernshape = None
 # ant_lookupinfo = {pol: '/data3/t_nithyanandan/project_MOFF/simulated/MWA/data/lookup/E_illumination_lookup_zenith.txt' for pol in ['P1','P2']}
 
-ant_kernshapeparms1 = {pol: {'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
-ant_kernshapeparms2 = {pol: {'rmax':0.5*ant_sizex, 'rmin': 0.0, 'rotangle':0.0} for pol in ['P1','P2']}
+ant_kernshapeparms1 = {pol: {'xmax':0.5*0.25*ant_sizex, 'ymax':0.5*0.25*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
+ant_kernshapeparms2 = {pol: {'xmax':0.5*1.5*ant_sizex, 'ymax':0.5*1.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
+# ant_kernshapeparms2 = {pol: {'rmax':0.5*ant_sizex, 'rmin': 0.0, 'rotangle':0.0} for pol in ['P1','P2']}
 ant_kernshapeparms_choices = [ant_kernshapeparms1, ant_kernshapeparms2]
 ant_kernshape_choices = [ant_kernshape1, ant_kernshape2]
 
@@ -211,11 +214,11 @@ elif use_random:
     box_size = 0.04 + NP.zeros(n_src).reshape(-1,1)
     box_size = box_size.tolist()
 elif use_nonphysical:
-    n_src = 10
-    lmrad1 = 0.05 + 0.25/(0.5*n_src)*NP.arange(n_src/2).reshape(-1,1)
+    n_src = 20
+    lmrad1 = 0.05 + 0.5/(0.5*n_src)*NP.arange(n_src/2).reshape(-1,1)
     lmang1 = NP.pi/4 + NP.zeros(n_src/2).reshape(-1,1)
     skypos1 = NP.hstack((lmrad1 * NP.cos(lmang1), lmrad1 * NP.sin(lmang1))).reshape(-1,2)
-    lmrad2 = 0.05 + 0.25/(0.5*n_src)*NP.arange(n_src/2).reshape(-1,1)
+    lmrad2 = 0.05 + 0.5/(0.5*n_src)*NP.arange(n_src/2).reshape(-1,1)
     lmang2 = NP.zeros(n_src/2).reshape(-1,1)
     skypos2 = NP.hstack((lmrad2 * NP.cos(lmang2), lmrad2 * NP.sin(lmang2))).reshape(-1,2)
     skypos12 = NP.vstack((skypos1, skypos2))
@@ -420,7 +423,7 @@ skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
 
 esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
-esim.observing_run(obsrun_initparms, obsmode='drift', duration=1e-4, randomseed=200, parallel_genvb=False, parallel_genEf=False, nproc=None)
+esim.observing_run(obsrun_initparms, obsmode='drift', duration=duration, randomseed=200, parallel_genvb=False, parallel_genEf=False, nproc=None)
 esim.generate_E_timeseries(operand='stack')
 if use_DSM:
     esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/DSM_LWA1array_with_square_circular_tiles', compress=True)
@@ -567,6 +570,31 @@ if avg_proc_efimg.ndim == 4:
 # proc_pb_skypos = proc_efimgobj.evalPowerPatternSkypos(skypos, datapool='avg')
 proc_boxstats = proc_efimgobj.getStats(box_type='square', box_center=box_center, box_size=box_size, rms_box_scale_factor=10.0, coords='physical', datapool='avg')
 
+sim_aar.evalAllAntennaPairCorrWts()
+du = sim_aar.gridu[0,1] - sim_aar.gridu[0,0]
+dv = sim_aar.gridv[1,0] - sim_aar.gridv[0,0]
+ulocs = du * (NP.arange(2*sim_aar.gridu.shape[1])-sim_aar.gridu.shape[1])
+vlocs = dv * (NP.arange(2*sim_aar.gridv.shape[1])-sim_aar.gridv.shape[1])
+pbinfo = {}
+for typetag_pair in sim_aar.pairwise_typetags:
+    pbinfo[typetag_pair] = AA.evalApertureResponse(sim_aar.pairwise_typetag_crosswts_vuf[typetag_pair]['P1'], ulocs, vlocs, pad=0, skypos=skypos)
+
+pbeff_sim = None
+pbeff_proc = None
+antpair_num = []
+for typetag_pair in sim_aar.pairwise_typetags:
+    if 'cross' in sim_aar.pairwise_typetags[typetag_pair]:
+        n_antpair = len(sim_aar.pairwise_typetags[typetag_pair]['cross'])
+        if pbeff_sim is None:
+            pbeff_sim = n_antpair * pbinfo[typetag_pair]['pb']**2
+            pbeff_proc = n_antpair * pbinfo[typetag_pair]['pb'] * pbinfo[('0','0')]['pb']
+        else:
+            pbeff_sim += n_antpair * pbinfo[typetag_pair]['pb']**2
+            pbeff_proc += n_antpair * pbinfo[typetag_pair]['pb'] * pbinfo[('0','0')]['pb']
+        antpair_num += [n_antpair]
+pbeff_sim /= NP.sum(NP.asarray(antpair_num))
+pbeff_proc /= NP.sum(NP.asarray(antpair_num))
+
 src_radec = skymod.location
 
 lstobj = EP.FixedBody()
@@ -608,14 +636,14 @@ ax = fig.add_subplot(111)
 for si,stats in enumerate(sim_boxstats):
     if fg_str == 'nonphysical':
         if si < n_src/2:
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['pb']['P1'][si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['pb']['P1'][si,nchan/2], '+', mfc='none', mec='red', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], 'x', mfc='none', mec='black', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], 'x', mfc='none', mec='red', mew=1, ms=8)
         else:
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['pb']['P1'][si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['pb']['P1'][si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
+            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], '+', mfc='none', mec='red', mew=1, ms=8)
     else:
-        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/sim_pb_skypos['pb']['P1'][si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
-        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/proc_pb_skypos['pb']['P1'][si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
 ax.set_yscale('log')
 ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[si,:2]**2)).max())
 ax.set_xlabel('lm radius')
