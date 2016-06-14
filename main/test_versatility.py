@@ -27,7 +27,7 @@ use_LWA1 = False
 latitude = -26.701 # Latitude of MWA in degrees
 longitude = +116.670815 # Longitude of MWA in degrees
 f0 = 150e6 # Center frequency
-nts = 32 # number of time samples in a time-series
+nts = 128 # number of time samples in a time-series
 nchan = 2 * nts # number of frequency channels, factor 2 for padding before FFT
 
 obs_date = '2015/11/23'
