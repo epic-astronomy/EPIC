@@ -27,7 +27,7 @@ use_LWA1 = False
 latitude = -26.701 # Latitude of MWA in degrees
 longitude = +116.670815 # Longitude of MWA in degrees
 f0 = 150e6 # Center frequency
-nts = 128 # number of time samples in a time-series
+nts = 32 # number of time samples in a time-series
 nchan = 2 * nts # number of frequency channels, factor 2 for padding before FFT
 
 obs_date = '2015/11/23'
@@ -423,6 +423,7 @@ skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
 
 esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
+# PDB.set_trace()
 esim.observing_run(obsrun_initparms, obsmode='drift', duration=duration, randomseed=200, parallel_genvb=False, parallel_genEf=False, nproc=None)
 esim.generate_E_timeseries(operand='stack')
 if use_DSM:
