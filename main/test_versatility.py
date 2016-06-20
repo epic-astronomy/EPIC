@@ -17,7 +17,7 @@ import aperture as APR
 import ipdb as PDB
 import progressbar as PGB
 
-duration = 4e-4
+duration = 16e-4
 
 # Antenna initialization
 
@@ -632,19 +632,38 @@ axs[1].set_aspect('equal')
 
 fig.subplots_adjust(hspace=0, wspace=0)
 
+sim_stats = []
+proc_stats = []
+for si,stats in enumerate(sim_boxstats):
+    sim_stats += [sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2]]
+    proc_stats += [proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2]]
+sim_stats = NP.asarray(sim_stats)
+proc_stats = NP.asarray(proc_stats)
 fig = PLT.figure()
 ax = fig.add_subplot(111)
-for si,stats in enumerate(sim_boxstats):
-    if fg_str == 'nonphysical':
-        if si < n_src/2:
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], 'x', mfc='none', mec='black', mew=1, ms=8)
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], 'x', mfc='none', mec='red', mew=1, ms=8)
-        else:
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], '+', mfc='none', mec='black', mew=1, ms=8)
-            ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], '+', mfc='none', mec='red', mew=1, ms=8)
-    else:
-        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
-        ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
-ax.set_yscale('log')
-ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[si,:2]**2)).max())
+if fg_str == 'nonphysical':
+    ax.plot(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), sim_stats[:n_src/2], 'x', ls='-', color='black', ms=8)
+    ax.plot(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), proc_stats[:n_src/2], 'x', ls='-', color='red', ms=8)
+    ax.plot(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), sim_stats[n_src/2:], '+', ls='-', color='black', ms=8)
+    ax.plot(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), proc_stats[n_src/2:], '+', ls='-', color='red', ms=8)
+ax.set_yscale('linear')
+ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)).max())
 ax.set_xlabel('lm radius')
+        
+
+# fig = PLT.figure()
+# ax = fig.add_subplot(111)
+# for si,stats in enumerate(sim_boxstats):
+#     if fg_str == 'nonphysical':
+#         if si < n_src/2:
+#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], 'x', ls='-', color='red', ms=8)
+#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], 'x', ls='-', color='black', ms=8)
+#         else:
+#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], '+', ls='-', color='red', ms=8)
+#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], '+', ls='-', color='black', ms=8)
+#     else:
+#         ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
+#         ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
+# ax.set_yscale('linear')
+# ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[si,:2]**2)).max())
+# ax.set_xlabel('lm radius')
