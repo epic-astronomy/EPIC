@@ -17,7 +17,12 @@ import aperture as APR
 import ipdb as PDB
 import progressbar as PGB
 
-duration = 16e-4
+duration = 1e-4
+
+# Plane of simulation
+
+simplane = 'aperture'
+# simplane = 'sky'
 
 # Antenna initialization
 
@@ -69,7 +74,7 @@ ant_sizey = ny * dy
 
 f_center = f0
 channel_width = 40e3
-bandwidth = nchan * channel_width
+bandwidth = nts * channel_width
 dt = 1/bandwidth
 MOFF_tbinsize = None
 FX_tbinsize = None
@@ -423,8 +428,7 @@ skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
 
 esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
-# PDB.set_trace()
-esim.observing_run(obsrun_initparms, obsmode='drift', duration=duration, randomseed=200, parallel_genvb=False, parallel_genEf=False, nproc=None)
+esim.observing_run(obsrun_initparms, obsmode='drift', domain_type=simplane, duration=duration, randomseed=200, parallel_genvb=False, parallel_genEf=False, nproc=None)
 esim.generate_E_timeseries(operand='stack')
 if use_DSM:
     esim.save('/data3/t_nithyanandan/project_MOFF/simulated/test/DSM_LWA1array_with_square_circular_tiles', compress=True)
