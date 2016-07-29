@@ -17,8 +17,9 @@ import aperture as APR
 import ipdb as PDB
 import progressbar as PGB
 
-n_runs = 16
+n_runs = 4
 duration = 1e-4
+skip_duration = 10.0
 
 # Plane of simulation
 
@@ -93,7 +94,11 @@ ant_lookupinfo = None
 
 ant_kernshapeparms1 = {pol: {'xmax':0.5*0.25*ant_sizex, 'ymax':0.5*0.25*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
 ant_kernshapeparms2 = {pol: {'xmax':0.5*1.5*ant_sizex, 'ymax':0.5*1.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
+
+# ant_kernshapeparms1 = {pol: {'xmax':0.5*ant_sizex, 'ymax':0.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
+# ant_kernshapeparms2 = {pol: {'xmax':0.5*1.5*ant_sizex, 'ymax':0.5*1.5*ant_sizey, 'rmin': 0.0, 'rmax': 0.5*NP.sqrt(ant_sizex**2 + ant_sizey**2), 'rotangle':0.0} for pol in ['P1','P2']}
 # ant_kernshapeparms2 = {pol: {'rmax':0.5*ant_sizex, 'rmin': 0.0, 'rotangle':0.0} for pol in ['P1','P2']}
+
 ant_kernshapeparms_choices = [ant_kernshapeparms1, ant_kernshapeparms2]
 ant_kernshape_choices = [ant_kernshape1, ant_kernshape2]
 
@@ -427,11 +432,10 @@ elif use_DSM:
 skymod_init_parms = {'name': catlabel, 'frequency': sim_aar.f, 'location': NP.hstack((ra_deg.reshape(-1,1), dec_deg.reshape(-1,1))), 'spec_type': 'func', 'spec_parms': spec_parms, 'src_shape': NP.hstack((majax.reshape(-1,1),minax.reshape(-1,1),NP.zeros(catlabel.size).reshape(-1,1))), 'src_shape_units': ['degree','degree','degree']}
 skymod = SM.SkyModel(init_parms=skymod_init_parms, init_file=None)
 
-obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst}
-
 sim_boxstats = []
 proc_boxstats = []
 for run_index in xrange(n_runs):
+    obsrun_initparms = {'obs_date': obs_date, 'phase_center': [90.0, 270.0], 'pointing_center': [90.0, 270.0], 'phase_center_coords': 'altaz', 'pointing_center_coords': 'altaz', 'sidereal_time': lst+run_index*skip_duration}
     esim = SIM.AntennaArraySimulator(sim_aar, skymod, identical_antennas=identical_antennas)
     esim.observing_run(obsrun_initparms, obsmode='drift', domain_type=simplane, duration=duration, randomseed=200*(run_index+1), parallel_genvb=False, parallel_genEf=False, nproc=None)
     esim.generate_E_timeseries(operand='stack')
@@ -581,25 +585,37 @@ du = sim_aar.gridu[0,1] - sim_aar.gridu[0,0]
 dv = sim_aar.gridv[1,0] - sim_aar.gridv[0,0]
 ulocs = du * (NP.arange(2*sim_aar.gridu.shape[1])-sim_aar.gridu.shape[1])
 vlocs = dv * (NP.arange(2*sim_aar.gridv.shape[1])-sim_aar.gridv.shape[1])
-pbinfo = {}
+pbinfo_src = {}
+pbinfo_grid = {}
 for typetag_pair in sim_aar.pairwise_typetags:
-    pbinfo[typetag_pair] = AA.evalApertureResponse(sim_aar.pairwise_typetag_crosswts_vuf[typetag_pair]['P1'], ulocs, vlocs, pad=0, skypos=skypos)
+    pbinfo_src[typetag_pair] = AA.evalApertureResponse(sim_aar.pairwise_typetag_crosswts_vuf[typetag_pair]['P1'], ulocs, vlocs, pad=0, skypos=skypos)
+    pbinfo_grid[typetag_pair] = AA.evalApertureResponse(sim_aar.pairwise_typetag_crosswts_vuf[typetag_pair]['P1'], ulocs, vlocs, pad=0, skypos=None)
 
-pbeff_sim = None
-pbeff_proc = None
+pb2eff_src_sim = None
+pb2eff_src_proc = None
+pb2eff_src_sim = None
+pb2eff_src_proc = None
 antpair_num = []
 for typetag_pair in sim_aar.pairwise_typetags:
     if 'cross' in sim_aar.pairwise_typetags[typetag_pair]:
         n_antpair = len(sim_aar.pairwise_typetags[typetag_pair]['cross'])
-        if pbeff_sim is None:
-            pbeff_sim = n_antpair * pbinfo[typetag_pair]['pb']**2
-            pbeff_proc = n_antpair * pbinfo[typetag_pair]['pb'] * pbinfo[('0','0')]['pb']
+        if pb2eff_src_sim is None:
+            pb2eff_src_sim = n_antpair * pbinfo_src[typetag_pair]['pb']**2
+            pb2eff_src_proc = n_antpair * pbinfo_src[typetag_pair]['pb'] * pbinfo_src[('0','0')]['pb']
+            pb2eff_grid_sim = n_antpair * pbinfo_grid[typetag_pair]['pb']**2
+            pb2eff_grid_proc = n_antpair * pbinfo_grid[typetag_pair]['pb'] * pbinfo_grid[('0','0')]['pb']
         else:
-            pbeff_sim += n_antpair * pbinfo[typetag_pair]['pb']**2
-            pbeff_proc += n_antpair * pbinfo[typetag_pair]['pb'] * pbinfo[('0','0')]['pb']
+            pb2eff_src_sim += n_antpair * pbinfo_src[typetag_pair]['pb']**2
+            pb2eff_src_proc += n_antpair * pbinfo_src[typetag_pair]['pb'] * pbinfo_src[('0','0')]['pb']
+            pb2eff_grid_sim += n_antpair * pbinfo_grid[typetag_pair]['pb']**2
+            pb2eff_grid_proc += n_antpair * pbinfo_grid[typetag_pair]['pb'] * pbinfo_grid[('0','0')]['pb']
         antpair_num += [n_antpair]
-pbeff_sim /= NP.sum(NP.asarray(antpair_num))
-pbeff_proc /= NP.sum(NP.asarray(antpair_num))
+pb2eff_src_sim /= NP.sum(NP.asarray(antpair_num))
+pb2eff_src_proc /= NP.sum(NP.asarray(antpair_num))
+pb2eff_grid_sim /= NP.sum(NP.asarray(antpair_num))
+pb2eff_grid_proc /= NP.sum(NP.asarray(antpair_num))
+pb2eff_src_ratio = pb2eff_src_proc / pb2eff_src_sim
+pb2eff_grid_ratio = pb2eff_grid_proc / pb2eff_grid_sim
 
 src_radec = skymod.location
 
@@ -637,58 +653,145 @@ axs[1].set_aspect('equal')
 
 fig.subplots_adjust(hspace=0, wspace=0)
 
-allruns_sim_stats = []
-allruns_proc_stats = []
+allruns_sim_peaks = []
+allruns_proc_peaks = []
+allruns_wrong_peaks = []
+allruns_sim_rms = []
+allruns_proc_rms = []
+allruns_wrong_rms = []
 for run_index in xrange(n_runs):
-    sim_stats = []
-    proc_stats = []
+    sim_peaks = []
+    proc_peaks = []
+    wrong_peaks = []
+    sim_rms = []
+    proc_rms = []
+    wrong_rms = []
     sim_boxstat = sim_boxstats[run_index]
     proc_boxstat = proc_boxstats[run_index]
-    for si,stats in enumerate(sim_boxstat):
-        sim_stats += [sim_boxstat[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2]]
-        proc_stats += [proc_boxstat[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2]]
-    allruns_sim_stats += [sim_stats]
-    allruns_proc_stats += [proc_stats]
-allruns_sim_stats = NP.asarray(allruns_sim_stats)
-allruns_proc_stats = NP.asarray(allruns_proc_stats)
+    for si,peaks in enumerate(sim_boxstat):
+        sim_peaks += [sim_boxstat[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_sim[si,nchan/2]]
+        proc_peaks += [proc_boxstat[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_proc[si,nchan/2]]
+        wrong_peaks += [proc_boxstat[si]['P1']['peak-avg'][0]/src_flux[si]/pbinfo_src[('0','0')]['pb'][si,nchan/2]**2]
+        sim_rms += [sim_boxstat[si]['P1']['mad'][0]/src_flux[si]/pb2eff_src_sim[si,nchan/2]]
+        proc_rms += [proc_boxstat[si]['P1']['mad'][0]/src_flux[si]/pb2eff_src_proc[si,nchan/2]]
+        wrong_rms += [proc_boxstat[si]['P1']['mad'][0]/src_flux[si]/pbinfo_src[('0','0')]['pb'][si,nchan/2]**2]
+    allruns_sim_peaks += [sim_peaks]
+    allruns_proc_peaks += [proc_peaks]
+    allruns_wrong_peaks += [wrong_peaks]
+    allruns_sim_rms += [sim_rms]
+    allruns_proc_rms += [proc_rms]
+    allruns_wrong_rms += [wrong_rms]
+allruns_sim_peaks = NP.asarray(allruns_sim_peaks)
+allruns_proc_peaks = NP.asarray(allruns_proc_peaks)
+allruns_wrong_peaks = NP.asarray(allruns_wrong_peaks)
+allruns_sim_rms = NP.asarray(allruns_sim_rms)
+allruns_proc_rms = NP.asarray(allruns_proc_rms)
+allruns_wrong_rms = NP.asarray(allruns_wrong_rms)
+
+# fig = PLT.figure()
+# ax = fig.add_subplot(111)
+# if fg_str == 'nonphysical':
+#     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_sim_peaks[:,:n_src/2], axis=0), y2=NP.amax(allruns_sim_peaks[:,:n_src/2], axis=0), facecolor='gray', alpha=0.5, interpolate=True)
+#     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_sim_peaks[:,n_src/2:], axis=0), y2=NP.amax(allruns_sim_peaks[:,n_src/2:], axis=0), facecolor='gray', alpha=0.5, interpolate=True)
+#     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_proc_peaks[:,:n_src/2], axis=0), y2=NP.amax(allruns_proc_peaks[:,:n_src/2], axis=0), facecolor='red', alpha=0.5, interpolate=True)
+#     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_proc_peaks[:,n_src/2:], axis=0), y2=NP.amax(allruns_proc_peaks[:,n_src/2:], axis=0), facecolor='red', alpha=0.5, interpolate=True)
+# ax.set_yscale('linear')
+# ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)).max())
+# ax.set_xlabel('lm radius')
 
 fig = PLT.figure()
 ax = fig.add_subplot(111)
 if fg_str == 'nonphysical':
-    ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_sim_stats[:,:n_src/2], axis=0), y2=NP.amax(allruns_sim_stats[:,:n_src/2], axis=0), facecolor='gray', alpha=0.5, interpolate=True)
-    ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_sim_stats[:,n_src/2:], axis=0), y2=NP.amax(allruns_sim_stats[:,n_src/2:], axis=0), facecolor='gray', alpha=0.5, interpolate=True)
-    ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_proc_stats[:,:n_src/2], axis=0), y2=NP.amax(allruns_proc_stats[:,:n_src/2], axis=0), facecolor='red', alpha=0.5, interpolate=True)
-    ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_proc_stats[:,n_src/2:], axis=0), y2=NP.amax(allruns_proc_stats[:,n_src/2:], axis=0), facecolor='red', alpha=0.5, interpolate=True)
+    ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[:,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[:,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[:,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[:,:n_src/2]/NP.sqrt(1.0*n_runs), axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[:,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[:,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[:,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[:,:n_src/2]/NP.sqrt(1.0*n_runs), axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linestyle='--')
+    # ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_proc_peaks[:,:n_src/2], axis=0)-NP.std(allruns_proc_peaks[:,:n_src/2], axis=0)/NP.sqrt(1.0*n_runs), y2=NP.mean(allruns_proc_peaks[:,:n_src/2], axis=0)+NP.std(allruns_proc_peaks[:,:n_src/2], axis=0)/NP.sqrt(1.0*n_runs), facecolor='blue', alpha=0.5, interpolate=True)
+    ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[:,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[:,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[:,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[:,:n_src/2]/NP.sqrt(1.0*n_runs), axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[:,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[:,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[:,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[:,:n_src/2]/NP.sqrt(1.0*n_runs), axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linestyle='--')    
+    ax.fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[:,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[:,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[:,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[:,n_src/2:]/NP.sqrt(1.0*n_runs), axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[:,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[:,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[:,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[:,n_src/2:]/NP.sqrt(1.0*n_runs), axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True)
+    # ax.fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_proc_peaks[:,n_src/2:], axis=0)-NP.std(allruns_proc_peaks[:,n_src/2:], axis=0)/NP.sqrt(1.0*n_runs), y2=NP.mean(allruns_proc_peaks[:,n_src/2:], axis=0)+NP.std(allruns_proc_peaks[:,n_src/2:], axis=0)/NP.sqrt(1.0*n_runs), facecolor='blue', alpha=0.5, interpolate=True)
+    ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[:,n_src/2:], axis=0)-NP.mean(allruns_wrong_rms[:,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[:,n_src/2:], axis=0)**2+NP.mean(allruns_wrong_rms[:,n_src/2:]/NP.sqrt(1.0*n_runs), axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[:,n_src/2:], axis=0)-NP.mean(allruns_wrong_rms[:,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[:,n_src/2:], axis=0)**2+NP.mean(allruns_wrong_rms[:,n_src/2:]/NP.sqrt(1.0*n_runs), axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True)
+ax.axhline(y=1.0, lw=2, color='k')
 ax.set_yscale('linear')
 ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)).max())
 ax.set_xlabel('lm radius')
+
+# fig = PLT.figure()
+# ax = fig.add_subplot(111)
+# if fg_str == 'nonphysical':
+#     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[:,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[:,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[:,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[:,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[:,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[:,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[:,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[:,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linestyle='--')
+#     # ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_proc_peaks[:,:n_src/2], axis=0)-NP.std(allruns_proc_peaks[:,:n_src/2], axis=0)/NP.sqrt(1.0*n_runs), y2=NP.mean(allruns_proc_peaks[:,:n_src/2], axis=0)+NP.std(allruns_proc_peaks[:,:n_src/2], axis=0)/NP.sqrt(1.0*n_runs), facecolor='blue', alpha=0.5, interpolate=True)
+#     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[:,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[:,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[:,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[:,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[:,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[:,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[:,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[:,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linestyle='--')    
+#     ax.fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[:,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[:,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[:,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[:,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[:,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[:,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[:,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[:,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True)
+#     # ax.fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_proc_peaks[:,n_src/2:], axis=0)-NP.std(allruns_proc_peaks[:,n_src/2:], axis=0)/NP.sqrt(1.0*n_runs), y2=NP.mean(allruns_proc_peaks[:,n_src/2:], axis=0)+NP.std(allruns_proc_peaks[:,n_src/2:], axis=0)/NP.sqrt(1.0*n_runs), facecolor='blue', alpha=0.5, interpolate=True)
+#     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[:,n_src/2:], axis=0)-NP.mean(allruns_wrong_rms[:,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[:,n_src/2:], axis=0)**2+NP.mean(allruns_wrong_rms[:,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[:,n_src/2:], axis=0)-NP.mean(allruns_wrong_rms[:,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[:,n_src/2:], axis=0)**2+NP.mean(allruns_wrong_rms[:,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True)
+# ax.axhline(y=1.0, lw=2, color='k')
+# ax.set_yscale('linear')
+# ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)).max())
+# ax.set_xlabel('lm radius')
 
 fig = PLT.figure()
 ax = fig.add_subplot(111)
 if fg_str == 'nonphysical':
     for run_index in xrange(n_runs):
-        ax.plot(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), allruns_sim_stats[run_index,:n_src/2], 'x', ls='-', color='black', ms=8)
-        ax.plot(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), allruns_proc_stats[run_index,:n_src/2], 'x', ls='-', color='red', ms=8)
-        ax.plot(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), allruns_sim_stats[run_index,n_src/2:], '+', ls='-', color='black', ms=8)
-        ax.plot(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), allruns_proc_stats[run_index,n_src/2:], '+', ls='-', color='red', ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), allruns_sim_peaks[run_index,:n_src/2], 'x', ls='-', color='black', ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), allruns_proc_peaks[run_index,:n_src/2], 'x', ls='-', color='red', ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), allruns_sim_peaks[run_index,n_src/2:], '+', ls='-', color='black', ms=8)
+        ax.plot(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), allruns_proc_peaks[run_index,n_src/2:], '+', ls='-', color='red', ms=8)
 ax.set_yscale('linear')
 ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)).max())
 ax.set_xlabel('lm radius')
         
+fig, axs = PLT.subplots(nrows=3, sharex=True, sharey=True, figsize=(3.5,7))
+pb2proc_plot = axs[0].imshow(pb2eff_grid_proc[:,:,nchan/2], origin='lower', extent=[pbinfo_grid[('0','0')]['llocs'].min(), pbinfo_grid[('0','0')]['llocs'].max(), pbinfo_grid[('0','0')]['mlocs'].min(), pbinfo_grid[('0','0')]['mlocs'].max()], norm=PLTC.LogNorm(vmin=min(pb2eff_grid_sim.min(), pb2eff_grid_proc.min()), vmax=max(pb2eff_grid_sim.max(), pb2eff_grid_proc.min())), interpolation='none')
+axs[0].set_xlim(-1.1,1.1)
+axs[0].set_ylim(-1.1,1.1)
+axs[0].set_aspect('equal')
+
+pb2sim_plot = axs[1].imshow(pb2eff_grid_sim[:,:,nchan/2], origin='lower', extent=[pbinfo_grid[('0','0')]['llocs'].min(), pbinfo_grid[('0','0')]['llocs'].max(), pbinfo_grid[('0','0')]['mlocs'].min(), pbinfo_grid[('0','0')]['mlocs'].max()], norm=PLTC.LogNorm(vmin=min(pb2eff_grid_sim.min(), pb2eff_grid_proc.min()), vmax=max(pb2eff_grid_sim.max(), pb2eff_grid_proc.min())), interpolation='none')
+axs[1].set_xlim(-1.1,1.1)
+axs[1].set_ylim(-1.1,1.1)
+axs[1].set_aspect('equal')
+
+pb2ratio_plot = axs[2].imshow(pb2eff_grid_ratio[:,:,nchan/2], origin='lower', extent=[pbinfo_grid[('0','0')]['llocs'].min(), pbinfo_grid[('0','0')]['llocs'].max(), pbinfo_grid[('0','0')]['mlocs'].min(), pbinfo_grid[('0','0')]['mlocs'].max()], norm=PLTC.LogNorm(vmin=pb2eff_grid_ratio.min(), vmax=pb2eff_grid_ratio.max()), interpolation='none')
+axs[2].set_xlim(-1.1,1.1)
+axs[2].set_ylim(-1.1,1.1)
+axs[2].set_aspect('equal')
+
+pb2eff_cbax = fig.add_axes([0.84, 0.42, 0.03, 0.52])
+pb2eff_cbar = fig.colorbar(pb2sim_plot, cax=pb2eff_cbax, orientation='vertical')
+
+pb2ratio_ticks = NP.asarray([1.0, NP.sqrt(pb2eff_grid_ratio[:,:,nchan/2].max()), pb2eff_grid_ratio[:,:,nchan/2].max()], dtype='|S3').astype(NP.float).tolist()
+pb2ratio_ticklabels = NP.asarray([1.0, NP.sqrt(pb2eff_grid_ratio[:,:,nchan/2].max()), pb2eff_grid_ratio[:,:,nchan/2].max()], dtype='|S3').tolist()
+pb2ratio_cbax = fig.add_axes([0.84, 0.12, 0.03, 0.26])
+pb2ratio_cbar = fig.colorbar(pb2ratio_plot, cax=pb2ratio_cbax, ticks=pb2ratio_ticks, orientation='vertical')
+pb2ratio_cbar.ax.set_yticklabels(pb2ratio_ticklabels)
+
+fig.subplots_adjust(hspace=0, wspace=0)
+big_ax = fig.add_subplot(111)
+big_ax.set_axis_bgcolor('none')
+big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+big_ax.set_xticks([])
+big_ax.set_yticks([])
+big_ax.set_xlabel(r'$l$', fontsize=16, weight='medium', labelpad=25)
+big_ax.set_ylabel(r'$m$', fontsize=16, weight='medium', labelpad=25)
+
+fig.subplots_adjust(top=0.98)
+fig.subplots_adjust(bottom=0.1)
+fig.subplots_adjust(left=0.18)
+fig.subplots_adjust(right=0.82)    
+
 
 # fig = PLT.figure()
 # ax = fig.add_subplot(111)
 # for si,stats in enumerate(sim_boxstats):
 #     if fg_str == 'nonphysical':
 #         if si < n_src/2:
-#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], 'x', ls='-', color='red', ms=8)
-#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], 'x', ls='-', color='black', ms=8)
+#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_sim[si,nchan/2], 'x', ls='-', color='red', ms=8)
+#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_proc[si,nchan/2], 'x', ls='-', color='black', ms=8)
 #         else:
-#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], '+', ls='-', color='red', ms=8)
-#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], '+', ls='-', color='black', ms=8)
+#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_sim[si,nchan/2], '+', ls='-', color='red', ms=8)
+#             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_proc[si,nchan/2], '+', ls='-', color='black', ms=8)
 #     else:
-#         ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_sim[si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
-#         ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pbeff_proc[si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
+#         ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_sim[si,nchan/2], 'o', mfc='none', mec='black', mew=1, ms=8)
+#         ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_proc[si,nchan/2], 'o', mfc='none', mec='red', mew=1, ms=8)
 # ax.set_yscale('linear')
 # ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[si,:2]**2)).max())
 # ax.set_xlabel('lm radius')
