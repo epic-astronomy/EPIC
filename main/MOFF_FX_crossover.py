@@ -78,8 +78,8 @@ def parmspace_areafrac_antdia():
     cbax.xaxis.set_label_position('top')
     fig.subplots_adjust(right=0.9, bottom=0.11)
     
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_rho_{0}_{1:.1f}_sqm_grid_{2}_gridding.png'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_rho_{0}_{1:.1f}_sqm_grid_{2}_gridding.eps'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_rho_{0}_{1:.1f}_sqm_grid_{2}_gridding.png'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_rho_{0}_{1:.1f}_sqm_grid_{2}_gridding.eps'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)    
     
     fig = PLT.figure()
     ax = fig.add_subplot(111)
@@ -102,8 +102,8 @@ def parmspace_areafrac_antdia():
     cbax.xaxis.set_label_position('top')
     fig.subplots_adjust(right=0.9, bottom=0.11)
     
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_n-ant_{0}_{1:.1f}_sqm_grid_{2}_gridding.png'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_n-ant_{0}_{1:.1f}_sqm_grid_{2}_gridding.eps'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_n-ant_{0}_{1:.1f}_sqm_grid_{2}_gridding.png'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_n-ant_{0}_{1:.1f}_sqm_grid_{2}_gridding.eps'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)    
     
     fig = PLT.figure()
     ax = fig.add_subplot(111)
@@ -126,8 +126,8 @@ def parmspace_areafrac_antdia():
     cbax.xaxis.set_label_position('top')
     fig.subplots_adjust(right=0.9, bottom=0.11)
     
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_collecting-area_{0}_{1:.1f}_sqm_grid_{2}_gridding.png'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_collecting-area_{0}_{1:.1f}_sqm_grid_{2}_gridding.eps'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_collecting-area_{0}_{1:.1f}_sqm_grid_{2}_gridding.png'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_collecting-area_{0}_{1:.1f}_sqm_grid_{2}_gridding.eps'.format(selected_array_type, grid_area[grid_area_ind], img_area), bbox_inches=0)    
     
     # rho2 =  fft_coeff * 4 * ant_area.reshape(1,-1,1)**2 / (dx*dy * collecting_area * area_fraction.reshape(-1,1,1)) * NP.log2(4*collecting_area / (dx*dy*area_fraction.reshape(-1,1,1)))
     # rho2[nanind] = NP.nan
@@ -187,8 +187,8 @@ def parmspace_baseline_numant1():
     cbax.xaxis.set_label_position('top')
     fig.subplots_adjust(right=0.9, bottom=0.11)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_baseline_n-antennas_rho_all-sky_gridding.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_baseline_n-antennas_rho_all-sky_gridding.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_all-sky_gridding.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_all-sky_gridding.eps', bbox_inches=0)    
 
     fig = PLT.figure()
     ax = fig.add_subplot(111)
@@ -211,8 +211,8 @@ def parmspace_baseline_numant1():
     cbax.xaxis.set_label_position('top')
     fig.subplots_adjust(right=0.9, bottom=0.11)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_baseline_n-antennas_computations_all-sky_gridding.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_baseline_n-antennas_computations_all-sky_gridding.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_computations_all-sky_gridding.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_computations_all-sky_gridding.eps', bbox_inches=0)    
 
 def parmspace_baseline_numant2():
     img_area = 'all-sky' # allowed values are 'fov', 'all-sky'
@@ -280,11 +280,11 @@ def parmspace_baseline_numant2():
     cbax.xaxis.set_label_position('top')
     fig.subplots_adjust(right=0.9, bottom=0.11)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding.eps', bbox_inches=0)    
 
-def parmspace_baseline_numant3():
-    img_area = 'all-sky' # allowed values are 'fov', 'all-sky'
+def parmspace_baseline_numant3a():
+    img_area = 'fov' # allowed values are 'fov', 'all-sky'
     fft_coeff = 5.0
 
     telescopes = ['HERA-19 (14m)', 'HERA-37 (14m)', 'HERA-331 (14m)', 'HERA-6769 (14m)', 'CHIME', 'HIRAX', 'MWA-112 (4m)', 'MWA-240 (4m)', 'MWA-496 (4m)', 'MWA-1008 (4m)', 'SKA1-LC (35m)', 'SKA1-LCD (1.4m)', 'LOFAR-LC (1.4m)', 'LOFAR-HC (1.4m)', 'LWA1 (3m)', 'LWA1x2x1', 'LWA1x4x1.5', 'LWA-OV (3m)', 'LWA-OVx2x1', 'LWA-OVx4x1.5']
@@ -344,8 +344,72 @@ def parmspace_baseline_numant3():
     ax.set_ylabel(r'$b_{max}$', weight='medium', fontsize=16)
     fig.subplots_adjust(left=0.1, right=0.76, bottom=0.11)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding_legended.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding_legended.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding_legended_v1.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding_legended_v1.eps', bbox_inches=0)    
+
+def parmspace_baseline_numant3b():
+    img_area = 'fov' # allowed values are 'fov', 'all-sky'
+    fft_coeff = 5.0
+
+    telescopes = ['HERA-19 (14m)', 'HERA-37 (14m)', 'HERA-331 (14m)', 'HERA-6769 (14m)', 'CHIME', 'HIRAX', 'MWA-112 (4m)', 'MWA-240 (4m)', 'MWA-496 (4m)', 'MWA-1008 (4m)', 'SKA1-LC (35m)', 'SKA1-LCD (1.4m)', 'LOFAR-LC (1.4m)', 'LOFAR-HC (1.4m)', 'LWA1 (3m)', 'LWA1x2x1', 'LWA1x4x1.5', 'LWA-OV (3m)', 'LWA-OVx2x1', 'LWA-OVx4x1.5']
+    telescope_blmax = NP.asarray([5*14.0, 7*14.0, 21*14.0, 95*14.0, 100.0, 200.0, 1.4e3, 1.4e3, 1.4e3, 1.4e3, 1e3, 1e3, 3.5e3, 3.5e3, 100.0, 100.0, 150.0, 200.0, 200.0, 300.0])
+    telescope_wl = NP.asarray([2.0, 2.0, 2.0, 2.0, 0.5, 0.5, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 6.0, 2.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0])
+    telescope_uvmax = telescope_blmax / telescope_wl
+    telescope_n_antennas = NP.asarray([19, 37, 331, 6769, 1280, 1024, 112, 240, 496, 1008, 0.75*1000, 0.75*256e3, 24, 24*2, 256, 512, 1024, 256, 512, 1024])
+    # station_area = NP.asarray([NP.pi*(14.0/2)**2, NP.pi*(14.0/2)**2, 4.0**2, NP.pi*(35.0/2)**2, 3.0**2, 3.0**2, 1.38**2])
+    telescope_antenna_area = NP.asarray([NP.pi*(14.0/2)**2, NP.pi*(14.0/2)**2, NP.pi*(14.0/2)**2, NP.pi*(14.0/2)**2, 20*(100.0/256), NP.pi*(6.0/2)**2, 4.0**2, 4.0**2, 4.0**2, 4.0**2, NP.pi*(35.0/2)**2, 1.38**2, NP.pi*(87.0/2)**2, NP.pi*(30.8/2)**2, 3.0**2, 3.0**2, 3.0**2, 3.0**2, 3.0**2, 3.0**2])
+    n_grid_telescopes_fov_gridding = telescope_blmax**2 / telescope_antenna_area
+    ncomp_MOFF_telescopes_fov_gridding = 4*n_grid_telescopes_fov_gridding * NP.log2(4*n_grid_telescopes_fov_gridding)
+    n_grid_telescopes_all_sky_gridding = 4 * telescope_blmax**2 / telescope_wl**2
+    ncomp_MOFF_telescopes_all_sky_gridding = 4*n_grid_telescopes_all_sky_gridding * NP.log2(4*n_grid_telescopes_all_sky_gridding)
+    ncomp_FX_telescopes = telescope_n_antennas * (telescope_n_antennas - 1) / 2
+    # ncomp_FX_telescopes = telescope_n_antennas ** 2
+    mrkrs = ['H','H','H','H','^','o','s','s','s','s','+','+','D','*','x','x','x','x','x','x']
+    msize = [5, 7, 9, 11, 4, 4, 2, 3.5, 4, 9, 12, 14, 6, 10, 8, 10, 12, 14, 16, 18]
+    mew = [4, 4, 4, 4, 4, 8, 4, 4, 8, 4, 4, 4, 4, 2, 4, 4, 4, 4, 4, 4]
+    mfc = ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none']
+    
+    ant_area = 2**NP.linspace(0, 11, num=45, endpoint=True)  # Antenna area in m^2
+    blmax = 2**NP.linspace(3, 13, num=81, endpoint=True)
+    n_antennas = 2**NP.linspace(1, 20, num=153, endpoint=True)
+    n_antennas_ulim = NP.pi*(blmax.reshape(-1,1,1)/2)**2 / ant_area.reshape(1,1,-1)
+    blmin = NP.sqrt(4/NP.pi*n_antennas.reshape(1,-1,1)*ant_area.reshape(1,1,-1))
+    n_grid = blmax.reshape(-1,1,1)**2 / ant_area.reshape(1,1,-1)
+    ncomp_MOFF = 4*n_grid*NP.log2(4.0*n_grid)
+    ncomp_FX = n_antennas.reshape(1,-1,1)**2
+    rho = ncomp_FX / ncomp_MOFF
+    nanind = blmax.reshape(-1,1,1)*NP.ones(n_antennas.size*ant_area.size).reshape(1,n_antennas.size,ant_area.size) < blmin*NP.ones(blmax.size).reshape(-1,1,1)
+    rho[nanind] = NP.nan
+
+    min_ncomp = NP.minimum(ncomp_MOFF*NP.ones(n_antennas.size).reshape(1,-1,1), ncomp_FX*NP.ones(blmax.size*ant_area.size).reshape(blmax.size,1,ant_area.size))
+    min_ncomp[nanind] = NP.nan
+
+    selected_ant_area = NP.asarray([1.0, 7.0, 16.0, 28.0, 150.0, 740.0, 5900.0])
+    # ant_area_ls = [':', '-.', '--', '-']
+    # ant_area_lw = [2,2,2,2,2,2,2]
+    selected_ant_area_lc = NP.asarray(['cyan', 'blue', 'purple', 'green', 'orange', 'red', 'gray'])
+    selected_ant_area_ind = NP.asarray([NP.argmin(NP.abs(ant_area-given_ant_area)) for given_ant_area in selected_ant_area])
+    selected_telescope_area_ind = NP.asarray([NP.argmin(NP.abs(telescope_ant_area-selected_ant_area)) for telescope_ant_area in telescope_antenna_area])
+
+    telescopes = ['HERA-19', 'HERA-37', 'HERA-331', 'HERA-6769', 'CHIME', 'HIRAX', 'MWA-112', 'MWA-240', 'MWA-496', 'MWA-1008', 'SKA1-LC', 'SKA1-LCD', 'LOFAR-LC', 'LOFAR-HC', 'LWA1', 'LWA1-x2x1', 'LWA1-x4x1.5', 'LWA-OV', 'LWA-OVx2x1', 'LWA-OVx4x1.5']
+    fig = PLT.figure()
+    ax = fig.add_subplot(111)
+    for i,aai in enumerate(selected_ant_area_ind):
+        # ax.plot(blmin[0,:,aai], n_antennas, ls='-', color=selected_ant_area_lc[i], lw=1)
+        cntr = ax.contour(blmax, n_antennas, rho[:,:,aai].T, [1.0], colors=selected_ant_area_lc[i], linewidths=2, linestyles='--')
+    for ti, telescope in enumerate(telescopes):
+        ax.plot(telescope_blmax[ti], telescope_n_antennas[ti], mrkrs[ti], color=selected_ant_area_lc[selected_telescope_area_ind][ti], mfc=selected_ant_area_lc[selected_telescope_area_ind][ti], mec=selected_ant_area_lc[selected_telescope_area_ind][ti], ms=msize[ti], mew=mew[ti], label=telescope)
+    lgnd1 = ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1), borderaxespad=0.0, frameon=True, numpoints=1, fontsize=10, labelspacing=0.9)
+    ax.set_ylim(n_antennas.min(), n_antennas.max())
+    ax.set_xlim(blmax.min(), blmax.max())
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_ylabel(r'$N_\mathrm{a}$', weight='medium', fontsize=16)
+    ax.set_xlabel(r'$b_{max}$', weight='medium', fontsize=16)
+    fig.subplots_adjust(left=0.1, right=0.76, bottom=0.11)
+
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding_legended_v2.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding_legended_v2.eps', bbox_inches=0)    
 
 def computations():
     fft_coeff = 5.0
@@ -391,8 +455,8 @@ def computations():
     ax.xaxis.set_label_position('top')
     ax.yaxis.set_label_position('right')    
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_computations_fov_gridding.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_computations_fov_gridding.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_computations_fov_gridding.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_computations_fov_gridding.eps', bbox_inches=0)    
 
     fig = PLT.figure()
     ax = fig.add_subplot(111)
@@ -412,8 +476,8 @@ def computations():
     ax.xaxis.set_label_position('top')
     ax.yaxis.set_label_position('right')    
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_computations_all-sky_gridding.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_computations_all-sky_gridding.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_computations_all-sky_gridding.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_computations_all-sky_gridding.eps', bbox_inches=0)    
 
     telescopes = ['HERA-19', 'HERA-37', 'HERA-331', 'HERA-6769', 'CHIME', 'HIRAX', 'MWA-112', 'MWA-240', 'MWA-496', 'MWA-1008', 'SKA1-LC', 'SKA1-LCD', 'LOFAR-LC', 'LOFAR-HC', 'LWA', 'LWA-x2x1', 'LWA-x4x2', 'LWA-OV', 'LWA-OVx2x1', 'LWA-OVx4x2']
     ind_HERA = NP.asarray([ti for ti,telescope in enumerate(telescopes) if telescope.split('-')[0] == 'HERA'])
@@ -444,12 +508,13 @@ def computations():
     ax.xaxis.set_label_position('top')
     ax.yaxis.set_label_position('right')    
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_computations_fov_gridding_annotated.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_computations_fov_gridding_annotated.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_computations_fov_gridding_annotated.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_computations_fov_gridding_annotated.eps', bbox_inches=0)    
     
 if __name__ == '__main__':
     # parmspace_areafrac_antdia()
     # parmspace_baseline_numant1()
     # parmspace_baseline_numant2()
-    parmspace_baseline_numant3()    
+    parmspace_baseline_numant3a()
+    parmspace_baseline_numant3b() # Same as 3a but axes swapped
     computations()

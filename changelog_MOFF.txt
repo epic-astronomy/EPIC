@@ -1,3 +1,9 @@
+From 54eb1c1 (EPIC-MNRAS-1.0):
+=============================
+
+(*) Make changes in compare_MOFF_FX_simulations_test_sparse_matrix.py
+and MOFF_FX_crossover.py to start addressing referee report
+
 From afcf778 (FX-serial-all-lines-profiling):
 ============================================
 

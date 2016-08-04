@@ -4,6 +4,8 @@ import copy
 import matplotlib.pyplot as PLT
 import matplotlib.colors as PLTC
 from matplotlib import ticker
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 import scipy.constants as FCNST
 import progressbar as PGB
 import antenna_array as AA
@@ -66,7 +68,8 @@ lmrad = rstate.uniform(low=0.0, high=0.2, size=n_src).reshape(-1,1)
 lmang = rstate.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
 skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
 skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
-src_flux = 10.0*NP.ones(n_src)
+src_flux = 10.0*(1.0 + NP.random.rand(n_src))
+# src_flux = 10.0*NP.ones(n_src)
 
 grid_map_method = 'sparse'
 # grid_map_method = 'regular'
@@ -288,8 +291,8 @@ with PyCallGraph(output=graphviz, config=config):
 #     big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
 #     big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
     
-#     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.png'.format(n_src,max_n_timestamps), bbox_inches=0)
-#     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
+#     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.png'.format(n_src,max_n_timestamps), bbox_inches=0)
+#     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
 
     fig, axs = PLT.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
     for i in range(2):
@@ -315,7 +318,7 @@ with PyCallGraph(output=graphviz, config=config):
                     cbar.locator = tick_locator
                     cbar.update_ticks()
 
-                posplot = axs[i,j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
+                # posplot = axs[i,j].plot(skypos[:,0], skypos[:,1], 'o', mfc='none', mec='black', mew=1, ms=8)
             else:
                 if j==0:
                     efbeamplot = axs[i,j].imshow(NP.mean(beam_MOFF, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), interpolation='none', vmin=-5*min_beam_rms, vmax=1.0)
@@ -340,8 +343,8 @@ with PyCallGraph(output=graphviz, config=config):
     big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
     big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
     
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.png'.format(n_src,max_n_timestamps), bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.png'.format(n_src,max_n_timestamps), bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
 
     dimg = NP.mean(avg_efimg, axis=2) - NP.mean(avg_vfimg, axis=2)
     dbeam = NP.mean(beam_MOFF, axis=2) - NP.mean(vfimgobj.beam['P11'], axis=2)
@@ -388,9 +391,29 @@ with PyCallGraph(output=graphviz, config=config):
     big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
     big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
     
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_difference_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.png'.format(n_src,max_n_timestamps), bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_difference_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_difference_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.png'.format(n_src,max_n_timestamps), bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_difference_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
     
+    fig = PLT.figure(figsize=(3.5,3.5))
+    ax = fig.add_subplot(111)
+    ax.plot(efimgobj.gridl[efimgobj.gridl.shape[0]/2,:], NP.mean(beam_MOFF, axis=2)[efimgobj.gridl.shape[0]/2,:], ls='-', lw=2, color='black')
+    ax.plot(vfimgobj.gridl[vfimgobj.gridl.shape[0]/2,:], NP.mean(vfimgobj.beam['P11'], axis=2)[vfimgobj.gridl.shape[0]/2,:], ls='--', lw=2, color='gray')
+    ax.set_xlim(-0.35, 1.0)
+    ax.set_ylim(-0.1, 1.05)
+    ax.set_xlabel(r'$l$', fontsize=16, weight='medium')
+    ax.set_ylabel('Synthesized beam', fontsize=16, weight='medium')
+    axins = zoomed_inset_axes(ax, 12, loc=1)  # zoom = 6
+    axins.plot(efimgobj.gridl[efimgobj.gridl.shape[0]/2,:], NP.mean(beam_MOFF, axis=2)[efimgobj.gridl.shape[0]/2,:], ls='-', lw=2, color='black')
+    axins.plot(vfimgobj.gridl[vfimgobj.gridl.shape[0]/2,:], NP.mean(vfimgobj.beam['P11'], axis=2)[vfimgobj.gridl.shape[0]/2,:], ls='--', lw=2, color='gray')
+    axins.set_xlim(0.055, 0.11)
+    axins.set_ylim(-0.025, 0.035)
+    axins.set_xticks([0.06, 0.08, 0.1])
+    axins.set_yticks([-0.02, 0.0, 0.02])
+    mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
+    fig.subplots_adjust(left=0.18, bottom=0.16, right=0.95, top=0.95)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_synthesized_beam_slices.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_synthesized_beam_slices.eps', bbox_inches=0)    
+
     min_grid_power_MOFF = NP.abs(efimgobj.nzsp_grid_illumination_avg['P1'][0,:,:,0]).min()
     max_grid_power_MOFF = NP.abs(efimgobj.nzsp_grid_illumination_avg['P1'][0,:,:,0]).max()
     min_grid_power_FX = NP.abs(vfimgobj.wts_vuf['P11'][:,:,0]).min()
@@ -400,7 +423,7 @@ with PyCallGraph(output=graphviz, config=config):
     max_grid_power = max([max_grid_power_MOFF, max_grid_power_FX])    
 
     imgtype = 'UV Weights'
-    algo = ['MOFF', 'Correlation based']
+    algo = ['EPIC', 'X-based']
 
     fig, axs = PLT.subplots(ncols=2, sharex=True, sharey=True, figsize=(8,4))
     for j in range(2):
@@ -428,9 +451,46 @@ with PyCallGraph(output=graphviz, config=config):
     big_ax.set_ylabel('v', fontsize=16, weight='medium', labelpad=30)
     big_ax.set_xlabel('u', fontsize=16, weight='medium', labelpad=20)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_uvwts_test_aperture_zero_spacing_removed.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_uvwts_test_aperture_zero_spacing_removed.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_uvwts_test_aperture_zero_spacing_removed.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_uvwts_test_aperture_zero_spacing_removed.eps', bbox_inches=0)    
     
+    uvwts_diff = efimgobj.nzsp_grid_illumination_avg['P1'][0,:,:,0] - vfimgobj.wts_vuf['P11'][:,:,0]
+    uvwts_avg = 0.5 * (efimgobj.nzsp_grid_illumination_avg['P1'][0,:,:,0] + vfimgobj.wts_vuf['P11'][:,:,0])
+    uvwts_fracdiff = 100.0 * NP.abs(uvwts_diff) / NP.abs(vfimgobj.wts_vuf['P11'][:,:,0]).max()
+    binsize = 0.5
+    nbins = NP.ceil(uvwts_fracdiff.max() / binsize).astype(int) + 4
+    bin_edges = binsize * (NP.arange(nbins) - 2)
+    uvwtsfdiff_h, uvwtsfdiff_be, uvwtsfdiff_bn, uvwtsfdiff_ri = OPS.binned_statistic(uvwts_fracdiff.ravel(), statistic='count', bins=bin_edges)
+    uvwts_diff_hist = 100.0 * uvwtsfdiff_h / NP.sum(uvwtsfdiff_h)
+
+    fig, axs = PLT.subplots(ncols=2, sharex=False, sharey=False, figsize=(8,4))
+
+    uvfracdiff = axs[0].imshow(uvwts_fracdiff, aspect='equal', origin='lower', extent=[2*aar.gridu.min(), 2*aar.gridu.max(), 2*aar.gridv.min(), 2*aar.gridv.max()], interpolation='none', vmin=0.0, vmax=NP.nanmax(uvwts_fracdiff))
+    axs[0].set_xlim(-14,14)
+    axs[0].set_ylim(-14,14)    
+    axs[0].set_aspect('equal', adjustable='box-forced')
+    axs[0].set_ylabel(r'$v$', fontsize=16, weight='medium', labelpad=0)
+    axs[0].set_xlabel(r'$u$', fontsize=16, weight='medium', labelpad=0)
+
+    axs[1].bar(uvwtsfdiff_be[:-1], uvwts_diff_hist, align='edge', width=binsize*0.75, color='gray')
+    axs[1].set_xlim(uvwtsfdiff_be.min(), uvwtsfdiff_be.max())
+    axs[1].set_ylim(1e-4, 100)
+    axs[1].set_yscale('log')
+    # axs[1].set_xlabel(r'$\frac{|\widetilde{W}_{\mathrm{EPIC}}(\mathbf{r}) - \widetilde{W}_{\mathrm{FX}}(\mathbf{r})|}{|\widetilde{W}_{\mathrm{FX}}(\mathbf{r})|}$'+' [%]', weight='medium', labelpad=0)
+    axs[1].set_xlabel('Relative Difference [%]', fontsize=16, weight='medium', labelpad=0)
+    axs[1].set_ylabel('fraction [%]', fontsize=16, weight='medium', labelpad=0)
+    fig.subplots_adjust(left=0.08, right=0.98, bottom=0.16, top=0.85)
+    cbax = fig.add_axes([0.09, 0.96, 0.39, 0.02])
+    cbar = fig.colorbar(uvfracdiff, cax=cbax, orientation='horizontal')
+    cbax.set_xlabel('Relative Difference [%]', labelpad=0, fontsize=12)
+    cbax.xaxis.set_label_position('bottom')
+    tick_locator = ticker.MaxNLocator(nbins=5)
+    cbar.locator = tick_locator
+    cbar.update_ticks()
+
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_fracdiff_uvwts_test_aperture_zero_spacing_removed.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_fracdiff_uvwts_test_aperture_zero_spacing_removed.eps', bbox_inches=0)    
+
     du = efimgobj.gridu[0,1] - efimgobj.gridu[0,0]
     dv = efimgobj.gridv[1,0] - efimgobj.gridv[0,0]
     uvect = du * (NP.arange(vfimgobj.gridu.shape[1]) - vfimgobj.gridu.shape[1]/2)
@@ -438,7 +498,7 @@ with PyCallGraph(output=graphviz, config=config):
     # fig, axs = PLT.subplots(ncols=2, sharex=True, sharey=True, figsize=(8,4))
     # for j in range(2):
     #     if j==0:
-    #         auvslice0 = axs[j].plot(uvect, efimgobj.nzsp_grid_illumination_avg['P1'][0,vvect.size/2,:,0].real, ls='-', color='gray', lw=2)
+    #         auvslice0 = axs[j].plot(uvect, efiMgobj.nzsp_grid_illumination_avg['P1'][0,vvect.size/2,:,0].real, ls='-', color='gray', lw=2)
     #         iuvslice0 = axs[j].plot(uvect, vfimgobj.wts_vuf['P11'][vvect.size/2,:,0].real, ls='-', color='black', lw=2)
     #         axs[j].set_xlabel('u', fontsize=16, weight='medium')
     #         axs[j].set_ylabel('UV weights', fontsize=16, weight='medium')
@@ -451,7 +511,7 @@ with PyCallGraph(output=graphviz, config=config):
     # fig.subplots_adjust(hspace=0, wspace=0)
     # fig.subplots_adjust(bottom=0.12)
 
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_uvwts_test_aperture_zero_spacing_removed_slices.png', bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_uvwts_test_aperture_zero_spacing_removed_slices.png', bbox_inches=0)
 
     fig, axs = PLT.subplots(ncols=2, figsize=(8,4))
     for j in range(2):
@@ -490,8 +550,8 @@ with PyCallGraph(output=graphviz, config=config):
 
     PLT.subplots_adjust(left=0.1, right=0.9, top=0.9)
 
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/autocorr_uvwts_pbeam.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/autocorr_uvwts_pbeam.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/autocorr_uvwts_pbeam.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/autocorr_uvwts_pbeam.eps', bbox_inches=0)    
 
     # fig, axs = PLT.subplots(ncols=2, sharex=True, sharey=True, figsize=(9,4.5))
     # for j in range(2):
@@ -535,8 +595,8 @@ with PyCallGraph(output=graphviz, config=config):
     # big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
     # big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
     
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_stacking_test_{0:0d}_random_source_positions_{1:0d}_iterations.png'.format(n_src,max_n_timestamps), bbox_inches=0)
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_stacking_test_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_image_stacking_test_{0:0d}_random_source_positions_{1:0d}_iterations.png'.format(n_src,max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_image_stacking_test_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
 
     # fig = PLT.figure(figsize=(8,6))
     # ax = fig.add_subplot(111)
@@ -560,7 +620,7 @@ with PyCallGraph(output=graphviz, config=config):
     # fig.subplots_adjust(right=0.85)
     # fig.subplots_adjust(top=0.88)
         
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_image_random_source_positions_{0:0d}_iterations_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_image_random_source_positions_{0:0d}_iterations_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
     
     # fig = PLT.figure(figsize=(8,6))
     # ax = fig.add_subplot(111)
@@ -580,7 +640,7 @@ with PyCallGraph(output=graphviz, config=config):
     # fig.subplots_adjust(right=0.85)
     # fig.subplots_adjust(top=0.88)
     
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_psf_square_illumination_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_psf_square_illumination_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
 
     # fig = PLT.figure(figsize=(8,6))
     # ax = fig.add_subplot(111)
@@ -603,7 +663,7 @@ with PyCallGraph(output=graphviz, config=config):
     # fig.subplots_adjust(right=0.85)
     # fig.subplots_adjust(top=0.88)
 
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_image_random_source_positions_{0:0d}_iterations_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/FX_image_random_source_positions_{0:0d}_iterations_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
     
     # fig = PLT.figure(figsize=(8,6))
     # ax = fig.add_subplot(111)
@@ -623,7 +683,7 @@ with PyCallGraph(output=graphviz, config=config):
     # fig.subplots_adjust(right=0.85)
     # fig.subplots_adjust(top=0.88)
 
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/FX_psf_square_illumination_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/FX_psf_square_illumination_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
     
     # fig = PLT.figure()
     # ax = fig.add_subplot(111)
@@ -639,7 +699,7 @@ with PyCallGraph(output=graphviz, config=config):
     # # PLT.tight_layout()
     # fig.subplots_adjust(right=0.85)
     # fig.subplots_adjust(top=0.88)
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/quick_psf_via_MOFF_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/quick_psf_via_MOFF_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
 
     # fig = PLT.figure()
     # ax = fig.add_subplot(111)
@@ -655,7 +715,7 @@ with PyCallGraph(output=graphviz, config=config):
     # # PLT.tight_layout()
     # fig.subplots_adjust(right=0.85)
     # fig.subplots_adjust(top=0.88)
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/quick_psf_via_FX_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/quick_psf_via_FX_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
     
     psf_diff = NP.mean(beam_MOFF, axis=2) - NP.mean(vfimgobj.beam['P11'], axis=2)
     gridlmrad = NP.sqrt(vfimgobj.gridl**2 + vfimgobj.gridm**2)
@@ -709,8 +769,8 @@ with PyCallGraph(output=graphviz, config=config):
             
     fig.subplots_adjust(left=0.15, right=0.9)
     fig.tight_layout()
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/diff_psf_MOFF-FX_test_aperture.png', bbox_inches=0)
-    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/diff_psf_MOFF-FX_test_aperture.eps', bbox_inches=0)    
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/diff_psf_MOFF-FX_test_aperture.png', bbox_inches=0)
+    PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/diff_psf_MOFF-FX_test_aperture.eps', bbox_inches=0)    
     
     # fig = PLT.figure()
     # ax = fig.add_subplot(111)
@@ -725,7 +785,7 @@ with PyCallGraph(output=graphviz, config=config):
     # # PLT.tight_layout()
     # fig.subplots_adjust(right=0.85)
     # fig.subplots_adjust(top=0.88)
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/quick_uvwts_via_MOFF_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)    
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/quick_uvwts_via_MOFF_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)    
 
     # fig = PLT.figure()
     # ax = fig.add_subplot(111)
@@ -740,7 +800,7 @@ with PyCallGraph(output=graphviz, config=config):
     # # PLT.tight_layout()
     # fig.subplots_adjust(right=0.85)
     # fig.subplots_adjust(top=0.88)
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/quick_uvwts_via_FX_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/quick_uvwts_via_FX_test_aperture.png'.format(max_n_timestamps), bbox_inches=0)
 
     # min_grid_power_MOFF = NP.abs(aar_psf_info['grid_power_illumination'][:,:,0]).min()
     # max_grid_power_MOFF = NP.abs(aar_psf_info['grid_power_illumination'][:,:,0]).max()
@@ -779,7 +839,7 @@ with PyCallGraph(output=graphviz, config=config):
     # big_ax.set_ylabel('v', fontsize=16, weight='medium', labelpad=30)
     # big_ax.set_xlabel('u', fontsize=16, weight='medium', labelpad=20)
 
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/MOFF_FX_comparison_uvwts_test_aperture.png', bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_uvwts_test_aperture.png', bbox_inches=0)
     
     # fig, axs = PLT.subplots(nrows=1, ncols=2, figsize=(9,4.5), sharey=True)
     # for j in range(2):
@@ -817,4 +877,4 @@ with PyCallGraph(output=graphviz, config=config):
     # big_ax.set_ylabel('v', fontsize=16, weight='medium', labelpad=30)
     # big_ax.set_xlabel('u', fontsize=16, weight='medium', labelpad=20)
 
-    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/MWA/figures/grid_illumination_MOFF-FX_test_aperture.png', bbox_inches=0)
+    # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/grid_illumination_MOFF-FX_test_aperture.png', bbox_inches=0)
