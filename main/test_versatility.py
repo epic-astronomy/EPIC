@@ -17,7 +17,7 @@ import aperture as APR
 import ipdb as PDB
 import progressbar as PGB
 
-n_runs = 64
+n_runs = 4
 duration = 1e-4
 skip_duration = 10.0 / 3.6e3
 
@@ -633,6 +633,26 @@ src_hadec = NP.hstack((lst_adjusted - src_radec[:,0].reshape(-1,1), src_radec[:,
 src_altaz = GEOM.hadec2altaz(src_hadec, latitude=latitude, units='degrees')
 src_dircos = GEOM.altaz2dircos(src_altaz, units='degrees')
 
+PDB.set_trace()
+
+fig = PLT.figure(figsize=(4,3.5))
+ax = fig.add_subplot(111)
+simimg = ax.imshow(NP.mean(avg_sim_efimg, axis=2), origin='lower', extent=(sim_efimgobj.gridl.min(), sim_efimgobj.gridl.max(), sim_efimgobj.gridm.min(), sim_efimgobj.gridm.max()), interpolation='none', vmin=NP.mean(avg_sim_efimg, axis=2).min(), vmax=NP.mean(avg_sim_efimg, axis=2).max())
+for i,bc in enumerate(box_center):
+    ax.add_patch(patches.Rectangle((bc[0]-0.5*box_size[i][0], bc[1]-0.5*box_size[i][0]), box_size[i][0], box_size[i][0], fill=False))
+ax.set_xlim(-0.70,0.70)
+ax.set_ylim(-0.70,0.70)    
+ax.set_aspect('equal')
+ax.set_xlabel(r'$l$', fontsize=16, weight='medium', labelpad=0)
+ax.set_ylabel(r'$m$', fontsize=16, weight='medium', labelpad=0)
+fig.subplots_adjust(left=0.15, right=0.82, bottom=0.15, top=0.95)
+cbax = fig.add_axes([0.85, 0.15, 0.02, 0.78])
+cbar = fig.colorbar(simimg, cax=cbax, orientation='vertical')
+cbax.set_xlabel('Jy', fontsize=12, weight='medium')
+cbax.xaxis.set_label_position('top')
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/nonphysical_{0}_sources_{1}_runs.png'.format(n_src, n_runs), bbox_inches=0)
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/nonphysical_{0}_sources_{1}_runs.eps'.format(n_src, n_runs), bbox_inches=0)
+
 fig, axs = PLT.subplots(nrows=2, ncols=1, figsize=(3.5,7), sharex=True, sharey=True)
 axs[0].imshow(NP.mean(avg_proc_efimg, axis=2), origin='lower', extent=(proc_efimgobj.gridl.min(), proc_efimgobj.gridl.max(), proc_efimgobj.gridm.min(), proc_efimgobj.gridm.max()), interpolation='none')
 for i,bc in enumerate(box_center):
@@ -709,6 +729,14 @@ allruns_wrong_rms = NP.asarray(allruns_wrong_rms)
 outfile = '/data3/t_nithyanandan/project_MOFF/simulated/test/normalized_flux_density_recovery_{0}_sources_{1}_runs_{2:.5f}_sec_duration_{3:.1f}_sec_skip.npz'.format(n_src, n_runs, duration, skip_duration*3.6e3)
 NP.savez_compressed(outfile, skypos=skypos, sim_peaks=allruns_sim_peaks, proc_peaks=allruns_proc_peaks, wrong_peaks=allruns_wrong_peaks, sim_nnvals=allruns_sim_nnvals, proc_nnvals=allruns_proc_nnvals, wrong_nnvals=allruns_wrong_nnvals, sim_rms=allruns_sim_rms, proc_rms=allruns_proc_rms, wrong_rms=allruns_wrong_rms)
 
+# stats = NP.load(outfile)
+# allruns_sim_peaks = stats['sim_peaks']
+# allruns_proc_peaks = stats['proc_peaks']
+# allruns_wrong_peaks = stats['wrong_peaks']
+# allruns_sim_rms = stats['sim_rms']
+# allruns_proc_rms = stats['proc_rms']
+# allruns_wrong_rms = stats['wrong_rms']
+
 # fig = PLT.figure()
 # ax = fig.add_subplot(111)
 # if fg_str == 'nonphysical':
@@ -735,7 +763,7 @@ NP.savez_compressed(outfile, skypos=skypos, sim_peaks=allruns_sim_peaks, proc_pe
 # ax.set_xlabel(r'$(l^2+m^2)^{1/2}$', fontsize=16, weight='medium')
 # ax.set_ylabel('Normalized Flux Density', fontsize=16, weight='medium')
 
-run_begin = 32
+run_begin = 11
 n_runs_to_include = 4
 run_begin = max([run_begin, 0])
 run_end = min([run_begin + n_runs_to_include, n_runs])
@@ -743,10 +771,8 @@ fig = PLT.figure(figsize=(4,4))
 ax = fig.add_subplot(111)
 if fg_str == 'nonphysical':
     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)
-    # ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_proc_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.std(allruns_proc_peaks[run_begin:run_end,:n_src/2], axis=0)/NP.sqrt(1.0*n_runs), y2=NP.mean(allruns_proc_peaks[run_begin:run_end,:n_src/2], axis=0)+NP.std(allruns_proc_peaks[run_begin:run_end,:n_src/2], axis=0)/NP.sqrt(1.0*n_runs), facecolor='blue', alpha=0.5, interpolate=True)
     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)    
     ax.fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linewidth=2)
-    # ax.fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_proc_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.std(allruns_proc_peaks[run_begin:run_end,n_src/2:], axis=0)/NP.sqrt(1.0*n_runs), y2=NP.mean(allruns_proc_peaks[run_begin:run_end,n_src/2:], axis=0)+NP.std(allruns_proc_peaks[run_begin:run_end,n_src/2:], axis=0)/NP.sqrt(1.0*n_runs), facecolor='blue', alpha=0.5, interpolate=True)
     ax.fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linewidth=2)
 ax.axhline(y=1.0, lw=2, color='k')
 ax.set_yscale('linear')
@@ -762,7 +788,7 @@ PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_vers
 if fg_str == 'nonphysical':
     num_panels_per_page = 6
     n_runs_to_include = NP.logspace(int(NP.log2(4)), int(NP.log2(n_runs)), num=int(NP.log2(n_runs/4))+1, endpoint=True, base=2.0).astype(NP.int)
-    # n_runs_to_include = NP.asarray([32])
+    # n_runs_to_include = Np.asarray([32])
     for include_nruns in n_runs_to_include:
         npanels = n_runs - include_nruns + 1
         npages = NP.ceil(1.0*npanels/num_panels_per_page).astype(int)
@@ -784,7 +810,7 @@ if fg_str == 'nonphysical':
                 col = int(panel_num / nrows)
         
                 axs[row,col].fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)
-                axs[row,col].fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)    
+                axs[row,col].fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)
                 axs[row,col].fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linewidth=2)
                 axs[row,col].fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linewidth=2)
                 axs[row,col].axhline(y=1.0, lw=2, color='k')
@@ -805,8 +831,6 @@ if fg_str == 'nonphysical':
             PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_{0}_sources_{1}_runs_from_{2}_of_{3}_runs_gap_{4:.1f}_sec_run_duration_{5:.5f}_sec.png'.format(n_src, include_nruns, run_begin, n_runs, 3.6e3*skip_duration, duration), bbox_inches=0)
             PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_{0}_sources_{1}_runs_from_{2}_of_{3}_runs_gap_{4:.1f}_sec_run_duration_{5:.5f}_sec.eps'.format(n_src, include_nruns, run_begin, n_runs, 3.6e3*skip_duration, duration), bbox_inches=0)
             PLT.close()
-
-        
 
 # fig = PLT.figure()
 # ax = fig.add_subplot(111)
