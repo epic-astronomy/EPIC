@@ -1,3 +1,13 @@
+From 03a134e (FX-pad):
+=====================
+
+In antenna_array.py,
+
+(*) Remove doubling the number of samples in phases while estimating
+delay compensation to make it match to the number of samples in the
+spectrum
+(*) Minor change in docstring of class PolInfo
+
 From 1cf5b52 (FX-pad):
 =====================
 

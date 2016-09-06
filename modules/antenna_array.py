@@ -8006,8 +8006,7 @@ class PolInfo:
              under 2 polarizations which are stored under keys 'P1', and 'P2'
 
     Ef       [dictionary] holds complex electric field spectra under 2 
-             polarizations which are stored under keys 'P1', and 'P2'. The 
-             length of the spectra is twice that of the time series.
+             polarizations which are stored under keys 'P1', and 'P2'. 
 
     flag     [dictionary] holds boolean flags for each of the 2 polarizations
              which are stored under keys 'P1', and 'P2'. Default=True means  
@@ -8177,11 +8176,13 @@ class PolInfo:
                     if not delaydict[pol]['fftshifted']:
                         temp_phases = NP.fft.fftshift(temp_phases)
 
-                # Expand the size to account for the fact that the Fourier transform of the timeseries is obtained after zero padding
-                phases = NP.empty(2*frequencies.size) 
-                phases[0::2] = temp_phases
-                phases[1::2] = temp_phases
-  
+                # # Expand the size to account for the fact that the Fourier transform of the timeseries is obtained after zero padding
+                # phases = NP.empty(2*frequencies.size) 
+                # phases[0::2] = temp_phases
+                # phases[1::2] = temp_phases
+
+                phases = temp_phases
+
                 self.Ef[pol] *= NP.exp(1j * phases)
                     
         ## INSERT FEATURE: yet to modify the timeseries after application of delay compensation ##
