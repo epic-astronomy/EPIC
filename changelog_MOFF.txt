@@ -1,3 +1,13 @@
+From 1cf5b52 (FX-pad):
+=====================
+
+In antenna_array.py,
+
+(*) Remove initializing attribute Ef with twice nsamples in member
+function __init__() of class PolInfo
+(*) Remove padding in member function FT() of class PolInfo. Update
+class and member function docstrings
+
 From a20093a (FX-input):
 =======================
 

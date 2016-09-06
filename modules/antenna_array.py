@@ -8020,9 +8020,6 @@ class PolInfo:
     __str__():     Prints a summary of current attributes.
 
     FT():          Perform a Fourier transform of an Electric field time series
-                   after doubling the length of the sequence with zero padding 
-                   (in order to be identical to what would be obtained from a 
-                   XF operation)
 
     update_flags() Updates the flags based on current inputs and verifies and 
                    updates flags based on current values of the electric field.
@@ -8063,7 +8060,7 @@ class PolInfo:
 
         for pol in ['P1', 'P2']:
             self.Et[pol] = NP.empty(nsamples, dtype=NP.complex64)
-            self.Ef[pol] = NP.empty(2*nsamples, dtype=NP.complex64)
+            self.Ef[pol] = NP.empty(nsamples, dtype=NP.complex64)
             
             self.Et[pol].fill(NP.nan)
             self.Ef[pol].fill(NP.nan)
@@ -8081,9 +8078,7 @@ class PolInfo:
 
         """
         ------------------------------------------------------------------------
-        Perform a Fourier transform of an Electric field time series after 
-        doubling the length of the sequence with zero padding (in order to be 
-        identical to what would be obtained from a XF operation)
+        Perform a Fourier transform of an Electric field time series 
 
         Keyword Input(s):
 
@@ -8098,7 +8093,8 @@ class PolInfo:
 
         for p in pol:
             if p in ['P1', 'P2']:
-                Et = NP.pad(self.Et[p], (0,len(self.Et[p])), 'constant', constant_values=(0,0))
+                Et = NP.copy(self.Et[p])
+                # Et = NP.pad(Et[p], (0,len(Et[p])), 'constant', constant_values=(0,0))
                 self.Ef[p] = DSP.FT1D(Et, ax=0, use_real=False, inverse=False, shift=True)
             else:
                 raise ValueError('polarization string "{0}" unrecognized. Verify inputs. Aborting {1}.{2}()'.format(p, self.__class__.__name__, 'FT'))

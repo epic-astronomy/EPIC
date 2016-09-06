@@ -61,6 +61,7 @@ aprtr = APR.Aperture(pol_type=ant_pol_type, kernel_type=ant_kerntype, shape=ant_
 ants = []
 aar = AA.AntennaArray()
 # for ai in xrange(nant):
+PDB.set_trace()
 for ai in select_ant_ind:
     ant = AA.Antenna('{0}'.format(ant_id[ai]), '0', latitude, longitude, antpos[ai,:], f0, nsamples=nchan, aperture=aprtr)
     ant.f = channels
@@ -73,7 +74,7 @@ aar.grid(uvspacing=0.4, xypad=2.0*NP.max([ant_sizex, ant_sizey]))
 antpos_info = aar.antenna_positions(sort=True, centering=True)
 
 MOFF_tbinsize = None
-max_ntimes = 256
+max_ntimes = 4
 dstream = DI.DataStreamer()
 for ti in xrange(max_ntimes):
     timestamp = ti * dT
