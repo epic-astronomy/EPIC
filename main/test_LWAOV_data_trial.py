@@ -34,6 +34,14 @@ with h5py.File(infile, 'r') as fileobj:
     antpos = fileobj['antenna_parms']['antpos'].value
     ant_id = fileobj['antenna_parms']['ant_id'].value
 
+select_ant_ind, = NP.where(NP.logical_and(NP.logical_and(antpos[:,0] >= -50.0, antpos[:,0] <= 155.0), NP.logical_and(antpos[:,1] >= -160.0, antpos[:,1] <= 55.0)))
+# select_ant_ind = NP.arange(nant)
+
+if select_ant_ind.size > 0:
+    nant_selected = select_ant_ind.size
+else:
+    raise ValueError('No antennas selected')
+
 n_runs = 64
 latitude = NP.degrees(ant_locs_ref_lat[0])
 longitude = NP.degrees(ant_locs_ref_lon[0])
@@ -52,19 +60,20 @@ aprtr = APR.Aperture(pol_type=ant_pol_type, kernel_type=ant_kerntype, shape=ant_
 
 ants = []
 aar = AA.AntennaArray()
-for ai in xrange(nant):
+# for ai in xrange(nant):
+for ai in select_ant_ind:
     ant = AA.Antenna('{0}'.format(ant_id[ai]), '0', latitude, longitude, antpos[ai,:], f0, nsamples=nchan, aperture=aprtr)
     ant.f = channels
     ants += [ant]
     aar = aar + ant
 
 aar.pairTypetags()
-aar.grid(xypad=2.0*NP.max([ant_sizex, ant_sizey]))
+aar.grid(uvspacing=0.4, xypad=2.0*NP.max([ant_sizex, ant_sizey]))
 
 antpos_info = aar.antenna_positions(sort=True, centering=True)
 
 MOFF_tbinsize = None
-max_ntimes = 4
+max_ntimes = 256
 dstream = DI.DataStreamer()
 for ti in xrange(max_ntimes):
     timestamp = ti * dT
@@ -75,7 +84,7 @@ for ti in xrange(max_ntimes):
 
     dstream.load(infile, ti, datatype='Ef', pol=None)
     print 'Consolidating Antenna updates...'
-    progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(nant), PGB.ETA()], maxval=nant).start()
+    progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(nant_selected), PGB.ETA()], maxval=nant_selected).start()
     antnum = 0
     for label in aar.antennas:
         adict = {}
@@ -117,9 +126,10 @@ for ti in xrange(max_ntimes):
 
     efimgobj.accumulate(tbinsize=MOFF_tbinsize)
     efimgobj.evalAutoCorr(forceeval=False)
-    pb_skypos = efimgobj.evalPowerPattern(skypos=skypos)
+    # pb_skypos = efimgobj.evalPowerPattern(skypos=skypos)
     efimgobj.removeAutoCorr(forceeval=False, datapool='avg')
     avg_efimg = efimgobj.nzsp_img_avg['P1']
     if avg_efimg.ndim == 4:
         avg_efimg = avg_efimg[0,:,:,:]
+    avg_efimg_bwsyn = NP.nanmean(avg_efimg[:,:,10:100], axis=2)
     
