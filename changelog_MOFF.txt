@@ -1,3 +1,11 @@
+From 7688ae5 (FX-pad):
+=====================
+
+In antenna_array.py,
+
+(*) Remove doubling number of samples in member function channels()
+of class Antenna
+
 From 03a134e (FX-pad):
 =====================
 

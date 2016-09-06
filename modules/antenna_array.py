@@ -8592,7 +8592,8 @@ class Antenna:
         ------------------------------------------------------------------------
         """
 
-        return DSP.spectax(2*self.t.size, self.t[1]-self.t[0], shift=True)
+        # return DSP.spectax(2*self.t.size, self.t[1]-self.t[0], shift=True)
+        return DSP.spectax(self.t.size, self.t[1]-self.t[0], shift=True)
 
     ############################################################################
 
