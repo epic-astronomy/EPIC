@@ -1,3 +1,9 @@
+From cd50ced (EPIC-MNRAS-2.0.a):
+===============================
+
+(*) Update figures to have uniform properties as per second round of
+referee report
+
 From 54eb1c1 (EPIC-MNRAS-1.0):
 =============================
 

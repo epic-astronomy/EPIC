@@ -107,6 +107,7 @@ with PyCallGraph(output=graphviz, config=config):
 
     ants = []
     aar = AA.AntennaArray()
+    PDB.set_trace()
     for i in xrange(n_antennas):
         ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])), lat, ant_info[i,1:], f0, nsamples=nts, aperture=ant_aprtrs[i])
         ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)
@@ -115,15 +116,15 @@ with PyCallGraph(output=graphviz, config=config):
 
     aar.grid(xypad=2*NP.max([ant_sizex, ant_sizey]))
     antpos_info = aar.antenna_positions(sort=True, centering=True)
-    
+  
     efimgmax = []
-        
+      
     for i in xrange(max_n_timestamps):
         E_timeseries_dict = SIM.stochastic_E_timeseries(f_center, nchan/2, 2*channel_width,
                                                         flux_ref=src_flux, skypos=skypos,
                                                         antpos=antpos_info['positions'],
                                                         tshift=False)
-        
+      
         ts = Time.now()
         timestamp = ts.gps
         update_info = {}
@@ -161,7 +162,7 @@ with PyCallGraph(output=graphviz, config=config):
             progress.update(antnum+1)
             antnum += 1
         progress.finish()
-        
+      
         aar.update(update_info, parallel=True, verbose=True)
         if grid_map_method == 'regular':
             aar.grid_convolve_new(pol=None, method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=False, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')    
@@ -195,7 +196,7 @@ with PyCallGraph(output=graphviz, config=config):
     iar.accumulate(tbinsize=tbinsize)
     interferometer_level_update_info = {}
     interferometer_level_update_info['interferometers'] = []
-        
+      
     for label in iar.interferometers:
         idict = {}
         idict['label'] = label
@@ -210,7 +211,7 @@ with PyCallGraph(output=graphviz, config=config):
         for pol in ['P11', 'P12', 'P21', 'P22']:
             idict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
         interferometer_level_update_info['interferometers'] += [idict]    
-        
+      
     iar.update(antenna_level_updates=None, interferometer_level_updates=interferometer_level_update_info, do_correlate=None, parallel=True, verbose=True)
 
     iar.grid(uvpad=2*NP.max([ant_sizex, ant_sizey]))
@@ -218,7 +219,7 @@ with PyCallGraph(output=graphviz, config=config):
         iar.grid_convolve_new(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')
     else:
         iar.genMappingMatrix(pol='P11', method='NN', distNN=NP.sqrt(ant_sizex**2+ant_sizey**2), identical_interferometers=True, gridfunc_freq='scale', wts_change=False, parallel=False)
-    
+  
     # avg_efimg /= max_n_timestamps
     beam_MOFF = efimgobj.nzsp_beam_avg['P1']
     if beam_MOFF.ndim == 4:
@@ -294,25 +295,25 @@ with PyCallGraph(output=graphviz, config=config):
 #     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.png'.format(n_src,max_n_timestamps), bbox_inches=0)
 #     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
 
-    fig, axs = PLT.subplots(ncols=2, nrows=2, sharex=True, sharey=True)
+    fig, axs = PLT.subplots(ncols=2, nrows=2, sharex=True, sharey=True, figsize=(6,4))
     for i in range(2):
         for j in range(2):
             if i==0:
                 if j==0:
                     efimgplot = axs[i,j].imshow(NP.mean(avg_efimg, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), interpolation='none', vmin=-5*min_img_rms, vmax=img_max_MOFF)
-                    cbax = fig.add_axes([0.13, 0.93, 0.35, 0.02])
+                    cbax = fig.add_axes([0.13, 0.92, 0.35, 0.02])
                     cbar = fig.colorbar(efimgplot, cax=cbax, orientation='horizontal')
-                    cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+                    cbax.set_xlabel('Jy/beam', labelpad=8, fontsize=10)
                     cbax.xaxis.set_label_position('top')
                     tick_locator = ticker.MaxNLocator(nbins=5)
                     cbar.locator = tick_locator
                     cbar.update_ticks()
                 else:
                     vfimgplot = axs[i,j].imshow(NP.mean(avg_vfimg, axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), interpolation='none', vmin=-5*min_img_rms, vmax=img_max_MOFF)
-                    cbax = fig.add_axes([0.52, 0.93, 0.35, 0.02])
+                    cbax = fig.add_axes([0.52, 0.92, 0.35, 0.02])
                     # cbax = fig.add_axes([0.92, 0.52, 0.02, 0.37])
                     cbar = fig.colorbar(efimgplot, cax=cbax, orientation='horizontal')
-                    cbax.set_xlabel('Jy/beam', labelpad=10, fontsize=12)
+                    cbax.set_xlabel('Jy/beam', labelpad=8, fontsize=10)
                     cbax.xaxis.set_label_position('top')
                     tick_locator = ticker.MaxNLocator(nbins=5)
                     cbar.locator = tick_locator
@@ -324,24 +325,24 @@ with PyCallGraph(output=graphviz, config=config):
                     efbeamplot = axs[i,j].imshow(NP.mean(beam_MOFF, axis=2), aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), interpolation='none', vmin=-5*min_beam_rms, vmax=1.0)
                 else:
                     vfbeamplot = axs[i,j].imshow(NP.mean(vfimgobj.beam['P11'], axis=2), aspect='equal', origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), interpolation='none', vmin=-5*min_beam_rms, vmax=1.0)
-                    cbax = fig.add_axes([0.92, 0.12, 0.02, 0.37])
+                    cbax = fig.add_axes([0.9, 0.11, 0.02, 0.37])
                     cbar = fig.colorbar(efbeamplot, cax=cbax, orientation='vertical')
 
-            axs[i,j].text(0.5, 0.9, imgtype[i]+'\n ('+algo[j]+')', transform=axs[i,j].transAxes, fontsize=14, weight='semibold', ha='center', color='white', va='center')
+            axs[i,j].text(0.5, 0.9, imgtype[i]+'\n ('+algo[j]+')', transform=axs[i,j].transAxes, fontsize=12, weight='semibold', ha='center', color='white', va='center')
             axs[i,j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
             axs[i,j].set_xlim(-0.3,0.3)
             axs[i,j].set_ylim(-0.3,0.3)    
             axs[i,j].set_aspect('equal')
 
     fig.subplots_adjust(hspace=0, wspace=0)
-    fig.subplots_adjust(left=0.1, top=0.88, right=0.88, bottom=0.1)
+    fig.subplots_adjust(left=0.1, top=0.86, right=0.88, bottom=0.1)
     big_ax = fig.add_subplot(111)
     big_ax.set_axis_bgcolor('none')
     big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     big_ax.set_xticks([])
     big_ax.set_yticks([])
-    big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
-    big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
+    big_ax.set_ylabel(r'$m$', fontsize=16, weight='medium', labelpad=30)
+    big_ax.set_xlabel(r'$l$', fontsize=16, weight='medium', labelpad=16)
     
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.png'.format(n_src,max_n_timestamps), bbox_inches=0)
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
@@ -353,7 +354,7 @@ with PyCallGraph(output=graphviz, config=config):
     imgtype = ['I', 'B']
     algo = ['EPIC', 'X-based']
     colr = ['white', 'black']
-    fig, axs = PLT.subplots(nrows=2, sharex=True, sharey=True, figsize=(6,8))
+    fig, axs = PLT.subplots(nrows=2, sharex=True, sharey=True, figsize=(4.5,6))
     for i in range(2):
         if i==0:
             diffimgplot = axs[i].imshow(dimg, aspect='equal', origin='lower', extent=(efimgobj.gridl.min(), efimgobj.gridl.max(), efimgobj.gridm.min(), efimgobj.gridm.max()), interpolation='none', vmin=-5*min_img_rms, vmax=img_max_MOFF)
@@ -388,20 +389,20 @@ with PyCallGraph(output=graphviz, config=config):
     big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
     big_ax.set_xticks([])
     big_ax.set_yticks([])
-    big_ax.set_ylabel('m', fontsize=16, weight='medium', labelpad=30)
-    big_ax.set_xlabel('l', fontsize=16, weight='medium', labelpad=20)
+    big_ax.set_ylabel(r'$m$', fontsize=16, weight='medium', labelpad=30)
+    big_ax.set_xlabel(r'$l$', fontsize=16, weight='medium', labelpad=20)
     
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_difference_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.png'.format(n_src,max_n_timestamps), bbox_inches=0)
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_difference_{0:0d}_random_source_positions_{1:0d}_iterations_test_aperture_zoomed.eps'.format(n_src,max_n_timestamps), bbox_inches=0)    
     
-    fig = PLT.figure(figsize=(3.5,3.5))
+    fig = PLT.figure(figsize=(4.5,4.5))
     ax = fig.add_subplot(111)
     ax.plot(efimgobj.gridl[efimgobj.gridl.shape[0]/2,:], NP.mean(beam_MOFF, axis=2)[efimgobj.gridl.shape[0]/2,:], ls='-', lw=2, color='black')
     ax.plot(vfimgobj.gridl[vfimgobj.gridl.shape[0]/2,:], NP.mean(vfimgobj.beam['P11'], axis=2)[vfimgobj.gridl.shape[0]/2,:], ls='--', lw=2, color='gray')
     ax.set_xlim(-0.35, 1.0)
     ax.set_ylim(-0.1, 1.05)
-    ax.set_xlabel(r'$l$', fontsize=16, weight='medium')
-    ax.set_ylabel('Synthesized beam', fontsize=16, weight='medium')
+    ax.set_xlabel(r'$l$', fontsize=12, weight='medium')
+    ax.set_ylabel('Synthesized beam', fontsize=12, weight='medium')
     axins = zoomed_inset_axes(ax, 12, loc=1)  # zoom = 6
     axins.plot(efimgobj.gridl[efimgobj.gridl.shape[0]/2,:], NP.mean(beam_MOFF, axis=2)[efimgobj.gridl.shape[0]/2,:], ls='-', lw=2, color='black')
     axins.plot(vfimgobj.gridl[vfimgobj.gridl.shape[0]/2,:], NP.mean(vfimgobj.beam['P11'], axis=2)[vfimgobj.gridl.shape[0]/2,:], ls='--', lw=2, color='gray')
@@ -463,13 +464,13 @@ with PyCallGraph(output=graphviz, config=config):
     uvwtsfdiff_h, uvwtsfdiff_be, uvwtsfdiff_bn, uvwtsfdiff_ri = OPS.binned_statistic(uvwts_fracdiff.ravel(), statistic='count', bins=bin_edges)
     uvwts_diff_hist = 100.0 * uvwtsfdiff_h / NP.sum(uvwtsfdiff_h)
 
-    fig, axs = PLT.subplots(ncols=2, sharex=False, sharey=False, figsize=(8,4))
+    fig, axs = PLT.subplots(ncols=2, sharex=False, sharey=False, figsize=(6,3))
 
     uvfracdiff = axs[0].imshow(uvwts_fracdiff, aspect='equal', origin='lower', extent=[2*aar.gridu.min(), 2*aar.gridu.max(), 2*aar.gridv.min(), 2*aar.gridv.max()], interpolation='none', vmin=0.0, vmax=NP.nanmax(uvwts_fracdiff))
     axs[0].set_xlim(-14,14)
     axs[0].set_ylim(-14,14)    
     axs[0].set_aspect('equal', adjustable='box-forced')
-    axs[0].set_ylabel(r'$v$', fontsize=16, weight='medium', labelpad=0)
+    axs[0].set_ylabel(r'$v$', fontsize=16, weight='medium', labelpad=-5)
     axs[0].set_xlabel(r'$u$', fontsize=16, weight='medium', labelpad=0)
 
     axs[1].bar(uvwtsfdiff_be[:-1], uvwts_diff_hist, align='edge', width=binsize*0.75, color='gray')
@@ -477,12 +478,14 @@ with PyCallGraph(output=graphviz, config=config):
     axs[1].set_ylim(1e-4, 100)
     axs[1].set_yscale('log')
     # axs[1].set_xlabel(r'$\frac{|\widetilde{W}_{\mathrm{EPIC}}(\mathbf{r}) - \widetilde{W}_{\mathrm{FX}}(\mathbf{r})|}{|\widetilde{W}_{\mathrm{FX}}(\mathbf{r})|}$'+' [%]', weight='medium', labelpad=0)
-    axs[1].set_xlabel('Relative Difference [%]', fontsize=16, weight='medium', labelpad=0)
-    axs[1].set_ylabel('fraction [%]', fontsize=16, weight='medium', labelpad=0)
-    fig.subplots_adjust(left=0.08, right=0.98, bottom=0.16, top=0.85)
-    cbax = fig.add_axes([0.09, 0.96, 0.39, 0.02])
+    axs[1].set_xlabel('Relative Difference [%]', fontsize=12, weight='medium', labelpad=0)
+    axs[1].set_ylabel('fraction [%]', fontsize=14, weight='medium', labelpad=0)
+    axs[1].yaxis.tick_right()
+    axs[1].yaxis.set_label_position('right')
+    fig.subplots_adjust(left=0.08, right=0.88, bottom=0.16, top=0.84)
+    cbax = fig.add_axes([0.1, 0.96, 0.33, 0.02])
     cbar = fig.colorbar(uvfracdiff, cax=cbax, orientation='horizontal')
-    cbax.set_xlabel('Relative Difference [%]', labelpad=0, fontsize=12)
+    cbax.set_xlabel('Relative Difference [%]', labelpad=0, fontsize=10)
     cbax.xaxis.set_label_position('bottom')
     tick_locator = ticker.MaxNLocator(nbins=5)
     cbar.locator = tick_locator
@@ -513,19 +516,19 @@ with PyCallGraph(output=graphviz, config=config):
 
     # PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_comparison_uvwts_test_aperture_zero_spacing_removed_slices.png', bbox_inches=0)
 
-    fig, axs = PLT.subplots(ncols=2, figsize=(8,4))
+    fig, axs = PLT.subplots(ncols=2, figsize=(6,3))
     for j in range(2):
         if j==0:
             autocorr_uvimg = axs[j].imshow(efimgobj.autocorr_wts_vuf['P1'][:,:,0].real, origin='lower', extent=[uvect.min(),uvect.max(),vvect.min(),vvect.max()], vmin=efimgobj.autocorr_wts_vuf['P1'][:,:,0].real.min(), vmax=efimgobj.autocorr_wts_vuf['P1'][:,:,0].real.max(), interpolation='none')
             axs[j].set_xlim(-2.5,2.5)
             axs[j].set_ylim(-2.5,2.5)
-            axs[j].set_xlabel('u', fontsize=16, weight='medium')
-            axs[j].set_ylabel('v', fontsize=16, weight='medium')            
+            axs[j].set_xlabel(r'$u$', fontsize=16, weight='medium', labelpad=0)
+            axs[j].set_ylabel(r'$v$', fontsize=16, weight='medium', labelpad=-2)            
 
-            cbax = fig.add_axes([0.11, 0.93, 0.35, 0.02])
+            cbax = fig.add_axes([0.11, 0.94, 0.35, 0.02])
             cbar = fig.colorbar(autocorr_uvimg, cax=cbax, orientation='horizontal')
             cbax.xaxis.set_label_position('top')
-            tick_locator = ticker.MaxNLocator(nbins=5)
+            tick_locator = ticker.MaxNLocator(nbins=4)
             cbar.locator = tick_locator
             cbar.update_ticks()
         else:
@@ -533,22 +536,24 @@ with PyCallGraph(output=graphviz, config=config):
             axs[j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
             axs[j].set_xlim(-1,1)
             axs[j].set_ylim(-1,1)
-            axs[j].set_xlabel('l', fontsize=16, weight='medium')
-            axs[j].set_ylabel('m', fontsize=16, weight='medium', labelpad=-10)
+            axs[j].set_xlabel(r'$l$', fontsize=18, weight='medium', labelpad=0)
+            axs[j].set_ylabel(r'$m$', fontsize=18, weight='medium', labelpad=-5)
+            axs[j].yaxis.tick_right()
+            axs[j].yaxis.set_label_position('right')
             
-            n_pb_ticks = 5
-            # pb_ticks = NP.linspace(-5,0.0,n_pb_ticks)
-            pb_ticks = NP.logspace(-4.0,0.0,n_pb_ticks)
-            cbax = fig.add_axes([0.54, 0.93, 0.35, 0.02])
+            # n_pb_ticks = 4
+            # # pb_ticks = NP.linspace(-5,0.0,n_pb_ticks)
+            # pb_ticks = NP.logspace(-4.0,0.0,n_pb_ticks)
+            cbax = fig.add_axes([0.54, 0.94, 0.35, 0.02])
             cbar = fig.colorbar(imgpbeam, cax=cbax, orientation='horizontal')
             cbax.xaxis.set_label_position('top')
-            cbar.set_ticks(pb_ticks.tolist())
-            cbar.set_ticklabels(pb_ticks.tolist())
-            # tick_locator = ticker.MaxNLocator(nbins=6)
-            # cbar.locator = tick_locator
-            # cbar.update_ticks()
+            # cbar.set_ticks(pb_ticks.tolist())
+            # cbar.set_ticklabels(pb_ticks.tolist())
+            # # tick_locator = ticker.MaxNLocator(nbins=6)
+            # # cbar.locator = tick_locator
+            # # cbar.update_ticks()
 
-    PLT.subplots_adjust(left=0.1, right=0.9, top=0.9)
+    PLT.subplots_adjust(left=0.1, right=0.9, top=0.88)
 
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/autocorr_uvwts_pbeam.png', bbox_inches=0)
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/autocorr_uvwts_pbeam.eps', bbox_inches=0)    
@@ -730,7 +735,7 @@ with PyCallGraph(output=graphviz, config=config):
     pbmean = pbmean[::2,::2].ravel()
     pbavg, pbbe, pbbn, pbri = OPS.binned_statistic(gridlmrad, values=pbmean, statistic=NP.mean, bins=lmradbins)
 
-    fig, axs = PLT.subplots(ncols=2, figsize=(9,5))
+    fig, axs = PLT.subplots(ncols=2, figsize=(6.5,3.5))
     for j in range(2):
         if j == 0:
             dpsf = axs[j].imshow(psf_diff, origin='lower', extent=(vfimgobj.gridl.min(), vfimgobj.gridl.max(), vfimgobj.gridm.min(), vfimgobj.gridm.max()), interpolation='none', vmin=psf_diff.min(), vmax=psf_diff.max())            
@@ -738,12 +743,12 @@ with PyCallGraph(output=graphviz, config=config):
             axs[j].set_xlim(-1,1)
             axs[j].set_ylim(-1,1)    
             axs[j].set_aspect('equal')
-            axs[j].set_xlabel('l', fontsize=18, weight='medium')
-            axs[j].set_ylabel('m', fontsize=18, weight='medium')                
+            axs[j].set_xlabel(r'$l$', fontsize=18, weight='medium')
+            axs[j].set_ylabel(r'$m$', fontsize=18, weight='medium')                
 
             n_pb_ticks = 6
             pb_ticks = NP.linspace(-0.02,0.03,n_pb_ticks)
-            cbax = fig.add_axes([0.11, 0.93, 0.31, 0.02])
+            cbax = fig.add_axes([0.11, 0.12, 0.31, 0.02])
             cbar = fig.colorbar(dpsf, cax=cbax, orientation='horizontal')
             cbar.set_ticks(pb_ticks.tolist())
             cbar.set_ticklabels(pb_ticks.tolist())

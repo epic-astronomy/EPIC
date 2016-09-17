@@ -392,21 +392,21 @@ def parmspace_baseline_numant3b():
     selected_telescope_area_ind = NP.asarray([NP.argmin(NP.abs(telescope_ant_area-selected_ant_area)) for telescope_ant_area in telescope_antenna_area])
 
     telescopes = ['HERA-19', 'HERA-37', 'HERA-331', 'HERA-6769', 'CHIME', 'HIRAX', 'MWA-112', 'MWA-240', 'MWA-496', 'MWA-1008', 'SKA1-LC', 'SKA1-LCD', 'LOFAR-LC', 'LOFAR-HC', 'LWA1', 'LWA1-x2x1', 'LWA1-x4x1.5', 'LWA-OV', 'LWA-OVx2x1', 'LWA-OVx4x1.5']
-    fig = PLT.figure()
+    fig = PLT.figure(figsize=(5.6,4.5))
     ax = fig.add_subplot(111)
     for i,aai in enumerate(selected_ant_area_ind):
         # ax.plot(blmin[0,:,aai], n_antennas, ls='-', color=selected_ant_area_lc[i], lw=1)
         cntr = ax.contour(blmax, n_antennas, rho[:,:,aai].T, [1.0], colors=selected_ant_area_lc[i], linewidths=2, linestyles='--')
     for ti, telescope in enumerate(telescopes):
         ax.plot(telescope_blmax[ti], telescope_n_antennas[ti], mrkrs[ti], color=selected_ant_area_lc[selected_telescope_area_ind][ti], mfc=selected_ant_area_lc[selected_telescope_area_ind][ti], mec=selected_ant_area_lc[selected_telescope_area_ind][ti], ms=msize[ti], mew=mew[ti], label=telescope)
-    lgnd1 = ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1), borderaxespad=0.0, frameon=True, numpoints=1, fontsize=10, labelspacing=0.9)
+    lgnd1 = ax.legend(loc='upper left', bbox_to_anchor=(1.03, 1), borderaxespad=0.0, frameon=True, numpoints=1, fontsize=8, labelspacing=0.9)
     ax.set_ylim(n_antennas.min(), n_antennas.max())
     ax.set_xlim(blmax.min(), blmax.max())
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_ylabel(r'$N_\mathrm{a}$', weight='medium', fontsize=16)
-    ax.set_xlabel(r'$b_{max}$', weight='medium', fontsize=16)
-    fig.subplots_adjust(left=0.1, right=0.76, bottom=0.11)
+    ax.set_xlabel(r'$b_{max}$ [m]', weight='medium', fontsize=16)
+    fig.subplots_adjust(left=0.12, right=0.74, bottom=0.12)
 
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding_legended_v2.png', bbox_inches=0)
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_crossover_baseline_n-antennas_rho_fov_gridding_legended_v2.eps', bbox_inches=0)    
@@ -483,7 +483,8 @@ def computations():
     ind_HERA = NP.asarray([ti for ti,telescope in enumerate(telescopes) if telescope.split('-')[0] == 'HERA'])
     ind_MWA = NP.asarray([ti for ti,telescope in enumerate(telescopes) if telescope.split('-')[0] == 'MWA'])    
     ind_LWA = NP.asarray([ti for ti,telescope in enumerate(telescopes) if (telescope.split('-')[0] == 'LWA') or (telescope.split('-')[0] == 'LWA1')])
-    fig = PLT.figure()
+
+    fig = PLT.figure(figsize=(5.5,4))
     ax = fig.add_subplot(111)
     ax.plot(10**NP.arange(11), 10**NP.arange(11), 'k-', lw=2)
     ax,plot(ncomp_MOFF_telescopes_fov_gridding[ind_HERA], ncomp_FX_telescopes[ind_HERA], 'k.', ls='--', lw=1)
@@ -495,18 +496,20 @@ def computations():
     ax.annotate('LWA-OV', xy=(ncomp_MOFF_telescopes_fov_gridding[ind_LWA[3]],ncomp_FX_telescopes[ind_LWA[3]]), xycoords='data', xytext=(ncomp_MOFF_telescopes_fov_gridding[ind_LWA[3]],ncomp_FX_telescopes[ind_LWA[3]]/10), textcoords='data', arrowprops=dict(arrowstyle='->', color='black'), color='black', fontsize=9, horizontalalignment='center')    
     for ti, telescope in enumerate(telescopes):
         if telescope.split('-')[0] != 'LWA':
-            ax.annotate(telescope, xy=(ncomp_MOFF_telescopes_fov_gridding[ti], ncomp_FX_telescopes[ti]), xycoords='data', horizontalalignment='center', verticalalignment='center', size=9)
+            ax.annotate(telescope, xy=(ncomp_MOFF_telescopes_fov_gridding[ti], ncomp_FX_telescopes[ti]), xycoords='data', horizontalalignment='center', verticalalignment='center', size=8)
     ax.set_xlim(0.1*ncomp_MOFF_telescopes_fov_gridding.min(), 10*ncomp_MOFF_telescopes_fov_gridding.max())
     ax.set_ylim(0.1*ncomp_FX_telescopes.min(), 10*ncomp_FX_telescopes.max())
     ax.set_xscale('log')
     ax.set_yscale('log')
     # ax.set_aspect('equal')
-    ax.set_xlabel('MOFF computations', fontsize=14, weight='medium')
-    ax.set_ylabel('FX computations', fontsize=14, weight='medium')
+    ax.set_xlabel('MOFF computations', fontsize=12, weight='medium')
+    ax.set_ylabel('FX computations', fontsize=12, weight='medium')
     ax.xaxis.tick_top()
     ax.yaxis.tick_right()
     ax.xaxis.set_label_position('top')
     ax.yaxis.set_label_position('right')    
+
+    fig.subplots_adjust(left=0.03, bottom=0.02, top=0.88, right=0.86)
 
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_computations_fov_gridding_annotated.png', bbox_inches=0)
     PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/MOFF_FX_computations_fov_gridding_annotated.eps', bbox_inches=0)    
@@ -515,6 +518,6 @@ if __name__ == '__main__':
     # parmspace_areafrac_antdia()
     # parmspace_baseline_numant1()
     # parmspace_baseline_numant2()
-    parmspace_baseline_numant3a()
+    # parmspace_baseline_numant3a()
     parmspace_baseline_numant3b() # Same as 3a but axes swapped
     computations()
