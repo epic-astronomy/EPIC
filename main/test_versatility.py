@@ -17,7 +17,7 @@ import aperture as APR
 import ipdb as PDB
 import progressbar as PGB
 
-n_runs = 4
+n_runs = 32
 duration = 1e-4
 skip_duration = 10.0 / 3.6e3
 
@@ -144,15 +144,17 @@ antpos_info = proc_aar.antenna_positions(sort=True, centering=True)
 
 # Set up sky model
 
-fg_str = 'nonphysical'
 use_GSM = False
 use_DSM = False
 use_CSM = False
 use_custom = False
-use_random = False
-use_nonphysical = False
+use_nonphysical1 = False
+use_nonphysical2 = False
 use_zenith = False
+use_random = False
+lmrad_random = False
 
+fg_str = 'nonphysical2'
 if fg_str == 'asm':
     use_GSM = True
 elif fg_str == 'dsm':
@@ -163,8 +165,10 @@ elif fg_str == 'custom':
     use_custom = True
 elif fg_str == 'random':
     use_random = True
-elif fg_str == 'nonphysical':
-    use_nonphysical = True
+elif fg_str == 'nonphysical1':
+    use_nonphysical1 = True
+elif fg_str == 'nonphysical2':
+    use_nonphysical2 = True
 elif fg_str == 'zenith':
     use_zenith = True
 
@@ -191,11 +195,17 @@ if use_custom:
     spec_parms['freq-width'] = NP.zeros(ra_deg.size)
     flux_unit = 'Jy'
 elif use_random:
-    src_seed = 50
+    n_src = 51
+    lmrad_max = 0.5
+    src_seed = 200
     rstate = NP.random.RandomState(src_seed)
     NP.random.seed(src_seed)
-    n_src = 10
-    lmrad = rstate.uniform(low=0.0, high=0.3, size=n_src).reshape(-1,1)
+    if lmrad_random:
+        lmrad = rstate.uniform(low=0.0, high=lmrad_max, size=n_src).reshape(-1,1)
+    else:
+        # dlmrad = lmrad_max / (2*NP.floor(0.5*n_src))
+        lmrad = NP.linspace(0.0, lmrad_max, num=n_src, endpoint=True)
+        lmrad = lmrad.reshape(-1,1)
     lmang = rstate.uniform(low=0.0, high=2*NP.pi, size=n_src).reshape(-1,1)
     skypos = NP.hstack((lmrad * NP.cos(lmang), lmrad * NP.sin(lmang))).reshape(-1,2)
     skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
@@ -206,7 +216,7 @@ elif use_random:
     skypos_radec = NP.hstack((15.0*lst - skypos_hadec[:,0].reshape(-1,1), skypos_hadec[:,1].reshape(-1,1)))
     src_flux = 10.0*(1.0 + NP.random.rand(n_src))
 
-    catlabel = NP.repeat('random', n_src)
+    catlabel = NP.repeat(fg_str, n_src)
     spindex = NP.zeros(n_src)
     majax = NP.zeros(n_src)
     minax = NP.zeros(n_src)
@@ -225,29 +235,42 @@ elif use_random:
     box_center = NP.hstack((skypos[:,:2], f0+NP.zeros(n_src).reshape(-1,1))).tolist()
     box_size = 0.04 + NP.zeros(n_src).reshape(-1,1)
     box_size = box_size.tolist()
-elif use_nonphysical:
-    n_src_init = 20
-    lmrad1 = 0.05 + 0.5/(0.5*n_src_init)*NP.arange(n_src_init/2).reshape(-1,1)
-    lmang1 = NP.pi/4 + NP.zeros(n_src_init/2).reshape(-1,1)
-    skypos1 = NP.hstack((lmrad1 * NP.cos(lmang1), lmrad1 * NP.sin(lmang1))).reshape(-1,2)
-    lmrad2 = 0.05 + 0.5/(0.5*n_src_init)*NP.arange(n_src_init/2).reshape(-1,1)
-    lmang2 = NP.zeros(n_src_init/2).reshape(-1,1)
-    # lmrad2 = 0.5/(0.5*n_src_init)*NP.arange(n_src_init/2 + 1).reshape(-1,1)
-    # lmang2 = NP.zeros(n_src_init/2 + 1).reshape(-1,1)
-    skypos2 = NP.hstack((lmrad2 * NP.cos(lmang2), lmrad2 * NP.sin(lmang2))).reshape(-1,2)
-    skypos12 = NP.vstack((skypos1, skypos2))
-    skypos = -skypos12
-    n_src = skypos.shape[0]
+elif use_nonphysical1 or use_nonphysical2:
+    if use_nonphysical1:
+        n_src_init = 20
+        lmrad1 = 0.05 + 0.5/(0.5*n_src_init)*NP.arange(n_src_init/2).reshape(-1,1)
+        lmang1 = NP.pi/4 + NP.zeros(n_src_init/2).reshape(-1,1)
+        skypos1 = NP.hstack((lmrad1 * NP.cos(lmang1), lmrad1 * NP.sin(lmang1))).reshape(-1,2)
+        # lmrad2 = 0.05 + 0.5/(0.5*n_src_init)*NP.arange(n_src_init/2).reshape(-1,1)
+        # lmang2 = NP.zeros(n_src_init/2).reshape(-1,1)
+        lmrad2 = 0.5/(0.5*n_src_init)*NP.arange(n_src_init/2 + 1).reshape(-1,1)
+        lmang2 = NP.zeros(n_src_init/2 + 1).reshape(-1,1)
+        skypos2 = NP.hstack((lmrad2 * NP.cos(lmang2), lmrad2 * NP.sin(lmang2))).reshape(-1,2)
+        skypos12 = NP.vstack((skypos1, skypos2))
+        skypos = -skypos12
+        n_src = skypos.shape[0]
+    else:
+        n_src_init = 20
+        lmrad_max = 0.5
+        dlmrad = lmrad_max / NP.floor(0.5*n_src_init)
+        lmrad1a = 1.5 * dlmrad + lmrad_max/(0.5*n_src_init)*NP.arange(n_src_init/2)
+        lmang1a = NP.pi/4 + NP.zeros(n_src_init/2)
+        lmrad1b = lmrad_max/(0.5*n_src_init)*NP.arange(n_src_init/2 + 1)
+        lmang1b = 5*NP.pi/4 + NP.zeros(n_src_init/2 + 1)
+        lmrad1 = NP.hstack((lmrad1a, lmrad1b)).reshape(-1,1)
+        lmang1 = NP.hstack((lmang1a, lmang1b)).reshape(-1,1)
+        skypos1 = NP.hstack((lmrad1 * NP.cos(lmang1), lmrad1 * NP.sin(lmang1)))
 
-    # lmrad3 = 0.05 + 0.25/(0.25*n_src)*NP.arange(n_src/4).reshape(-1,1)
-    # lmang3 = NP.zeros(n_src/4).reshape(-1,1)
-    # skypos3 = NP.hstack((lmrad3 * NP.cos(lmang3), lmrad3 * NP.sin(lmang3))).reshape(-1,2)
-    # lmrad4 = 0.05 + 0.25/(0.25*n_src)*NP.arange(n_src/4).reshape(-1,1)
-    # lmang4 = NP.pi + NP.zeros(n_src/4).reshape(-1,1)
-    # skypos4 = NP.hstack((lmrad4 * NP.cos(lmang4), lmrad4 * NP.sin(lmang4))).reshape(-1,2)
-    # skypos34 = NP.vstack((skypos3, skypos4))
-
-    # skypos = NP.vstack((skypos12, skypos34))
+        lmrad2a = lmrad1a
+        lmang2a = NP.zeros(lmrad2a.size)
+        lmrad2b = dlmrad + lmrad_max/(0.5*n_src_init)*NP.arange(n_src_init/2)
+        lmang2b = NP.pi + NP.zeros(lmrad2b.size)
+        lmrad2 = NP.hstack((lmrad2a, lmrad2b)).reshape(-1,1)
+        lmang2 = NP.hstack((lmang2a, lmang2b)).reshape(-1,1)
+        skypos2 = NP.hstack((lmrad2 * NP.cos(lmang2), lmrad2 * NP.sin(lmang2)))
+        
+        skypos = NP.vstack((skypos1, skypos2))
+        n_src = skypos.shape[0]
 
     skypos = NP.hstack((skypos, NP.sqrt(1.0-(skypos[:,0]**2 + skypos[:,1]**2)).reshape(-1,1)))
     
@@ -258,7 +281,7 @@ elif use_nonphysical:
     skypos_radec = NP.hstack((15.0*lst - skypos_hadec[:,0].reshape(-1,1), skypos_hadec[:,1].reshape(-1,1)))
     src_flux = 10.0*(1.0 + NP.random.rand(n_src))
 
-    catlabel = NP.repeat('random', n_src)
+    catlabel = NP.repeat(fg_str, n_src)
     spindex = NP.zeros(n_src)
     majax = NP.zeros(n_src)
     minax = NP.zeros(n_src)
@@ -633,15 +656,13 @@ src_hadec = NP.hstack((lst_adjusted - src_radec[:,0].reshape(-1,1), src_radec[:,
 src_altaz = GEOM.hadec2altaz(src_hadec, latitude=latitude, units='degrees')
 src_dircos = GEOM.altaz2dircos(src_altaz, units='degrees')
 
-PDB.set_trace()
-
 fig = PLT.figure(figsize=(4,3.5))
 ax = fig.add_subplot(111)
 simimg = ax.imshow(NP.mean(avg_sim_efimg, axis=2), origin='lower', extent=(sim_efimgobj.gridl.min(), sim_efimgobj.gridl.max(), sim_efimgobj.gridm.min(), sim_efimgobj.gridm.max()), interpolation='none', vmin=NP.mean(avg_sim_efimg, axis=2).min(), vmax=NP.mean(avg_sim_efimg, axis=2).max())
 for i,bc in enumerate(box_center):
     ax.add_patch(patches.Rectangle((bc[0]-0.5*box_size[i][0], bc[1]-0.5*box_size[i][0]), box_size[i][0], box_size[i][0], fill=False))
-ax.set_xlim(-0.70,0.70)
-ax.set_ylim(-0.70,0.70)    
+ax.set_xlim(-0.55,0.55)
+ax.set_ylim(-0.55,0.55)    
 ax.set_aspect('equal')
 ax.set_xlabel(r'$l$', fontsize=16, weight='medium', labelpad=0)
 ax.set_ylabel(r'$m$', fontsize=16, weight='medium', labelpad=0)
@@ -650,8 +671,8 @@ cbax = fig.add_axes([0.85, 0.15, 0.02, 0.78])
 cbar = fig.colorbar(simimg, cax=cbax, orientation='vertical')
 cbax.set_xlabel('Jy', fontsize=12, weight='medium')
 cbax.xaxis.set_label_position('top')
-PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/nonphysical_{0}_sources_{1}_runs.png'.format(n_src, n_runs), bbox_inches=0)
-PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/nonphysical_{0}_sources_{1}_runs.eps'.format(n_src, n_runs), bbox_inches=0)
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/{0}_{1}_sources_{2}_runs.png'.format(fg_str, n_src, n_runs), bbox_inches=0)
+PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/{0}_{1}_sources_{2}_runs.eps'.format(fg_str, n_src, n_runs), bbox_inches=0)
 
 fig, axs = PLT.subplots(nrows=2, ncols=1, figsize=(3.5,7), sharex=True, sharey=True)
 axs[0].imshow(NP.mean(avg_proc_efimg, axis=2), origin='lower', extent=(proc_efimgobj.gridl.min(), proc_efimgobj.gridl.max(), proc_efimgobj.gridm.min(), proc_efimgobj.gridm.max()), interpolation='none')
@@ -726,7 +747,7 @@ allruns_sim_rms = NP.asarray(allruns_sim_rms)
 allruns_proc_rms = NP.asarray(allruns_proc_rms)
 allruns_wrong_rms = NP.asarray(allruns_wrong_rms)
 
-outfile = '/data3/t_nithyanandan/project_MOFF/simulated/test/normalized_flux_density_recovery_{0}_sources_{1}_runs_{2:.5f}_sec_duration_{3:.1f}_sec_skip.npz'.format(n_src, n_runs, duration, skip_duration*3.6e3)
+outfile = '/data3/t_nithyanandan/project_MOFF/simulated/test/normalized_flux_density_recovery_{0}_{1}_sources_{2}_runs_{3:.5f}_sec_duration_{4:.1f}_sec_skip.npz'.format(n_src, fg_str, n_runs, duration, skip_duration*3.6e3)
 NP.savez_compressed(outfile, skypos=skypos, sim_peaks=allruns_sim_peaks, proc_peaks=allruns_proc_peaks, wrong_peaks=allruns_wrong_peaks, sim_nnvals=allruns_sim_nnvals, proc_nnvals=allruns_proc_nnvals, wrong_nnvals=allruns_wrong_nnvals, sim_rms=allruns_sim_rms, proc_rms=allruns_proc_rms, wrong_rms=allruns_wrong_rms)
 
 # stats = NP.load(outfile)
@@ -739,7 +760,7 @@ NP.savez_compressed(outfile, skypos=skypos, sim_peaks=allruns_sim_peaks, proc_pe
 
 # fig = PLT.figure()
 # ax = fig.add_subplot(111)
-# if fg_str == 'nonphysical':
+# if fg_str == 'nonphysical1':
 #     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_sim_peaks[:,:n_src/2], axis=0), y2=NP.amax(allruns_sim_peaks[:,:n_src/2], axis=0), facecolor='gray', alpha=0.5, interpolate=True)
 #     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_sim_peaks[:,n_src/2:], axis=0), y2=NP.amax(allruns_sim_peaks[:,n_src/2:], axis=0), facecolor='gray', alpha=0.5, interpolate=True)
 #     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.amin(allruns_proc_peaks[:,:n_src/2], axis=0), y2=NP.amax(allruns_proc_peaks[:,:n_src/2], axis=0), facecolor='red', alpha=0.5, interpolate=True)
@@ -750,7 +771,7 @@ NP.savez_compressed(outfile, skypos=skypos, sim_peaks=allruns_sim_peaks, proc_pe
 
 # fig = PLT.figure()
 # ax = fig.add_subplot(111)
-# if fg_str == 'nonphysical':
+# if fg_str == 'nonphysical1':
 #     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_sim_nnvals[:,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_sim_nnvals[:,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[:,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_nnvals[:,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_sim_nnvals[:,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[:,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)
 #     # ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_proc_nnvals[:,:n_src/2], axis=0)-NP.std(allruns_proc_nnvals[:,:n_src/2], axis=0)/NP.sqrt(1.0*n_runs), y2=NP.mean(allruns_proc_nnvals[:,:n_src/2], axis=0)+NP.std(allruns_proc_nnvals[:,:n_src/2], axis=0)/NP.sqrt(1.0*n_runs), facecolor='blue', alpha=0.5, interpolate=True)
 #     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_nnvals[:,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_wrong_nnvals[:,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[:,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_nnvals[:,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_wrong_nnvals[:,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[:,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)    
@@ -763,13 +784,13 @@ NP.savez_compressed(outfile, skypos=skypos, sim_peaks=allruns_sim_peaks, proc_pe
 # ax.set_xlabel(r'$(l^2+m^2)^{1/2}$', fontsize=16, weight='medium')
 # ax.set_ylabel('Normalized Flux Density', fontsize=16, weight='medium')
 
-run_begin = 11
+run_begin = 0
 n_runs_to_include = 4
 run_begin = max([run_begin, 0])
 run_end = min([run_begin + n_runs_to_include, n_runs])
 fig = PLT.figure(figsize=(4,4))
 ax = fig.add_subplot(111)
-if fg_str == 'nonphysical':
+if use_nonphysical1 or use_nonphysical2:
     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)
     ax.fill_between(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:n_src/2], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:n_src/2], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)    
     ax.fill_between(NP.sqrt(NP.sum(skypos[n_src/2:,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,n_src/2:], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,n_src/2:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linewidth=2)
@@ -778,17 +799,17 @@ ax.axhline(y=1.0, lw=2, color='k')
 ax.set_yscale('linear')
 ax.set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)).max())
 ax.set_ylim(0.0, 2.0)
-ax.set_xlabel(r'$(l^2+m^2)^{1/2}$', fontsize=20, weight='medium')
-ax.set_ylabel('Normalized Flux Density', fontsize=20, weight='medium')
+ax.set_xlabel(r'$(l^2+m^2)^{1/2}$', fontsize=16, weight='medium')
+ax.set_ylabel('Normalized Flux Density', fontsize=16, weight='medium')
 ax.set_rasterized(True)
 fig.subplots_adjust(left=0.18, right=0.98, bottom=0.18, top=0.96)
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_runs_{0}-{1}_gap_{2:.1f}_sec.png'.format(run_begin, run_end-1, 3.6e3*skip_duration), bbox_inches=0)
 PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_runs_{0}-{1}_gap_{2:.1f}_sec.eps'.format(run_begin, run_end-1, 3.6e3*skip_duration), bbox_inches=0)
 
-if fg_str == 'nonphysical':
+if use_nonphysical1 or use_nonphysical2:
     num_panels_per_page = 6
     n_runs_to_include = NP.logspace(int(NP.log2(4)), int(NP.log2(n_runs)), num=int(NP.log2(n_runs/4))+1, endpoint=True, base=2.0).astype(NP.int)
-    # n_runs_to_include = Np.asarray([32])
+    # n_runs_to_include = NP.asarray([32])
     for include_nruns in n_runs_to_include:
         npanels = n_runs - include_nruns + 1
         npages = NP.ceil(1.0*npanels/num_panels_per_page).astype(int)
@@ -825,16 +846,60 @@ if fg_str == 'nonphysical':
             big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
             big_ax.set_xticks([])
             big_ax.set_yticks([])
-            big_ax.set_xlabel(r'$(l^2+m^2)^{1/2}$', fontsize=20, weight='medium', labelpad=25)
-            big_ax.set_ylabel('Normalized Flux Density', fontsize=20, weight='medium', labelpad=25)
+            big_ax.set_xlabel(r'$(l^2+m^2)^{1/2}$', fontsize=16, weight='medium', labelpad=25)
+            big_ax.set_ylabel('Normalized Flux Density', fontsize=16, weight='medium', labelpad=25)
             fig.subplots_adjust(left=0.12, right=0.98, bottom=0.12, top=0.96)
-            PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_{0}_sources_{1}_runs_from_{2}_of_{3}_runs_gap_{4:.1f}_sec_run_duration_{5:.5f}_sec.png'.format(n_src, include_nruns, run_begin, n_runs, 3.6e3*skip_duration, duration), bbox_inches=0)
-            PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_{0}_sources_{1}_runs_from_{2}_of_{3}_runs_gap_{4:.1f}_sec_run_duration_{5:.5f}_sec.eps'.format(n_src, include_nruns, run_begin, n_runs, 3.6e3*skip_duration, duration), bbox_inches=0)
+            PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_{0}_{1}_sources_{2}_runs_from_{3}_of_{4}_runs_gap_{5:.1f}_sec_run_duration_{5:.5f}_sec.png'.format(n_src, fg_str, include_nruns, run_begin, n_runs, 3.6e3*skip_duration, duration), bbox_inches=0)
+            PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_{0}_{1}_sources_{2}_runs_from_{3}_of_{4}_runs_gap_{5:.1f}_sec_run_duration_{5:.5f}_sec.eps'.format(n_src, fg_str, include_nruns, run_begin, n_runs, 3.6e3*skip_duration, duration), bbox_inches=0)
+            PLT.close()
+elif fg_str == 'random':
+    num_panels_per_page = 6
+    n_runs_to_include = NP.logspace(int(NP.log2(4)), int(NP.log2(n_runs)), num=int(NP.log2(n_runs/4))+1, endpoint=True, base=2.0).astype(NP.int)
+    # n_runs_to_include = NP.asarray([32])
+    for include_nruns in n_runs_to_include:
+        npanels = n_runs - include_nruns + 1
+        npages = NP.ceil(1.0*npanels/num_panels_per_page).astype(int)
+        # for page_num in NP.arange(2):
+        for page_num in NP.arange(npages):
+            npanels_on_page = min(num_panels_per_page, npanels-page_num*num_panels_per_page)
+            if npanels_on_page <= num_panels_per_page/2:
+                nrows = npanels_on_page
+                ncols = 1
+            else:
+                nrows = num_panels_per_page / 2
+                ncols = 2
+            fig, axs = PLT.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True, figsize=(7,9))
+            axs = NP.asarray(axs).reshape(nrows, ncols)
+            for run_begin in NP.arange(page_num*num_panels_per_page, page_num*num_panels_per_page + npanels_on_page):
+                run_end = run_begin + include_nruns
+                panel_num = run_begin - page_num*num_panels_per_page
+                row = NP.mod(panel_num, nrows)
+                col = int(panel_num / nrows)
+        
+                axs[row,col].fill_between(NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)), NP.mean(allruns_sim_peaks[run_begin:run_end,:], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,:], axis=0)-NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,:], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_sim_peaks[run_begin:run_end,:], axis=0)-NP.mean(allruns_sim_rms[run_begin:run_end,:], axis=0)+NP.sqrt(NP.std(allruns_sim_peaks[run_begin:run_end,:], axis=0)**2+NP.mean(allruns_sim_rms[run_begin:run_end,:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='gray', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)
+                axs[row,col].fill_between(NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)), NP.mean(allruns_wrong_peaks[run_begin:run_end,:], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:], axis=0)-NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), y2=NP.mean(allruns_wrong_peaks[run_begin:run_end,:], axis=0)-NP.mean(allruns_wrong_rms[run_begin:run_end,:], axis=0)+NP.sqrt(NP.std(allruns_wrong_peaks[run_begin:run_end,:], axis=0)**2+NP.mean(allruns_wrong_rms[run_begin:run_end,:], axis=0)**2)/NP.sqrt(1.0*n_runs/n_runs), facecolor='red', alpha=0.5, interpolate=True, linestyle='--', linewidth=2)
+                axs[row,col].axhline(y=1.0, lw=2, color='k')
+                axs[row,col].set_yscale('linear')
+                axs[row,col].set_xlim(0.0, 1.1*NP.sqrt(NP.sum(skypos[:,:2]**2, axis=1)).max())
+                axs[row,col].set_ylim(0.0, 1.95)
+                axs[row,col].text(0.5, 0.95, '{0}--{1}'.format(run_begin, run_end-1), transform=axs[row,col].transAxes, fontsize=12, weight='medium', ha='center', va='top', color='black')
+                axs[row,col].set_rasterized(True)
+                fig.subplots_adjust(hspace=0, wspace=0)
+            big_ax = fig.add_subplot(111)
+            big_ax.set_axis_bgcolor('none')
+            big_ax.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+            big_ax.set_xticks([])
+            big_ax.set_yticks([])
+            big_ax.set_xlabel(r'$(l^2+m^2)^{1/2}$', fontsize=16, weight='medium', labelpad=25)
+            big_ax.set_ylabel('Normalized Flux Density', fontsize=16, weight='medium', labelpad=25)
+            fig.subplots_adjust(left=0.12, right=0.98, bottom=0.12, top=0.96)
+            PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_{0}_{1}_sources_{2}_runs_from_{3}_of_{4}_runs_gap_{5:.1f}_sec_run_duration_{5:.5f}_sec.png'.format(n_src, fg_str, include_nruns, run_begin, n_runs, 3.6e3*skip_duration, duration), bbox_inches=0)
+            PLT.savefig('/data3/t_nithyanandan/project_MOFF/simulated/test/figures/test_versatility_{0}_{1}_sources_{2}_runs_from_{3}_of_{4}_runs_gap_{5:.1f}_sec_run_duration_{5:.5f}_sec.eps'.format(n_src, fg_str, include_nruns, run_begin, n_runs, 3.6e3*skip_duration, duration), bbox_inches=0)
             PLT.close()
 
 # fig = PLT.figure()
 # ax = fig.add_subplot(111)
-# if fg_str == 'nonphysical':
+# if fg_str == 'nonphysical1':
 #     for run_index in xrange(n_runs):
 #         ax.plot(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), allruns_sim_peaks[run_index,:n_src/2], 'x', ls='-', color='black', ms=8)
 #         ax.plot(NP.sqrt(NP.sum(skypos[:n_src/2,:2]**2, axis=1)), allruns_proc_peaks[run_index,:n_src/2], 'x', ls='-', color='red', ms=8)
@@ -885,7 +950,7 @@ if fg_str == 'nonphysical':
 # fig = PLT.figure()
 # ax = fig.add_subplot(111)
 # for si,stats in enumerate(sim_boxstats):
-#     if fg_str == 'nonphysical':
+#     if fg_str == 'nonphysical1':
 #         if si < n_src/2:
 #             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), sim_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_sim[si,nchan/2], 'x', ls='-', color='red', ms=8)
 #             ax.plot(NP.sqrt(NP.sum(skypos[si,:2]**2)), proc_boxstats[si]['P1']['peak-avg'][0]/src_flux[si]/pb2eff_src_proc[si,nchan/2], 'x', ls='-', color='black', ms=8)
