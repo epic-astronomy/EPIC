@@ -1,7 +1,7 @@
 import numpy as NP
-import my_DSP_modules as DSP
-import geometry as GEOM
 import scipy.constants as FCNST
+from astroutils import DSP_modules as DSP
+from astroutils import geometry as GEOM
 
 #############################################################################
 

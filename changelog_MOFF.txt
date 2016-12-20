@@ -1,3 +1,25 @@
+From af9cb85 (EPIC-MNRAS-rev):
+=============================
+
+In antenna_array.py,
+
+(*) Change import statements to import from astroutils package
+
+In sim_observe.py,
+
+(*) Change import statements to import from astroutils package
+
+In aperture.py,
+
+(*) Change import statements to import from astroutils package
+
+In compare_MOFF_FX_simulations_test_sparse_matrix.py,
+
+(*) Change import statements to import from astroutils package
+(*) Change x and y limits for plotting MOFF vs. FX comparison of
+ten random sources simulated so the axes labels do not run into each
+other
+
 From cd50ced (EPIC-MNRAS-2.0.a):
 ===============================
 

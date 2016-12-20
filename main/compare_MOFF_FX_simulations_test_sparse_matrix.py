@@ -9,11 +9,11 @@ from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 import scipy.constants as FCNST
 import progressbar as PGB
 import antenna_array as AA
-import geometry as GEOM
-import sim_observe as SIM
-import my_DSP_modules as DSP
-import my_operations as OPS
 import aperture as APR
+import sim_observe as SIM
+from astroutils import geometry as GEOM
+from astroutils import DSP_modules as DSP
+from astroutils import mathops as OPS
 from pycallgraph import PyCallGraph, Config, GlobbingFilter
 from pycallgraph.output import GraphvizOutput
 import ipdb as PDB
@@ -107,7 +107,6 @@ with PyCallGraph(output=graphviz, config=config):
 
     ants = []
     aar = AA.AntennaArray()
-    PDB.set_trace()
     for i in xrange(n_antennas):
         ant = AA.Antenna('{0:0d}'.format(int(ant_info[i,0])), lat, ant_info[i,1:], f0, nsamples=nts, aperture=ant_aprtrs[i])
         ant.f = ant.f0 + DSP.spectax(2*nts, dt, shift=True)
@@ -328,10 +327,10 @@ with PyCallGraph(output=graphviz, config=config):
                     cbax = fig.add_axes([0.9, 0.11, 0.02, 0.37])
                     cbar = fig.colorbar(efbeamplot, cax=cbax, orientation='vertical')
 
-            axs[i,j].text(0.5, 0.9, imgtype[i]+'\n ('+algo[j]+')', transform=axs[i,j].transAxes, fontsize=12, weight='semibold', ha='center', color='white', va='center')
+            axs[i,j].text(0.5, 0.85, imgtype[i]+'\n ('+algo[j]+')', transform=axs[i,j].transAxes, fontsize=12, weight='semibold', ha='center', color='white', va='center')
             axs[i,j].plot(NP.cos(NP.linspace(0.0, 2*NP.pi, num=100)), NP.sin(NP.linspace(0.0, 2*NP.pi, num=100)), 'k-')
-            axs[i,j].set_xlim(-0.3,0.3)
-            axs[i,j].set_ylim(-0.3,0.3)    
+            axs[i,j].set_xlim(-0.35,0.35)
+            axs[i,j].set_ylim(-0.35,0.35)    
             axs[i,j].set_aspect('equal')
 
     fig.subplots_adjust(hspace=0, wspace=0)
