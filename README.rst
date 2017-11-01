@@ -14,7 +14,7 @@ If using the Anaconda python distribution, many of the packages may be installed
 
 It is best to first create a new env:
 
-``conda create -n EPIC python=2.7 anaconda``
+``conda create -n YOURENV python=2.7 anaconda``
 
 Activate this environment:
 
@@ -22,11 +22,11 @@ Activate this environment:
 
 Then install conda packages:
 
-``conda install mpi4py progressbar psutil pyyaml h5py``
+``conda install progressbar psutil pyyaml h5py``
 
-You also need ``astroutils``:
+You also need ``AstroUtils``:
 
-``pip install git+https://github.com/nithyanandan/general.git``
+``pip install git+https://github.com/nithyanandan/AstroUtils.git``
 
 which will install a list of dependencies.
 
