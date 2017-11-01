@@ -1,3 +1,8 @@
+From a4a60e6 (package):
+======================
+
+(*) Rename changelog_MOFF.txt to changelog.txt
+
 From 1046014 (package):
 ======================
 
