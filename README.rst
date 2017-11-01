@@ -26,19 +26,21 @@ Then install conda packages:
 
 You also need ``astroutils``:
 
-``pip install git+https://github.com/nithyanandan/general``
+``pip install git+https://github.com/nithyanandan/general.git``
 
 which will install a list of dependencies.
 
 Finally, either install EPIC directly:
 
-``pip install git+https://github.com/nithyanandan/EPIC``
+``pip install git+https://github.com/nithyanandan/EPIC.git``
 
 or clone it into top-level directory called ``EPIC`` and install from this
 directory:
 
 ``mkdir EPIC``
+
 ``cd EPIC``
+
 ``pip install .``.
 
 
