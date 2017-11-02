@@ -2,9 +2,11 @@ import numpy as NP
 import astropy
 from astropy.io import fits
 import h5py
-# import lwa_operations as LWAO
 import progressbar as PGB
 import warnings
+import lwa_operations as LWAO
+
+epic_path = epic.__path__[0]+'/'
 
 #################################################################################
 
@@ -251,6 +253,8 @@ class DataHandler(object):
             elif indata['intype'] not in ['sim', 'LWA']:
                 raise ValueError('Value in key "intype" is not currently accepted.')
             elif indata['intype'] == 'LWA':
+                if LWAO.lsl_module_not_found:
+                    raise ImportError('LSL module for LWA could not be imported.')
                 if not isinstance(indata['data-block'], LWAO.LWAObs):
                     raise TypeError('Data type in input should be an instance of class LWAO.LWAObs')
                 self.data['type'] = indata['intype']

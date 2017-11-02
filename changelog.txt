@@ -1,3 +1,14 @@
+From ae62e22 (package):
+======================
+
+(*) Add epic/lwa_operations.py to git repo
+
+In epic/data_interface.py,
+
+(*) Add statements to check if importing LSL module was successful
+inside lwa_operations.py and perform LWA operations based on this
+check
+
 From a4a60e6 (package):
 ======================
 
