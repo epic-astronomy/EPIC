@@ -11,8 +11,6 @@ except ImportError:
 else:
     lsl_module_found = True
 
-epic_path = epic.__path__[0]+'/'    
-
 #################################################################################  
 
 class LWAPol:

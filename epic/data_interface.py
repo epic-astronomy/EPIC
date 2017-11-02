@@ -6,8 +6,6 @@ import progressbar as PGB
 import warnings
 import lwa_operations as LWAO
 
-epic_path = epic.__path__[0]+'/'
-
 #################################################################################
 
 class DataHandler(object):
