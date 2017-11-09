@@ -467,7 +467,7 @@ class DataContainer(object):
                                   'init_val': None},
                            'ant_id':
                                  {'desc': 'array of antenna ID',
-                                  'dtype': (int, NP.int),
+                                  'dtype': (int, NP.int8, NP.int16, NP.int32, NP.int64, float, NP.float16, NP.float32, NP.float64),
                                   'objtype': (NP.ndarray,),
                                   'shape': (self.nant,),
                                   'init_val': None},

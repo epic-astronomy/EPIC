@@ -1,3 +1,11 @@
+From 94480db (package):
+======================
+
+In epic/data_interface.py,
+
+(*) Expand type checking for ant_id in __init__() member function of
+class DataContainer
+
 From 1e34522 (package):
 ======================
 
