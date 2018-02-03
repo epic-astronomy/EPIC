@@ -1,3 +1,12 @@
+From 9aa659a (package):
+======================
+
+(*) Add epic/examples/ioparms/LWA_TBN_input_file_parameters.yaml to
+repo
+(*) Add scripts/convert_LWA_TBN_data_to_EPIC_format.py to repo
+(*) Minor updates to
+epic/examples/ioparms/MWAVCS_input_file_parameters.yaml
+
 From 04dbbff (package):
 ======================
 

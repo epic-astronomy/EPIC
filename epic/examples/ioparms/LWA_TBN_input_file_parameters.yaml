@@ -1,0 +1,31 @@
+##### IMPORTANT INFORMATION #####
+##### DO NOT MODIFY THIS FILE #####
+##### MAKE A COPY OF THIS FILE AND CUSTOMIZE #####
+
+########## Directory information #########
+
+dirstruct   :
+                                # Directory information
+
+    indir           : '/path/to/indir'
+                                # Full path to input data directory
+                                # containing TBN files
+
+    infile          : 'infile'
+                                # Input TBN filename
+
+    outdir          : '/path/to/outdir'
+                                # Base directory for outputs
+
+    outfile         : 'outfile'
+                                # Output EPIC-compatible format
+                                # file
+
+######## Instrumental Parameters #########
+
+instrumentinfo  :
+
+    station         : 'LWA1'
+                                # Accepted values are 'LWA1' and
+                                # 'LWASV'
+
