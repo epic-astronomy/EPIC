@@ -1,0 +1,74 @@
+########## Directory information #########
+
+directory   :
+                                # Directory information
+
+    rootdir         : '/data3/t_nithyanandan/'
+                                # Base directory
+
+    project         : 'project_MOFF'
+                                # Directory for the project under
+                                # rootdir.
+
+    subproject_dir  : 'data/MWA-VCS/'
+                                # Directory for subproject under
+                                # project directory
+
+    data_dir        : 'data/MWA-VCS/'
+                                # Root directory of data folder
+                                # under rootdir
+
+    data_subdir     : 'Crab_Hex/'
+                                # Data subdirectory under the
+                                # data_dir
+                                
+    fname           : null
+                                # The input data file under
+                                # data_subdir. If set to null,
+                                # all data files in the directory
+                                # will be read and consolidated.
+                                # Otherwise, the files to be
+                                # consolidated must be ordered and
+                                # provided as a list
+
+    metafile        : '1160510496_metafits_ppds.fits'
+                                # Meta file that contains information
+                                # about the observation
+
+    outfile         : '1160510496_1160511184_ch133'
+                                # Output file name. The output
+                                # file will be appended with
+                                # extension .hdf5 and stored
+                                # under subproject_dir
+
+########## Observing Parameters #########
+
+obsinfo     :
+                                # Observing parameters needed to
+                                # parse the input file(s)
+
+    nchan           : 128
+                                # Number of channels in a file
+
+    freq_resolution : 10000.0
+                                # Channel resolution (in Hz)
+
+    ntimes          : 10000
+                                # Number of times steps in a file
+
+    time_resolution : 100.0
+                                # Duration (in microseconds) of
+                                # each time step
+
+    nant            : 128
+                                # Number of antennas or stations
+
+    npol            : 2
+                                # Number of polarizations
+
+    nbits           : 4
+                                # Number of bits per real or
+                                # imaginary number
+
+
+                        

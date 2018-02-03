@@ -1,3 +1,13 @@
+From be58a60 (package):
+======================
+
+(*) Add epic/examples/ioparms/MWAVCS_input_file_parameters.yaml to
+repo
+
+In setup.py,
+
+(*) Include 'examples/ioparms/*.yaml' in package_data
+
 From 7b1e867 (package):
 ======================
 
