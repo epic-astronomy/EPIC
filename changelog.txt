@@ -1,3 +1,9 @@
+From 04dbbff (package):
+======================
+
+(*) Add scripts/convert_MWAVCS_data_to_EPIC_format.py to repo
+(*) Add .gitignore to repo
+
 From be58a60 (package):
 ======================
 
