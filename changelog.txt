@@ -1,3 +1,14 @@
+From 7b1e867 (package):
+======================
+
+In epic/antenna_array.py,
+
+(*) Inherit declared classes from 'object'
+
+In epic/lwa_operations.py,
+
+(*) Inherit declared classes from 'object'
+
 From 94480db (package):
 ======================
 
