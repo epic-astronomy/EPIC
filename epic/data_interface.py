@@ -626,10 +626,11 @@ class DataContainer(object):
                 
         if (n_noninit_E_vals[0] == 2*self.npol) and (n_noninit_E_vals[1] == 2*self.npol):
             raise AttributeError('Attribute Et and/or Ef not properly initialized in instance of class  DataContainer. Check all inputs again'.format('Et', 'Ef'))
-        elif n_noninit_E_vals[0] != 2*self.npol:
-            self.datatype['Ef'] = True
-        elif n_noninit_E_vals[1] != 2*self.npol:
-            self.datatype['Et'] = True
+        else:
+            if n_noninit_E_vals[0] != 2*self.npol:
+                self.datatype['Ef'] = True
+            if n_noninit_E_vals[1] != 2*self.npol:
+                self.datatype['Et'] = True
 
     ############################################################################
 

@@ -1,3 +1,15 @@
+From 6b6ed5e (package):
+======================
+
+In epic/data_interface.py,
+
+(*) Check for datatype variable for both Et and Ef in __init__()
+member function of class DataContainer.
+
+In epic/examples/ioparms/LWA_TBN_input_file_parameters.yaml,
+
+(*) Add more input parameters for instrument and observational info
+
 From 9aa659a (package):
 ======================
 

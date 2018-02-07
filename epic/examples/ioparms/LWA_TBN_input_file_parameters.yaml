@@ -19,13 +19,44 @@ dirstruct   :
 
     outfile         : 'outfile'
                                 # Output EPIC-compatible format
-                                # file
+                                # file. Do not specify extension.
+                                # '.hdf5' will be automatically
+                                # appended
 
 ######## Instrumental Parameters #########
 
 instrumentinfo  :
 
-    station         : 'LWA1'
+    station         : 'LWASV'
                                 # Accepted values are 'LWA1' and
                                 # 'LWASV'
 
+    nsamples_in_frame: 512
+                                # number of samples in a frame. Will
+                                # be used in determining the total
+                                # duration (default=512 for LWA1
+                                # and LWASV)
+                                
+######## Observational Parameters #########
+
+obsinfo     :
+                                # Observational info to select and
+                                # shape the data
+
+    timetag_resol   : 0.00512
+                                # approximate time separation between
+                                # timetags. This will be adjusted to
+                                # be compatible with integer number of
+                                # samples and power of 2, etc.
+
+    duration        : 2.0
+                                # duration (in seconds) of data to 
+                                # extract from the input file from the
+                                # front. If set to null, extract all
+                                # data (full duration)
+
+    pow2_nchan      : true
+                                # Should number of channels in a
+                                # timetag be a power of 2. If yes, set
+                                # to true (default), else false
+                                
