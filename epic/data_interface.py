@@ -5,6 +5,7 @@ import h5py
 import progressbar as PGB
 import warnings
 import lwa_operations as LWAO
+import ipdb as PDB
 
 #################################################################################
 
@@ -451,7 +452,7 @@ class DataContainer(object):
         else:
             raise TypeError('Input npol must be an integer')
         
-        self.parmkeys = ['f0', 'ant_labels', 'ant_id', 'antpos', 'pol', 'f', 'df', 'bw', 'dT', 'dts', 'timestamps', 'Et', 'Ef']
+        self.parmkeys = ['f0', 'ant_labels', 'ant_id', 'antpos', 'pol', 'f', 'df', 'bw', 'dT', 'dts', 'timestamps', 'cable_delays', 'Et', 'Ef']
 
         self.parmscheck = {'f0':
                                  {'desc': 'Center frequency in Hz',
@@ -525,6 +526,12 @@ class DataContainer(object):
                                   'objtype': (NP.ndarray,),
                                   'shape': (ntimes, nant, nchan),
                                   'init_val': None},
+                           'cable_delays':
+                                 {'desc': 'Array of cable delays',
+                                  'dtype': (int, NP.int8, NP.int16, NP.int32, NP.int64, float, NP.float16, NP.float32, NP.float64),
+                                  'objtype': (NP.ndarray,),
+                                  'shape': (nant,),
+                                  'init_val': None}
         }
 
         if (init_parms is not None) and (init_file is not None):
@@ -592,12 +599,18 @@ class DataContainer(object):
 
         if init_file is not None:
             with h5py.File(init_file, 'r') as fileobj:
-                parmkeys = {'header': ['ntimes', 'nant', 'nchan', 'npol', 'f0', 'df', 'bw', 'dT', 'dts', 'pol'], 'antenna_parms': ['ant_labels', 'ant_id', 'antpos'], 'spectral_info': ['f'], 'temporal_info': ['timestamps']}
+                parmkeys = {'header': ['ntimes', 'nant', 'nchan', 'npol', 'f0', 'df', 'bw', 'dT', 'dts', 'pol'], 'antenna_parms': ['ant_labels', 'ant_id', 'antpos', 'cable_delays'], 'spectral_info': ['f'], 'temporal_info': ['timestamps']}
                 data_parmkeys = {'data': ['Ef', 'Et']}
                 init_parms = {}
                 for grpkey in parmkeys:
                     for pkey in parmkeys[grpkey]:
-                        init_parms[pkey] = fileobj[grpkey][pkey].value
+                        if pkey == 'cable_delays':
+                            PDB.set_trace()
+                            init_parms[pkey] = {}
+                            for pol in fileobj[pkey]:
+                                init_parms[pkey][pol] = fileobj[pkey][pol].value
+                        else:
+                            init_parms[pkey] = fileobj[grpkey][pkey].value
                 for dpkey in data_parmkeys:
                     for ekey in data_parmkeys[dpkey]:
                         if ekey in fileobj[dpkey]:
@@ -640,7 +653,23 @@ class DataContainer(object):
             raise TypeError('Input inp_parms to be loaded must be a dictionary')
         for pkey in self.parmkeys:
             if pkey in inp_parms:
-                if (pkey != 'Et') and (pkey != 'Ef'):
+                if pkey == 'cable_delays':
+                    if not isinstance(inp_parms[pkey], dict):
+                        raise TypeError('Contents under key {0} must be a dictionary'.format(pkey))
+                    if self.pol is not None:
+                        for pol in self.pol:
+                            if pol in inp_parms[pkey]:
+                                if not isinstance(inp_parms[pkey][pol], self.parmscheck[pkey]['objtype']):
+                                    raise TypeError('Invalid type for parameter {0}[{1}]'.format(pkey, pol))
+                                if not isinstance(inp_parms[pkey][pol].ravel()[0], self.parmscheck[pkey]['dtype']):
+                                    raise TypeError('The lowest level datatype under key {0}[{1}] is invalid'.format(pkey, pol))
+                                if inp_parms[pkey][pol].shape != self.parmscheck[pkey]['shape']:
+                                    raise ValueError('Content under parameter {0}[{1} has invalid shape'.format(pkey, pol))
+                            if not isinstance(getattr(self, pkey), dict):
+                                setattr(self, pkey, {})
+                            getattr(self, pkey)[pol] = inp_parms[pkey][pol]
+                                
+                elif (pkey != 'Et') and (pkey != 'Ef'):
                     if not isinstance(inp_parms[pkey], self.parmscheck[pkey]['objtype']):
                         raise TypeError('Invalid type for parameter {0}'.format(pkey))
                     if NP.ndarray in self.parmscheck[pkey]['objtype']:
@@ -667,7 +696,8 @@ class DataContainer(object):
                                         raise ValueError('Content under parameter {0}[{1}][{2}] has invalid shape'.format(pkey, pol, qty))
                                 else:
                                     raise KeyError('Content under key {0} not found in input parameter {1}[{2}]'.format(qty, pkey, pol))
-                                setattr(self, pkey, inp_parms[pkey])
+                                getattr(self, pkey)[pol][qty] = inp_parms[pkey][pol][qty]
+                                # setattr(self, pkey, inp_parms[pkey])
                 else:
                     raise AttributeError('Attribute pol not initialized yet')
                     

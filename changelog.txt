@@ -1,3 +1,13 @@
+From d62f3d6 (package):
+======================
+
+In epic/data_interface.py,
+
+(*) Update __init__() and load_parms() member functions of class
+DataContainer to store cable delays.
+(*) Update load_parms() member function of class DataContainer to
+store Ef and Et using getattr() instead of setattr()
+
 From 6b6ed5e (package):
 ======================
 
