@@ -1,3 +1,9 @@
+From f8ea64d (package):
+======================
+
+(*) Update parameters in
+epic/examples/ioparms/LWA_TBN_input_file_parameters.yaml
+
 From 2fec2d1 (package):
 ======================
 

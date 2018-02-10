@@ -23,6 +23,13 @@ dirstruct   :
                                 # '.hdf5' will be automatically
                                 # appended
 
+    compress_fmt    : 'lzf'
+                                # Accepted values are 'lzf' and
+                                # 'gzip'
+
+    compress_opts   : 9         # Compression level if compress_fmt
+                                # is set to 'gzip'
+
 ######## Instrumental Parameters #########
 
 instrumentinfo  :
@@ -49,7 +56,7 @@ obsinfo     :
                                 # be compatible with integer number of
                                 # samples and power of 2, etc.
 
-    duration        : 2.0
+    duration        : null
                                 # duration (in seconds) of data to 
                                 # extract from the input file from the
                                 # front. If set to null, extract all
@@ -59,4 +66,9 @@ obsinfo     :
                                 # Should number of channels in a
                                 # timetag be a power of 2. If yes, set
                                 # to true (default), else false
-                                
+
+    channelize      : true
+                                # If set to true, channelize to create
+                                # voltage spectra as well. If not, just
+                                # save the voltage time-series
+
