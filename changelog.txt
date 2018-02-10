@@ -1,3 +1,11 @@
+From bf13982 (package):
+======================
+
+In scripts/convert_LWA_TBN_data_to_EPIC_format.py,
+
+(*) Minor bug fix when channelize is set to false in
+epic/examples/ioparms/LWA_TBN_input_file_parameters.yaml
+
 From 97f6998 (package):
 ======================
 

@@ -84,8 +84,8 @@ if __name__ == '__main__':
     Et = {'P{0}'.format(polind+1): NP.swapaxes(tbnData[polind::2,:,:], 0, 1) for polind in range(npol)} # Time ordered data (ntimetags, nstands, nts_per_timetag)
     ldpinstance.close()
 
+    freqs = cFreq + DSP.spectral_axis(nchan, delx=1/bw, shift=True)
     if channelize:
-        freqs = cFreq + DSP.spectral_axis(nchan, delx=1/bw, shift=True)
         Ef = {'P{0}'.format(polind+1): DSP.FT1D(Et['P{0}'.format(polind+1)], ax=-1, use_real=False, shift=True, inverse=False) for polind in range(npol)}
 
     delays = [a.cable.delay(cFreq) for a in antennas]
