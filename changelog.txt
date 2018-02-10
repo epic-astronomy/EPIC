@@ -1,3 +1,10 @@
+From edb795d (package):
+======================
+
+In scripts/convert_LWA_TBN_data_to_EPIC_format.py,
+
+(*) Add "#!python" at the beginning to make it executable
+
 From bf13982 (package):
 ======================
 
