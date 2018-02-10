@@ -701,7 +701,7 @@ class DataContainer(object):
                     
     ############################################################################
 
-    def save(self, outfile, overwrite=False, compress=True, compress_format='gzip', compress_opts=4):
+    def save(self, outfile, overwrite=False, compress=True, compress_format='gzip', compress_opts=9):
 
         try:
             outfile

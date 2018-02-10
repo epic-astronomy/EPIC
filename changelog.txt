@@ -1,3 +1,11 @@
+From 2fec2d1 (package):
+======================
+
+In epic/data_interface.py,
+
+(*) Change default compression option in save() member function of
+class DataContainer.
+
 From a6869ee (package):
 ======================
 
