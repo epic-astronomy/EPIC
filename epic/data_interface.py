@@ -5,7 +5,6 @@ import h5py
 import progressbar as PGB
 import warnings
 import lwa_operations as LWAO
-import ipdb as PDB
 
 #################################################################################
 
@@ -605,10 +604,9 @@ class DataContainer(object):
                 for grpkey in parmkeys:
                     for pkey in parmkeys[grpkey]:
                         if pkey == 'cable_delays':
-                            PDB.set_trace()
                             init_parms[pkey] = {}
-                            for pol in fileobj[pkey]:
-                                init_parms[pkey][pol] = fileobj[pkey][pol].value
+                            for pol in fileobj[grpkey][pkey]:
+                                init_parms[pkey][pol] = fileobj[grpkey][pkey][pol].value
                         else:
                             init_parms[pkey] = fileobj[grpkey][pkey].value
                 for dpkey in data_parmkeys:
@@ -740,6 +738,10 @@ class DataContainer(object):
             ant_group['antpos'] = self.antpos
             ant_group['antpos'].attrs['units'] = 'm'
             ant_group['antpos'].attrs['coords'] = 'ENU'
+            cdgroup = ant_group.create_group('cable_delays')
+            for pol in self.pol:
+                cddset = cdgroup.create_dataset(pol, data=self.cable_delays[pol])
+                cddset.attrs['units'] = 's'
             spec_group = fileobj.create_group('spectral_info')
             spec_group['f'] = self.f
             spec_group['f'].attrs['units'] = 'Hz'

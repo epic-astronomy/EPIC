@@ -1,3 +1,11 @@
+From a6869ee (package):
+======================
+
+In epic/data_interface.py,
+
+(*) Update save() and __init__() member functions to save and load
+cable delays to/from external files
+
 From d62f3d6 (package):
 ======================
 
