@@ -1,3 +1,10 @@
+From b56b3de (package):
+======================
+
+In scripts/convert_MWAVCS_data_to_EPIC_format.py,
+
+(*) Add "#!python" at the beginning to make it executable
+
 From edb795d (package):
 ======================
 

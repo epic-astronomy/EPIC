@@ -1,3 +1,5 @@
+#!python
+
 from glob import glob
 import numpy as NP
 import os
