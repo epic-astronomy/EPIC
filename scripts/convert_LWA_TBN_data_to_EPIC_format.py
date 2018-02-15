@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     npol = 2
 
-    antennas = lwasv.getAntennas()
+    antennas = station.getAntennas()
     positions = [(a.stand.x,a.stand.y,a.stand.z) for a in antennas]
     pols = [a.pol for a in antennas]
 

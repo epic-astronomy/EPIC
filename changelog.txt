@@ -1,3 +1,10 @@
+From 3db5146 (master):
+=====================
+
+In scripts/convert_LWA_TBN_data_to_EPIC_format.py,
+
+(*) Remove forgotten PDB.set_trace() in the script
+
 From b56b3de (package):
 ======================
 
