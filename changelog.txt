@@ -1,3 +1,15 @@
+From 72dc82b (master):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Use appropriate dimensions in padding Et array in member
+function FT() of class PolInfo
+(*) Use appropriate reshaping of phases due to cable delays in
+member function delay_compensation() of class PolInfo
+(*) Fix bug where key 'Et' in update dictionary was wrongly assigned
+to None in member function update() of class AntennaArray
+
 From 3db5146 (master):
 =====================
 

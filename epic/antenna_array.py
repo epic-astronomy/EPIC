@@ -8098,7 +8098,7 @@ class PolInfo(object):
 
         for p in pol:
             if p in ['P1', 'P2']:
-                Et = NP.pad(self.Et[p], (0,len(self.Et[p])), 'constant', constant_values=(0,0))
+                Et = NP.pad(self.Et[p], [(0,0), (0,self.Et[p].shape[1])], 'constant', constant_values=(0,0))
                 self.Ef[p] = DSP.FT1D(Et, ax=0, use_real=False, inverse=False, shift=True)
             else:
                 raise ValueError('polarization string "{0}" unrecognized. Verify inputs. Aborting {1}.{2}()'.format(p, self.__class__.__name__, 'FT'))
@@ -8186,7 +8186,7 @@ class PolInfo(object):
                 phases[0::2] = temp_phases
                 phases[1::2] = temp_phases
   
-                self.Ef[pol] *= NP.exp(1j * phases)
+                self.Ef[pol] *= NP.exp(1j * phases.reshape(1,-1))
                     
         ## INSERT FEATURE: yet to modify the timeseries after application of delay compensation ##
 
@@ -12960,7 +12960,7 @@ class AntennaArray(object):
                         else:
                             if verbose:
                                 print 'Modifying antenna {0}...'.format(dictitem['label'])
-                            if 'Ef' not in dictitem: dictitem['Et']=None
+                            if 'Ef' not in dictitem: dictitem['Ef']=None
                             if 'Et' not in dictitem: dictitem['Et']=None
                             if 't' not in dictitem: dictitem['t']=None
                             if 'timestamp' not in dictitem: dictitem['timestamp']=None
