@@ -1,3 +1,10 @@
+From 59f5158 (master):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Rename class NewImage as class Image
+
 From 72dc82b (master):
 =====================
 
