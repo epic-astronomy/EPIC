@@ -1,3 +1,4 @@
+import os
 import numpy as NP
 import numpy.ma as MA
 import multiprocessing as MP
@@ -6477,6 +6478,9 @@ class Image(object):
     img_P2       [Numpy array] 3D image cube obtained by squaring the absolute 
                  value of holograph_P2. The third dimension is along frequency.
 
+    extfileinfo  [dictionary] external file info with information under keys
+                 'filename', 'n_avg', 'n_stack_per_avg'
+
     Member Functions:
 
     __init__()   Initializes an instance of class Image which manages 
@@ -6507,7 +6511,7 @@ class Image(object):
 
     def __init__(self, f0=None, f=None, pol=None, antenna_array=None,
                  interferometer_array=None, infile=None, timestamp=None,
-                 verbose=True):
+                 extfileinfo=None, verbose=True):
         
         """
         ------------------------------------------------------------------------
@@ -6523,7 +6527,7 @@ class Image(object):
         holograph_P1, holograph_PB_P1, img_P1, PB_P1, lf_P1, mf_P1, gridx_P1,
         gridy_P1, grid_illumination_P1, grid_Ef_P1, holograph_P1,
         holograph_PB_P1, img_P1, PB_P1, lf_P1, mf_P1, autocorr_wts_vuf, 
-        autocorr_data_vuf
+        autocorr_data_vuf, extfileinfo
 
         Read docstring of class Image for details on these attributes.
         ------------------------------------------------------------------------
@@ -6558,6 +6562,8 @@ class Image(object):
         self.autocorr_removed = False
 
         if (infile is None) and (antenna_array is None) and (interferometer_array is None):
+            self.extfileinfo = None
+
             self.gridx_P1 = None
             self.gridy_P1 = None
             self.grid_illumination_P1 = None
@@ -6585,15 +6591,16 @@ class Image(object):
                 print '\t\tInitialized lf_P1, mf_P1, holograph_PB_P1, PB_P1, holograph_P1, and img_P1'
                 print '\t\tInitialized gridx_P2, gridy_P2, grid_illumination_P2, and grid_Ef_P2'
                 print '\t\tInitialized lf_P2, mf_P2, holograph_PB_P2, PB_P2, holograph_P2, and img_P2'
+                print '\t\tInitialized extfileinfo'
 
         if (infile is not None) and (antenna_array is not None):
-            raise ValueError('Both gridded data file and antenna array information are specified. One and only one of these should be specified. Cannot initialize an instance of class Image.')     
+            raise ValueError('Both gridded data file and antenna array information are specified. One and only one of these should be specified. Cannot initialize an instance of class Image.')
 
         if (infile is not None) and (interferometer_array is not None):
-            raise ValueError('Both gridded data file and interferometer array information are specified. One and only one of these should be specified. Cannot initialize an instance of class Image.')     
+            raise ValueError('Both gridded data file and interferometer array information are specified. One and only one of these should be specified. Cannot initialize an instance of class Image.')
 
         if (antenna_array is not None) and (interferometer_array is not None):
-            raise ValueError('Both antenna array and interferometer array information are specified. One and only one of these should be specified. Cannot initialize an instance of class Image.')     
+            raise ValueError('Both antenna array and interferometer array information are specified. One and only one of these should be specified. Cannot initialize an instance of class Image.') 
 
         if verbose:
             print '\tArguments verified for initialization.'
@@ -6777,6 +6784,13 @@ class Image(object):
                     print '\t\tInitialized gridded attributes for image object'
             else:
                 raise TypeError('antenna_array is not an instance of class AntennaArray. Cannot initiate instance of class Image.')
+
+            if extfileinfo is not None:
+                if not isinstance(extfileinfo, dict):
+                    raise TypeError('Input extfile name must be a dictionary')
+                self.extfileinfo = extfileinfo
+            if verbose:
+                print '\t\tInitialized extfileinfo'
 
         if interferometer_array is not None:
             if verbose:

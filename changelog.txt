@@ -1,3 +1,11 @@
+From c1319d2 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Add extfileinfo as an attribute in class Image. Update docstring
+accordingly
+
 From 59f5158 (master):
 =====================
 
