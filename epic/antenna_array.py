@@ -6788,7 +6788,20 @@ class Image(object):
             if extfileinfo is not None:
                 if not isinstance(extfileinfo, dict):
                     raise TypeError('Input extfile name must be a dictionary')
+                if ('filename' not in extfileinfo) or ('n_avg' not in extfileinfo) or ('n_stack_per_avg' not in extfileinfo):
+                    raise KeyError('Keys "filename", "n_avg", "n_stack_per_avg" must be specified in extfileinfo')
                 self.extfileinfo = extfileinfo
+
+                with h5py.File(self.extfileinfo['filename'], 'w') as fext:
+                    hdr_group = fext.create_group('header')
+                    hdr_group['n_avg'] = self.extfileinfo['n_avg']
+                    hdr_group['n_stack_per_avg'] = self.extfileinfo['n_stack_per_avg']
+                    hdr_group['f'] = self.f
+                    hdr_group['f'].attrs['units'] = 'Hz'
+                    hdr_group['f0'] = self.f0
+                    hdr_group['f0'].attrs['units'] = 'Hz'
+                    hdr_group['pol'] = pol
+                
             if verbose:
                 print '\t\tInitialized extfileinfo'
 

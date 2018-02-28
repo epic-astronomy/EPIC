@@ -1,3 +1,11 @@
+From 6208e1a (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Initiate an empty HDF5 external file as a container for image data
+in __init__() member function of class Image 
+
 From c1319d2 (extimg):
 =====================
 
