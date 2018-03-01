@@ -1,3 +1,11 @@
+From 53247fa (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Create empty containers for image and PSF in member function
+imagr() of class Image
+
 From 6208e1a (extimg):
 =====================
 

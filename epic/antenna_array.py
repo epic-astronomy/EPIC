@@ -7197,6 +7197,20 @@ class Image(object):
         if verbose:
             print 'Successfully imaged.'
 
+        with h5py.File(self.extfileinfo['filename'], 'a') as fext:
+            if 'image' not in fext:
+                img_group = fext.create_group('image')
+                imgstack = img_group.create_group('stack')
+                imgavg = img_group.create_group('avg')
+                psf_group = fext.create_group('psf')
+                psfstack = psf_group.create_group('stack')
+                psfavg = psf_group.create_group('avg')
+                for p in self.pol:
+                    imgstack_pol = imgstack.create_dataset('{0}'.format(p), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
+                    imgavg_pol = imgavg.create_dataset('{0}'.format(p), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
+                    psfstack_pol = psfstack.create_dataset('{0}'.format(p), maxshape=(None,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), chunks=(1,1,self.beam[p].shape[0],self.beam[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
+                    psfavg_pol = psfavg.create_dataset('{0}'.format(p), maxshape=(None,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), chunks=(1,1,self.beam[p].shape[0],self.beam[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
+
         # Call stack() if required
         if stack:
             self.stack(pol=pol)
