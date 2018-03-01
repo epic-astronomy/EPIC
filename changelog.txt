@@ -1,3 +1,16 @@
+From d2f00d3 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Import h5py
+(*) Replace extfileinfo attribute with extfile in class Image. Update
+docstring accordingly
+(*) In member function imagr() of class Image, create resizable HDF5
+containers for storing stack of images and their accumulations.
+(*) In member function stack() of class Image, resize and append
+images and synthesized beams on to the external HDF5 file.
+
 From 53247fa (extimg):
 =====================
 

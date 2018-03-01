@@ -1,9 +1,9 @@
-import os
 import numpy as NP
 import numpy.ma as MA
 import multiprocessing as MP
 import itertools as IT
 import copy
+import h5py
 import scipy.constants as FCNST
 import scipy.sparse as SpM
 from astropy.io import fits
@@ -6478,8 +6478,8 @@ class Image(object):
     img_P2       [Numpy array] 3D image cube obtained by squaring the absolute 
                  value of holograph_P2. The third dimension is along frequency.
 
-    extfileinfo  [dictionary] external file info with information under keys
-                 'filename', 'n_avg', 'n_stack_per_avg'
+    extfile      [string] external filename under which images and associated 
+                 info will be stored
 
     Member Functions:
 
@@ -6511,7 +6511,7 @@ class Image(object):
 
     def __init__(self, f0=None, f=None, pol=None, antenna_array=None,
                  interferometer_array=None, infile=None, timestamp=None,
-                 extfileinfo=None, verbose=True):
+                 extfile=None, verbose=True):
         
         """
         ------------------------------------------------------------------------
@@ -6527,7 +6527,7 @@ class Image(object):
         holograph_P1, holograph_PB_P1, img_P1, PB_P1, lf_P1, mf_P1, gridx_P1,
         gridy_P1, grid_illumination_P1, grid_Ef_P1, holograph_P1,
         holograph_PB_P1, img_P1, PB_P1, lf_P1, mf_P1, autocorr_wts_vuf, 
-        autocorr_data_vuf, extfileinfo
+        autocorr_data_vuf, extfile
 
         Read docstring of class Image for details on these attributes.
         ------------------------------------------------------------------------
@@ -6562,7 +6562,7 @@ class Image(object):
         self.autocorr_removed = False
 
         if (infile is None) and (antenna_array is None) and (interferometer_array is None):
-            self.extfileinfo = None
+            self.extfile = None
 
             self.gridx_P1 = None
             self.gridy_P1 = None
@@ -6591,7 +6591,7 @@ class Image(object):
                 print '\t\tInitialized lf_P1, mf_P1, holograph_PB_P1, PB_P1, holograph_P1, and img_P1'
                 print '\t\tInitialized gridx_P2, gridy_P2, grid_illumination_P2, and grid_Ef_P2'
                 print '\t\tInitialized lf_P2, mf_P2, holograph_PB_P2, PB_P2, holograph_P2, and img_P2'
-                print '\t\tInitialized extfileinfo'
+                print '\t\tInitialized extfile'
 
         if (infile is not None) and (antenna_array is not None):
             raise ValueError('Both gridded data file and antenna array information are specified. One and only one of these should be specified. Cannot initialize an instance of class Image.')
@@ -6785,17 +6785,13 @@ class Image(object):
             else:
                 raise TypeError('antenna_array is not an instance of class AntennaArray. Cannot initiate instance of class Image.')
 
-            if extfileinfo is not None:
-                if not isinstance(extfileinfo, dict):
-                    raise TypeError('Input extfile name must be a dictionary')
-                if ('filename' not in extfileinfo) or ('n_avg' not in extfileinfo) or ('n_stack_per_avg' not in extfileinfo):
-                    raise KeyError('Keys "filename", "n_avg", "n_stack_per_avg" must be specified in extfileinfo')
-                self.extfileinfo = extfileinfo
+            if extfile is not None:
+                if not isinstance(extfile, str):
+                    raise TypeError('Input extfile name must be a string')
+                self.extfile = extfile
 
-                with h5py.File(self.extfileinfo['filename'], 'w') as fext:
+                with h5py.File(self.extfile, 'w') as fext:
                     hdr_group = fext.create_group('header')
-                    hdr_group['n_avg'] = self.extfileinfo['n_avg']
-                    hdr_group['n_stack_per_avg'] = self.extfileinfo['n_stack_per_avg']
                     hdr_group['f'] = self.f
                     hdr_group['f'].attrs['units'] = 'Hz'
                     hdr_group['f0'] = self.f0
@@ -6803,7 +6799,7 @@ class Image(object):
                     hdr_group['pol'] = pol
                 
             if verbose:
-                print '\t\tInitialized extfileinfo'
+                print '\t\tInitialized extfile'
 
         if interferometer_array is not None:
             if verbose:
@@ -7197,7 +7193,7 @@ class Image(object):
         if verbose:
             print 'Successfully imaged.'
 
-        with h5py.File(self.extfileinfo['filename'], 'a') as fext:
+        with h5py.File(self.extfile, 'a') as fext:
             if 'image' not in fext:
                 img_group = fext.create_group('image')
                 imgstack = img_group.create_group('stack')
@@ -7205,11 +7201,11 @@ class Image(object):
                 psf_group = fext.create_group('psf')
                 psfstack = psf_group.create_group('stack')
                 psfavg = psf_group.create_group('avg')
-                for p in self.pol:
-                    imgstack_pol = imgstack.create_dataset('{0}'.format(p), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
-                    imgavg_pol = imgavg.create_dataset('{0}'.format(p), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
-                    psfstack_pol = psfstack.create_dataset('{0}'.format(p), maxshape=(None,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), chunks=(1,1,self.beam[p].shape[0],self.beam[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
-                    psfavg_pol = psfavg.create_dataset('{0}'.format(p), maxshape=(None,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), chunks=(1,1,self.beam[p].shape[0],self.beam[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
+                for p in pol:
+                    imgstack_pol = imgstack.create_dataset('{0}'.format(p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
+                    imgavg_pol = imgavg.create_dataset('{0}'.format(p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
+                    psfstack_pol = psfstack.create_dataset('{0}'.format(p), data=NP.full((1,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), chunks=(1,1,self.beam[p].shape[0],self.beam[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
+                    psfavg_pol = psfavg.create_dataset('{0}'.format(p), data=NP.full((1,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), chunks=(1,1,self.beam[p].shape[0],self.beam[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
 
         # Call stack() if required
         if stack:
@@ -7248,24 +7244,41 @@ class Image(object):
                 raise TypeError('Input pol must be a string or list specifying polarization(s)')
     
             for p in pol:
-                if self.img_stack[p] is None:
-                    self.img_stack[p] = self.img[p][NP.newaxis,:,:,:]
-                    self.beam_stack[p] = self.beam[p][NP.newaxis,:,:,:]
-                    self.grid_illumination_stack[p] = self.wts_vuf[p][NP.newaxis,:,:,:]
-                    self.grid_vis_stack[p] = self.vis_vuf[p][NP.newaxis,:,:,:]
+                if self.extfile is not None:
+                    with h5py.File(self.extfile, 'a') as fext:
+                        dset = fext['image/stack/{0}'.format(p)]
+                        if NP.any(NP.isnan(dset.value)):
+                            if NP.sum(NP.isnan(dset.value)) != dset.size:
+                                raise ValueError('Inconsistent number of NaN found')
+                        else:
+                            dset.resize(dset.shape[0]+1, axis=0)
+                        dset[-1:] = NP.rollaxis(self.img[p], 2, start=0)
+                        dset = fext['psf/stack/{0}'.format(p)]
+                        if NP.any(NP.isnan(dset.value)):
+                            if NP.sum(NP.isnan(dset.value)) != dset.size:
+                                raise ValueError('Inconsistent number of NaN found')
+                        else:
+                            dset.resize(dset.shape[0]+1, axis=0)
+                        dset[-1:] = NP.rollaxis(self.beam[p], 2, start=0)
                 else:
-                    self.img_stack[p] = NP.concatenate((self.img_stack[p], self.img[p][NP.newaxis,:,:,:]), axis=0)
-                    self.beam_stack[p] = NP.concatenate((self.beam_stack[p], self.beam[p][NP.newaxis,:,:,:]), axis=0)
-                    self.grid_illumination_stack[p] = NP.concatenate((self.grid_illumination_stack[p], self.wts_vuf[p][NP.newaxis,:,:,:]), axis=0)
-                    self.grid_vis_stack[p] = NP.concatenate((self.grid_vis_stack[p], self.vis_vuf[p][NP.newaxis,:,:,:]), axis=0)
-    
-                if self.measured_type == 'E-field':
-                    if self.holimg_stack[p] is None:
-                        self.holimg_stack[p] = self.holimg[p][NP.newaxis,:,:,:]
-                        self.holbeam_stack[p] = self.holbeam[p][NP.newaxis,:,:,:]
+                    if self.img_stack[p] is None:
+                        self.img_stack[p] = self.img[p][NP.newaxis,:,:,:]
+                        self.beam_stack[p] = self.beam[p][NP.newaxis,:,:,:]
+                        self.grid_illumination_stack[p] = self.wts_vuf[p][NP.newaxis,:,:,:]
+                        self.grid_vis_stack[p] = self.vis_vuf[p][NP.newaxis,:,:,:]
                     else:
-                        self.holimg_stack[p] = NP.concatenate((self.holimg_stack[p], self.holimg[p][NP.newaxis,:,:,:]), axis=0)
-                        self.holbeam_stack[p] = NP.concatenate((self.holbeam_stack[p], self.holbeam[p][NP.newaxis,:,:,:]), axis=0)
+                        self.img_stack[p] = NP.concatenate((self.img_stack[p], self.img[p][NP.newaxis,:,:,:]), axis=0)
+                        self.beam_stack[p] = NP.concatenate((self.beam_stack[p], self.beam[p][NP.newaxis,:,:,:]), axis=0)
+                        self.grid_illumination_stack[p] = NP.concatenate((self.grid_illumination_stack[p], self.wts_vuf[p][NP.newaxis,:,:,:]), axis=0)
+                        self.grid_vis_stack[p] = NP.concatenate((self.grid_vis_stack[p], self.vis_vuf[p][NP.newaxis,:,:,:]), axis=0)
+        
+                    if self.measured_type == 'E-field':
+                        if self.holimg_stack[p] is None:
+                            self.holimg_stack[p] = self.holimg[p][NP.newaxis,:,:,:]
+                            self.holbeam_stack[p] = self.holbeam[p][NP.newaxis,:,:,:]
+                        else:
+                            self.holimg_stack[p] = NP.concatenate((self.holimg_stack[p], self.holimg[p][NP.newaxis,:,:,:]), axis=0)
+                            self.holbeam_stack[p] = NP.concatenate((self.holbeam_stack[p], self.holbeam[p][NP.newaxis,:,:,:]), axis=0)
 
             self.timestamps += [self.timestamp]
 
