@@ -7195,18 +7195,18 @@ class Image(object):
 
         with h5py.File(self.extfile, 'a') as fext:
             if 'image' not in fext:
-                img_group = fext.create_group('image')
-                imgstack = img_group.create_group('stack')
-                imgavg = img_group.create_group('avg')
-                psf_group = fext.create_group('psf')
-                psfstack = psf_group.create_group('stack')
-                psfavg = psf_group.create_group('avg')
-                for p in pol:
-                    imgstack_pol = imgstack.create_dataset('{0}'.format(p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
-                    imgavg_pol = imgavg.create_dataset('{0}'.format(p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
-                    psfstack_pol = psfstack.create_dataset('{0}'.format(p), data=NP.full((1,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), chunks=(1,1,self.beam[p].shape[0],self.beam[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
-                    psfavg_pol = psfavg.create_dataset('{0}'.format(p), data=NP.full((1,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.beam[p].shape[0],self.beam[p].shape[1]), chunks=(1,1,self.beam[p].shape[0],self.beam[p].shape[1]), dtype='f', compression='gzip', compression_opts=9)
-
+                qtytypes = ['image', 'psf', 'visibility', 'aprtrwts']
+                arraytypes = ['stack', 'avg']
+                reim_list = ['real', 'imag']
+                for qtytype in qtytypes:
+                    for arraytype in arraytypes:
+                        for p in pol:
+                            if qtytype in ['image', 'psf']:
+                                dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                            else:
+                                for reim in reim_list:
+                                    dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.full((1,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                
         # Call stack() if required
         if stack:
             self.stack(pol=pol)
@@ -7246,20 +7246,37 @@ class Image(object):
             for p in pol:
                 if self.extfile is not None:
                     with h5py.File(self.extfile, 'a') as fext:
-                        dset = fext['image/stack/{0}'.format(p)]
-                        if NP.any(NP.isnan(dset.value)):
-                            if NP.sum(NP.isnan(dset.value)) != dset.size:
-                                raise ValueError('Inconsistent number of NaN found')
-                        else:
-                            dset.resize(dset.shape[0]+1, axis=0)
-                        dset[-1:] = NP.rollaxis(self.img[p], 2, start=0)
-                        dset = fext['psf/stack/{0}'.format(p)]
-                        if NP.any(NP.isnan(dset.value)):
-                            if NP.sum(NP.isnan(dset.value)) != dset.size:
-                                raise ValueError('Inconsistent number of NaN found')
-                        else:
-                            dset.resize(dset.shape[0]+1, axis=0)
-                        dset[-1:] = NP.rollaxis(self.beam[p], 2, start=0)
+                        for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
+                            for arraytype in ['stack']:
+                                if qtytype in ['image', 'psf']:
+                                    dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
+                                    if NP.any(NP.isnan(dset.value)):
+                                        if NP.sum(NP.isnan(dset.value)) != dset.size:
+                                            raise ValueError('Inconsistent number of NaN found')
+                                    else:
+                                        dset.resize(dset.shape[0]+1, axis=0)
+                                    if qtytype == 'image':
+                                        dset[-1:] = NP.rollaxis(self.img[p], 2, start=0)
+                                    elif qtytype == 'psf':
+                                        dset[-1:] = NP.rollaxis(self.beam[p], 2, start=0)
+                                else:
+                                    for reim in ['real', 'imag']:
+                                        dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
+                                        if NP.any(NP.isnan(dset.value)):
+                                            if NP.sum(NP.isnan(dset.value)) != dset.size:
+                                                raise ValueError('Inconsistent number of NaN found')
+                                        else:
+                                            dset.resize(dset.shape[0]+1, axis=0)
+                                        if qtytype == 'visibility':
+                                            if reim == 'real':
+                                                dset[-1:] = NP.rollaxis(self.vis_vuf[p].real, 2, start=0)
+                                            else:
+                                                dset[-1:] = NP.rollaxis(self.vis_vuf[p].imag, 2, start=0)
+                                        else:
+                                            if reim == 'real':
+                                                dset[-1:] = NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
+                                            else:
+                                                dset[-1:] = NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
                 else:
                     if self.img_stack[p] is None:
                         self.img_stack[p] = self.img[p][NP.newaxis,:,:,:]

@@ -1,3 +1,14 @@
+From 7dc4e33 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In imagr() member function of class Image, initialize HDF5
+containers for visibilities and uv-aperture weights
+(*) In stack() member function of class Image, stack HDF5
+containers for visibilities and uv-aperture weights with current
+values
+
 From d2f00d3 (extimg):
 =====================
 
