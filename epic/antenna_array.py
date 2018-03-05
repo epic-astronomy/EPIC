@@ -6493,6 +6493,16 @@ class Image(object):
                  appropriate electric field quantities associated with the 
                  antenna array.
 
+    stack()      Stacks current images and UV-grid information onto a stack
+
+    accumulate_inplace()
+                 Accumulates (adds) in-place the image, synthesized beam, 
+                 gridded visibilities and aperture plane weights in the 
+                 external file.
+
+    accumulate() Accumulates and averages gridded quantities that are 
+                 statistically stationary such as images and visibilities
+
     evalAutoCorr()
                  Evaluate sum of auto-correlations of all antenna weights on 
                  the UV-plane. 
@@ -7017,7 +7027,8 @@ class Image(object):
                   padding for FX)
 
         stack     [boolean] If True (default), stacks the imaged and uv-gridded
-                  data to the stack for batch processing later
+                  data to the stack for batch processing later. If False, it 
+                  will accumulate these in-place
 
         grid_map_method
                   [string] Accepted values are 'regular' and 'sparse' (default).
@@ -7196,20 +7207,30 @@ class Image(object):
         with h5py.File(self.extfile, 'a') as fext:
             if 'image' not in fext:
                 qtytypes = ['image', 'psf', 'visibility', 'aprtrwts']
-                arraytypes = ['stack', 'avg']
+                arraytypes = ['stack', 'accumulate']
                 reim_list = ['real', 'imag']
+                for p in pol:
+                    dset = fext.create_dataset('twts/{0}'.format(p), data=NP.zeros(1), dtype='f4')
                 for qtytype in qtytypes:
                     for arraytype in arraytypes:
                         for p in pol:
                             if qtytype in ['image', 'psf']:
-                                dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                if arraytype == 'stack':
+                                    dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                elif arraytype == 'accumulate':
+                                    dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.zeros((self.f.size,self.img[p].shape[0],self.img[p].shape[1])), maxshape=(self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
                             else:
                                 for reim in reim_list:
-                                    dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.full((1,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                    if arraytype == 'stack':
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.full((1,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                    elif arraytype == 'accumulate':
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.zeros((self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1])), maxshape=(self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
                                 
         # Call stack() if required
         if stack:
             self.stack(pol=pol)
+        else:
+            self.accumulate_inplace(pol=pol)
 
     ############################################################################
         
@@ -7298,6 +7319,72 @@ class Image(object):
                             self.holbeam_stack[p] = NP.concatenate((self.holbeam_stack[p], self.holbeam[p][NP.newaxis,:,:,:]), axis=0)
 
             self.timestamps += [self.timestamp]
+
+    ############################################################################
+
+    def accumulate_inplace(self, pol=None, verbose=True):
+
+        """
+        ------------------------------------------------------------------------
+        Accumulates (adds) in-place the image, synthesized beam, gridded 
+        visibilities and aperture plane weights in the external file.
+
+        Inputs:
+
+        pol     [string] indicates which polarization information to be saved. 
+                Allowed values are 'P1', 'P2' in case of MOFF or 'P11', 'P12', 
+                'P21', 'P22' in case of FX or None (default). If None, 
+                information on all polarizations appropriate for MOFF or FX 
+                are accumulated
+
+        verbose [boolean] If True (default), prints diagnostic and progress
+                messages. If False, suppress printing such messages.
+        ------------------------------------------------------------------------
+        """
+
+        if self.timestamp not in self.timestamps:
+            if pol is None:
+                if self.measured_type == 'E-field':
+                    pol = ['P1', 'P2']
+                else:
+                    pol = ['P11', 'P12', 'P21', 'P22']
+            elif isinstance(pol, str):
+                pol = [pol]
+            elif isinstance(pol, list):
+                p = [item for item in pol if item in ['P1', 'P2', 'P11', 'P12', 'P21', 'P22']]
+                pol = p
+            else:
+                raise TypeError('Input pol must be a string or list specifying polarization(s)')
+    
+            for p in pol:
+                if self.extfile is not None:
+                    with h5py.File(self.extfile, 'a') as fext:
+                        for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
+                            for arraytype in ['accumulate']:
+                                if qtytype in ['image', 'psf']:
+                                    dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
+                                    if qtytype == 'image':
+                                        dset[...] += NP.rollaxis(self.img[p], 2, start=0)
+                                    else:
+                                        dset[...] += NP.rollaxis(self.beam[p], 2, start=0)
+                                else:
+                                    for reim in ['real', 'imag']:
+                                        dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
+                                        if qtytype == 'visibility':
+                                            if reim == 'real':
+                                                dset[...] += NP.rollaxis(self.vis_vuf[p].real, 2, start=0)
+                                            else:
+                                                dset[...] += NP.rollaxis(self.vis_vuf[p].imag, 2, start=0)
+                                        else:
+                                            if reim == 'real':
+                                                dset[...] += NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
+                                            else:
+                                                dset[...] += NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
+                        dset = fext['twts/{0}'.format(p)]
+                        dset[...] += 1.0
+            self.timestamps += [self.timestamp]
+            if verbose:
+                print '\nIn-place accumulation of image, beam, visibility, and synthesis aperture weights completed.\n'
 
     ############################################################################
 
