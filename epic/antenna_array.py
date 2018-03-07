@@ -6503,6 +6503,10 @@ class Image(object):
     accumulate() Accumulates and averages gridded quantities that are 
                  statistically stationary such as images and visibilities
 
+    average()    Averages the image, synthesized beam, gridded visibilities, 
+                 aperture plane weights, autocorrelation data and weights in 
+                 the external file.
+
     evalAutoCorr()
                  Evaluate sum of auto-correlations of all antenna weights on 
                  the UV-plane. 
@@ -7204,10 +7208,12 @@ class Image(object):
         if verbose:
             print 'Successfully imaged.'
 
+        self.evalAutoCorr(datapool='current', forceeval=False)
+        
         with h5py.File(self.extfile, 'a') as fext:
             if 'image' not in fext:
-                qtytypes = ['image', 'psf', 'visibility', 'aprtrwts']
-                arraytypes = ['stack', 'accumulate']
+                qtytypes = ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']
+                arraytypes = ['stack', 'accumulate', 'avg']
                 reim_list = ['real', 'imag']
                 for p in pol:
                     dset = fext.create_dataset('twts/{0}'.format(p), data=NP.zeros(1), dtype='f4')
@@ -7219,13 +7225,17 @@ class Image(object):
                                     dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
                                 elif arraytype == 'accumulate':
                                     dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.zeros((self.f.size,self.img[p].shape[0],self.img[p].shape[1])), maxshape=(self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                elif arraytype == 'avg':
+                                    dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
                             else:
                                 for reim in reim_list:
                                     if arraytype == 'stack':
                                         dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.full((1,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
                                     elif arraytype == 'accumulate':
                                         dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.zeros((self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1])), maxshape=(self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
-                                
+                                    elif arraytype == 'avg':
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.full((1,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+
         # Call stack() if required
         if stack:
             self.stack(pol=pol)
@@ -7267,7 +7277,7 @@ class Image(object):
             for p in pol:
                 if self.extfile is not None:
                     with h5py.File(self.extfile, 'a') as fext:
-                        for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
+                        for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']:
                             for arraytype in ['stack']:
                                 if qtytype in ['image', 'psf']:
                                     dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
@@ -7288,16 +7298,27 @@ class Image(object):
                                                 raise ValueError('Inconsistent number of NaN found')
                                         else:
                                             dset.resize(dset.shape[0]+1, axis=0)
+
                                         if qtytype == 'visibility':
                                             if reim == 'real':
                                                 dset[-1:] = NP.rollaxis(self.vis_vuf[p].real, 2, start=0)
                                             else:
                                                 dset[-1:] = NP.rollaxis(self.vis_vuf[p].imag, 2, start=0)
-                                        else:
+                                        elif qtytype == 'aprtrwts':
                                             if reim == 'real':
                                                 dset[-1:] = NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
                                             else:
                                                 dset[-1:] = NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
+                                        elif qtytype == 'autocorr':
+                                            if reim == 'real':
+                                                dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
+                                            else:
+                                                dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
+                                        elif qtytype == 'autowts':
+                                            if reim == 'real':
+                                                dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
+                                            else:
+                                                dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
                 else:
                     if self.img_stack[p] is None:
                         self.img_stack[p] = self.img[p][NP.newaxis,:,:,:]
@@ -7359,7 +7380,7 @@ class Image(object):
             for p in pol:
                 if self.extfile is not None:
                     with h5py.File(self.extfile, 'a') as fext:
-                        for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
+                        for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']:
                             for arraytype in ['accumulate']:
                                 if qtytype in ['image', 'psf']:
                                     dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
@@ -7375,16 +7396,73 @@ class Image(object):
                                                 dset[...] += NP.rollaxis(self.vis_vuf[p].real, 2, start=0)
                                             else:
                                                 dset[...] += NP.rollaxis(self.vis_vuf[p].imag, 2, start=0)
-                                        else:
+                                        elif qtytype == 'aprtrwts':
                                             if reim == 'real':
                                                 dset[...] += NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
                                             else:
                                                 dset[...] += NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
+                                        elif qtytype == 'autocorr':
+                                            if reim == 'real':
+                                                dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
+                                            else:
+                                                dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
+                                        elif qtytype == 'autowts':
+                                            if reim == 'real':
+                                                dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
+                                            else:
+                                                dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
                         dset = fext['twts/{0}'.format(p)]
                         dset[...] += 1.0
             self.timestamps += [self.timestamp]
             if verbose:
-                print '\nIn-place accumulation of image, beam, visibility, and synthesis aperture weights completed.\n'
+                print '\nIn-place accumulation of image, beam, visibility, and synthesis aperture weights completed for timestamp {0:.7f}.\n'.format(self.timestamp)
+
+    ############################################################################
+
+    def average(self, pol=None, verbose=True):
+
+        """
+        ------------------------------------------------------------------------
+        Averages the image, synthesized beam, gridded visibilities, aperture 
+        plane weights, autocorrelation data and weights in the external file.
+
+        Inputs:
+
+        pol     [string] indicates which polarization information to be saved. 
+                Allowed values are 'P1', 'P2' in case of MOFF or 'P11', 'P12', 
+                'P21', 'P22' in case of FX or None (default). If None, 
+                information on all polarizations appropriate for MOFF or FX 
+                are accumulated
+
+        verbose [boolean] If True (default), prints diagnostic and progress
+                messages. If False, suppress printing such messages.
+        ------------------------------------------------------------------------
+        """
+
+        if pol is None:
+            if self.measured_type == 'E-field':
+                pol = ['P1', 'P2']
+            else:
+                pol = ['P11', 'P12', 'P21', 'P22']
+        elif isinstance(pol, str):
+            pol = [pol]
+        elif isinstance(pol, list):
+            p = [item for item in pol if item in ['P1', 'P2', 'P11', 'P12', 'P21', 'P22']]
+            pol = p
+        else:
+            raise TypeError('Input pol must be a string or list specifying polarization(s)')
+    
+        for p in pol:
+            if self.extfile is not None:
+                with h5py.File(self.extfile, 'a') as fext:
+                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
+                        arraytype = 'accumulate'
+                        try:
+                            dset = fext['image/{0}/{1}'.format(arraytype,p)]
+                            if NP.any(NP.isnan(dset.value)):
+                                pass
+                        except:
+                            pass
 
     ############################################################################
 
@@ -7615,7 +7693,7 @@ class Image(object):
 
     ############################################################################
 
-    def evalAutoCorr(self, datapool='avg', forceeval=False):
+    def evalAutoCorr(self, datapool='avg', forceeval=False, verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -7634,12 +7712,16 @@ class Image(object):
                   the UV plane is not evaluated if it was already evaluated 
                   earlier. If set to True, it will be forcibly evaluated 
                   independent of whether they were already evaluated or not
+        verbose   [boolean] When set to True (default), print diagnostic 
+                  messages, otherwise suppress messages
         ------------------------------------------------------------------------
         """
 
         if forceeval or (not self.autocorr_set):
             self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(datapool=datapool, tbinsize=self.tbinsize)
             self.autocorr_set = True
+            if verbose:
+                print 'Determined auto-correlation weights and data...'
             
     ############################################################################
     
@@ -9209,7 +9291,7 @@ class Antenna(object):
         if not isinstance(pol, str):
             raise TypeError('Input parameter must be a string')
         
-        if not pol in ['P1', 'P2']:
+        if pol not in ['P1', 'P2']:
             raise ValueError('Invalid specification for input parameter pol')
 
         if datapool is None:
@@ -10577,17 +10659,19 @@ class AntennaArray(object):
         if datapool not in [None, 'current', 'stack', 'avg']:
             raise ValueError('Input datapool must be set to None, "current", "stack" or "avg"')
 
+        pol = ['P1', 'P2']
+
         if datapool in [None, 'current']:
             self.auto_corr_data['current'] = {}
             for p in pol:
-                Ef_info = self.get_E_fields(p, flag=None, tselect=-1, fselect=None, aselect=None, datapool='', sort=True)
+                Ef_info = self.get_E_fields(p, flag=None, tselect=-1, fselect=None, aselect=None, datapool='current', sort=True)
                 self.auto_corr_data['current'][p] = Ef_info
                 
         if datapool in [None, 'stack']:
             self.auto_corr_data['stack'] = {}
             for p in pol:
-                Ef_info = self.get_E_fields(p, flag=None, tselect=NP.arange(len(self.timestamps)), fselect=None, aselect=None, datapool='', sort=True)
-                self.auto_corr_data['current'][p] = Ef_info
+                Ef_info = self.get_E_fields(p, flag=None, tselect=NP.arange(len(self.timestamps)), fselect=None, aselect=None, datapool='stack', sort=True)
+                self.auto_corr_data['stack'][p] = Ef_info
 
         if datapool in [None, 'avg']:
             self.avgAutoCorr(tbinsize=tbinsize)
@@ -12318,7 +12402,7 @@ class AntennaArray(object):
                 raise ValueError('Invalid specification for input parameter pol')
 
             for antind, antkey in enumerate(data_info[apol]['labels']):
-                typetag_pair = self.antenna_pair_to_typetag[(antkey,antkey)]
+                typetag_pair = self.antenna_pair_to_typetag[(antkey,antkey)] # auto pair
                 shape_tuple = tuple(2*NP.asarray(self.gridu.shape))+(self.f.size,)
                 if autocorr_wts_cube[apol] is None:
                     autocorr_wts_cube[apol] = self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
