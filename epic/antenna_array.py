@@ -7708,17 +7708,33 @@ class Image(object):
                   fields will be used if set to 'current' or 'stack', and 
                   averaged squared electric fields if set to 'avg'
 
-        forceeval [boolean] When set to False (default) the auto-correlation in
-                  the UV plane is not evaluated if it was already evaluated 
-                  earlier. If set to True, it will be forcibly evaluated 
-                  independent of whether they were already evaluated or not
+        forceeval_autowts
+                  [boolean] When set to False (default) the auto-correlation 
+                  weights in the UV plane is not evaluated if it was already 
+                  evaluated earlier. If set to True, it will be forcibly 
+                  evaluated independent of whether they were already evaluated 
+                  or not
+
+        forceeval_autocorr 
+                  [boolean] When set to False (default) the auto-correlation 
+                  data in the UV plane is not evaluated if it was already 
+                  evaluated earlier. If set to True, it will be forcibly 
+                  evaluated independent of whether they were already evaluated 
+                  or not
+
         verbose   [boolean] When set to True (default), print diagnostic 
                   messages, otherwise suppress messages
         ------------------------------------------------------------------------
         """
 
-        if forceeval or (not self.autocorr_set):
-            self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(datapool=datapool, tbinsize=self.tbinsize)
+        if not isinstance(forceeval_autowts, bool):
+            raise TypeError('Input forceeval_autowts must be boolean')
+
+        if not isinstance(forceeval_autocorr, bool):
+            raise TypeError('Input forceeval_autocorr must be boolean')
+
+        if forceeval_autowts or forceeval_autocorr or (not self.autocorr_set):
+            self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(datapool=datapool, tbinsize=self.tbinsize, forceeval_autowts=forceeval_autowts, forceeval_autocorr=forceeval_autocorr)
             self.autocorr_set = True
             if verbose:
                 print 'Determined auto-correlation weights and data...'
@@ -9489,7 +9505,7 @@ class AntennaArray(object):
                  array. It is the same for all frequencies and hence no third 
                  dimension for the spectral axis.
 
-    antenna_autocorr_set
+    antenna_autowts_set
                  [boolean] Indicates if auto-correlation of antenna-wise weights
                  have been determined (True) or not (False).
 
@@ -9912,7 +9928,7 @@ class AntennaArray(object):
         antennas, blc, trc, gridu, gridv, grid_ready, timestamp, 
         grid_illumination, grid_Ef, f, f0, t, ordered_labels, grid_mapper, 
         antennas_center, latitude, longitude, tbinsize, auto_corr_data, 
-        antenna_autocorr_set, typetags, pairwise_typetags, antenna_crosswts_set,
+        antenna_autowts_set, typetags, pairwise_typetags, antenna_crosswts_set,
         pairwise_typetag_crosswts_vuf, antenna_pair_to_typetag
      
         Read docstring of class AntennaArray for details on these attributes.
@@ -9953,7 +9969,7 @@ class AntennaArray(object):
 
         self.auto_corr_data = {}
         self.pairwise_typetag_crosswts_vuf = {}
-        self.antenna_autocorr_set = False
+        self.antenna_autowts_set = False
         self.antenna_crosswts_set = False
 
         self._ant_contribution = {}
@@ -12271,11 +12287,11 @@ class AntennaArray(object):
         ------------------------------------------------------------------------
         """
 
-        if forceeval or (not self.antenna_autocorr_set):
-            self.antenna_autocorr_set = False
+        if forceeval or (not self.antenna_autowts_set):
+            self.antenna_autowts_set = False
             for antkey in self.antennas:
                 self.evalAntennaPairCorrWts(antkey, label2=None, forceeval=forceeval)
-            self.antenna_autocorr_set = True
+            self.antenna_autowts_set = True
             
     ############################################################################ 
 
@@ -12305,7 +12321,8 @@ class AntennaArray(object):
     ############################################################################ 
 
     def makeAutoCorrCube(self, pol=None, data=None, datapool='stack',
-                         tbinsize=None, verbose=True):
+                         tbinsize=None, forceeval_autowts=False,
+                         forceeval_autocorr=False, verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -12349,6 +12366,19 @@ class AntennaArray(object):
                 missing the auto-correlated antenna E-field spectra for that 
                 polarization are averaged over all timestamps.
 
+        forceeval_autowts
+                [boolean] When set to False (default) the auto-correlation 
+                weights in the UV plane is not evaluated if it was already 
+                evaluated earlier. If set to True, it will be forcibly evaluated 
+                independent of whether they were already evaluated or not
+
+        forceeval_autocorr 
+                [boolean] When set to False (default) the auto-correlation 
+                data in the UV plane is not evaluated if it was already 
+                evaluated earlier. If set to True, it will be forcibly 
+                evaluated independent of whether they were already evaluated 
+                or not
+
         verbose [boolean] If True, prints diagnostic and progress messages. 
                 If False (default), suppress printing such messages.
 
@@ -12372,8 +12402,13 @@ class AntennaArray(object):
         if datapool not in ['stack', 'current', 'avg', 'custom']:
             raise ValueError('Input datapool must be set to "stack" or "current"')
 
-        if not self.antenna_autocorr_set:
-            self.evalAntennaAutoCorrWts()
+        if not isinstance(forceeval_autowts, bool):
+            raise TypeError('Input forceeval_autowts must be boolean')
+
+        if not isinstance(forceeval_autocorr, bool):
+            raise TypeError('Input forceeval_autocorr must be boolean')
+
+        self.evalAntennaAutoCorrWts(forceeval=forceeval_autowts)
 
         data_info = {}
         if datapool in ['current', 'stack', 'avg']:

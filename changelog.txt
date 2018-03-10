@@ -1,3 +1,19 @@
+From edfa17a (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Rename attribute antenna_autocorr_set to antenna_autowts_set in
+class AntennaArray
+(*) Add input keyword forceeval_autowts and forceeval_autocorr in
+member function makeAutoCorrCube() of class AntennaArray and use this
+to call member function evalAntennaAutoCorrWts() of class AntennaArray
+appropriately. Update member function docstring accordingly
+(*) Add input keyword forceeval_autowts and forceeval_autocorr in
+member function evalAutoCorr() of class Image and use this
+to call member function makeAutoCorrCube() of class AntennaArray
+appropriately. Update member function docstring accordingly
+
 From 948423e (extimg):
 =====================
 
