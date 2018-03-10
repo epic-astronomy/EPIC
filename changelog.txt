@@ -1,3 +1,11 @@
+From fc98897 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Square the electric fields in member function evalAutoCorr() of
+class AntennaArray, which was not done earlier. 
+
 From edfa17a (extimg):
 =====================
 

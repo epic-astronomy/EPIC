@@ -10681,12 +10681,14 @@ class AntennaArray(object):
             self.auto_corr_data['current'] = {}
             for p in pol:
                 Ef_info = self.get_E_fields(p, flag=None, tselect=-1, fselect=None, aselect=None, datapool='current', sort=True)
+                Ef_info['E-fields'] = NP.abs(Ef_info['E-fields'])**2
                 self.auto_corr_data['current'][p] = Ef_info
                 
         if datapool in [None, 'stack']:
             self.auto_corr_data['stack'] = {}
             for p in pol:
                 Ef_info = self.get_E_fields(p, flag=None, tselect=NP.arange(len(self.timestamps)), fselect=None, aselect=None, datapool='stack', sort=True)
+                Ef_info['E-fields'] = NP.abs(Ef_info['E-fields'])**2
                 self.auto_corr_data['stack'][p] = Ef_info
 
         if datapool in [None, 'avg']:
