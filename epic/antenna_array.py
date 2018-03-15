@@ -7274,11 +7274,11 @@ class Image(object):
             else:
                 raise TypeError('Input pol must be a string or list specifying polarization(s)')
     
-            for p in pol:
-                if self.extfile is not None:
-                    with h5py.File(self.extfile, 'a') as fext:
-                        for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']:
-                            for arraytype in ['stack']:
+            if self.extfile is not None:
+                with h5py.File(self.extfile, 'a') as fext:
+                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']:
+                        for arraytype in ['stack']:
+                            for p in pol:
                                 if qtytype in ['image', 'psf']:
                                     dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
                                     if NP.any(NP.isnan(dset.value)):
@@ -7319,7 +7319,8 @@ class Image(object):
                                         #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
                                         #     else:
                                         #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
-                else:
+            else:
+                for p in pol:
                     if self.img_stack[p] is None:
                         self.img_stack[p] = self.img[p][NP.newaxis,:,:,:]
                         self.beam_stack[p] = self.beam[p][NP.newaxis,:,:,:]
@@ -7377,11 +7378,11 @@ class Image(object):
             else:
                 raise TypeError('Input pol must be a string or list specifying polarization(s)')
     
-            for p in pol:
-                if self.extfile is not None:
-                    with h5py.File(self.extfile, 'a') as fext:
-                        for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']:
-                            for arraytype in ['accumulate']:
+            if self.extfile is not None:
+                with h5py.File(self.extfile, 'a') as fext:
+                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']:
+                        for arraytype in ['accumulate']:
+                            for p in pol:
                                 if qtytype in ['image', 'psf']:
                                     dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
                                     if qtytype == 'image':

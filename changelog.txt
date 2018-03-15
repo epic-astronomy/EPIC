@@ -1,3 +1,11 @@
+From cd0c915 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Rearrange the order of for loops over polarization in member
+functions stack() and accumulate_inplace() of class Image.
+
 From d26e6a3 (extimg):
 =====================
 
