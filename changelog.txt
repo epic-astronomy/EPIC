@@ -1,3 +1,18 @@
+From d26e6a3 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Remove autocorr weights and data from being handled in member
+functions stack() and accumulate_inplace() of class Image
+(*) Remove determination of autocorr weights and data in imagr()
+member function of class Image
+(*) Add input keywords forceeval_autowts, forceeval_autocorr in member
+function evalAutoCorr() of class Image. Update member function
+docstring accordingly
+(*) In member function evalAntennaPairCorrWts() of class AntennaArray,
+update only based on new timestamps when forceeval is set to True
+
 From fc98897 (extimg):
 =====================
 

@@ -7208,7 +7208,7 @@ class Image(object):
         if verbose:
             print 'Successfully imaged.'
 
-        self.evalAutoCorr(datapool='current', forceeval=False)
+        # self.evalAutoCorr(datapool='current', forceeval=False)
         
         with h5py.File(self.extfile, 'a') as fext:
             if 'image' not in fext:
@@ -7309,16 +7309,16 @@ class Image(object):
                                                 dset[-1:] = NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
                                             else:
                                                 dset[-1:] = NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
-                                        elif qtytype == 'autocorr':
-                                            if reim == 'real':
-                                                dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
-                                            else:
-                                                dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
-                                        elif qtytype == 'autowts':
-                                            if reim == 'real':
-                                                dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
-                                            else:
-                                                dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
+                                        # elif qtytype == 'autocorr':
+                                        #     if reim == 'real':
+                                        #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
+                                        #     else:
+                                        #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
+                                        # elif qtytype == 'autowts':
+                                        #     if reim == 'real':
+                                        #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
+                                        #     else:
+                                        #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
                 else:
                     if self.img_stack[p] is None:
                         self.img_stack[p] = self.img[p][NP.newaxis,:,:,:]
@@ -7401,16 +7401,16 @@ class Image(object):
                                                 dset[...] += NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
                                             else:
                                                 dset[...] += NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
-                                        elif qtytype == 'autocorr':
-                                            if reim == 'real':
-                                                dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
-                                            else:
-                                                dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
-                                        elif qtytype == 'autowts':
-                                            if reim == 'real':
-                                                dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
-                                            else:
-                                                dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
+                                        # elif qtytype == 'autocorr':
+                                        #     if reim == 'real':
+                                        #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
+                                        #     else:
+                                        #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
+                                        # elif qtytype == 'autowts':
+                                        #     if reim == 'real':
+                                        #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
+                                        #     else:
+                                        #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
                         dset = fext['twts/{0}'.format(p)]
                         dset[...] += 1.0
             self.timestamps += [self.timestamp]
@@ -7693,7 +7693,7 @@ class Image(object):
 
     ############################################################################
 
-    def evalAutoCorr(self, datapool='avg', forceeval=False, verbose=True):
+    def evalAutoCorr(self, datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -9535,8 +9535,10 @@ class AntennaArray(object):
                  [dictionary] holds grid illumination wts (centered on grid 
                  origin) obtained from cross-correlation of antenna pairs that
                  belong to their respective typetags. Tuples of typetag pairs
-                 form the keys. Under each key is another dictionary with two
-                 keys 'P1' and 'P2' for each polarization. Under each of these
+                 form the keys. Under each key is another dictionary with
+                 keys 'last_updated', and 'P1' and 'P2' for each polarization. 
+                 Under 'last_updated' it stores the timestamp when the last 
+                 update took place for this typetag pair. Under each of the
                  polarization keys is a complex numpy array of size 
                  nv x nu x nchan. It is obtained by correlating the aperture
                  illumination weights of one antenna type with the complex
@@ -12192,10 +12194,24 @@ class AntennaArray(object):
         else:
             raise KeyError('Antenna pair not found in attribute antenna_pair_to_type. Needs debugging')
 
+        do_update = False
         typetag1, typetag2 = typetag_pair
         if forceeval or (typetag_pair not in self.pairwise_typetag_crosswts_vuf):
+            if forceeval:
+                if typetag_pair not in self.pairwise_typetag_crosswts_vuf:
+                    do_update = True
+                else:
+                    if 'last_updated' not in self.pairwise_typetag_crosswts_vuf[typetag_pair]:
+                        do_update = True
+                    else:
+                        if self.timestamp - self.pairwise_typetag_crosswts_vuf[typetag_pair]['last_updated'] > 1e-10:
+                            do_update = True
+            if typetag_pair not in self.pairwise_typetag_crosswts_vuf:
+                do_update = True
+        if do_update:
             pol = ['P1', 'P2']
             self.pairwise_typetag_crosswts_vuf[typetag_pair] = {}
+            self.pairwise_typetag_crosswts_vuf[typetag_pair]['last_updated'] = self.timestamp
             du = self.gridu[0,1] - self.gridu[0,0]
             dv = self.gridv[1,0] - self.gridv[0,0]
             if (typetag1 == typetag2) and (self.antennas[label1].aperture.kernel_type['P1'] == 'func') and (self.antennas[label1].aperture.kernel_type['P2'] == 'func'):
