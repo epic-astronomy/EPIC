@@ -1,3 +1,11 @@
+From 9ccea3a (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Add progress bar in member function makeAutoCorrCube() of class
+AntennaArray
+
 From cd0c915 (extimg):
 =====================
 
