@@ -1,3 +1,20 @@
+From 8bd654c (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function evalAutoCorr() of class Image, add input
+keyword pol to operate on the specified polarization(s). Update
+member function docstring accordingly
+(*) In member function evalAutoCorr() of class Image, add input
+keyword save to write averaged autocorr data and weights to external
+file. Update member function docstring accordingly
+(*) In member function evalAutoCorr() of class Image, save averaged
+autocorr and weights to external image file.
+(*) In member function average() of class Image, add input keyword
+autocorr_op to specify how autocorr data and weights should be
+handled. Update member function docstring accordingly
+
 From 9ccea3a (extimg):
 =====================
 

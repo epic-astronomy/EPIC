@@ -7420,12 +7420,13 @@ class Image(object):
 
     ############################################################################
 
-    def average(self, pol=None, verbose=True):
+    def average(self, pol=None, autocorr_op='rmfit', verbose=True):
 
         """
         ------------------------------------------------------------------------
         Averages the image, synthesized beam, gridded visibilities, aperture 
-        plane weights, autocorrelation data and weights in the external file.
+        plane weights, autocorrelation data and weights in the external file,
+        with optional removal of autocorrelation weights and data.
 
         Inputs:
 
@@ -7434,6 +7435,14 @@ class Image(object):
                 'P21', 'P22' in case of FX or None (default). If None, 
                 information on all polarizations appropriate for MOFF or FX 
                 are accumulated
+
+        autocorr_op
+                [string] indicates if autocorrelation weights and data are to
+                be removed. Accepted values are 'rmfit' (fit and remove an
+                estimate of autocorr weights and data), 'mask' (mask the 
+                footprint of autocorr weights to zero) , and 'none' (keep the
+                autocorr weights and data without any modification). 
+                Default='rmfit'.
 
         verbose [boolean] If True (default), prints diagnostic and progress
                 messages. If False, suppress printing such messages.
@@ -7453,6 +7462,11 @@ class Image(object):
         else:
             raise TypeError('Input pol must be a string or list specifying polarization(s)')
     
+        if not isinstance(autocorr_op, str):
+            raise TypeError('Input autocorr_op must be a string')
+        if autocorr_op.lower() not in ['rmfit', 'mask', 'none']:
+            raise ValueError('Invalid value specified for input autocorr_op')
+
         for p in pol:
             if self.extfile is not None:
                 with h5py.File(self.extfile, 'a') as fext:
@@ -7694,7 +7708,8 @@ class Image(object):
 
     ############################################################################
 
-    def evalAutoCorr(self, datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, verbose=True):
+    def evalAutoCorr(self, pol=None, datapool='avg', forceeval_autowts=False,
+                     forceeval_autocorr=True, save=True, verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -7702,6 +7717,11 @@ class Image(object):
         UV-plane. 
 
         Inputs:
+
+        pol       [string] indicates which polarization information to be saved. 
+                  Allowed values are 'P1', 'P2' in case of MOFF. If None, 
+                  information on all polarizations appropriate for MOFF are
+                  evaluated
 
         datapool  [string] Specifies whether data to be used in determining the
                   auto-correlation the E-fields to be used come from
@@ -7723,10 +7743,24 @@ class Image(object):
                   evaluated independent of whether they were already evaluated 
                   or not
 
+        save      [boolean] If True (default), save the autocorrelation weights
+                  and data if an external file exists. It only applies when 
+                  datapool='avg', otherwise it does not save to external file.
+
         verbose   [boolean] When set to True (default), print diagnostic 
                   messages, otherwise suppress messages
         ------------------------------------------------------------------------
         """
+
+        if pol is None:
+            pol = ['P1', 'P2']
+        elif isinstance(pol, str):
+            pol = [pol]
+        elif isinstance(pol, list):
+            p = [item for item in pol if item in ['P1', 'P2']]
+            pol = p
+        else:
+            raise TypeError('Input pol must be a string or list specifying polarization(s)')
 
         if not isinstance(forceeval_autowts, bool):
             raise TypeError('Input forceeval_autowts must be boolean')
@@ -7734,11 +7768,39 @@ class Image(object):
         if not isinstance(forceeval_autocorr, bool):
             raise TypeError('Input forceeval_autocorr must be boolean')
 
+        if not isinstance(save, bool):
+            raise TypeError('Input save must be boolean')
+
         if forceeval_autowts or forceeval_autocorr or (not self.autocorr_set):
-            self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(datapool=datapool, tbinsize=self.tbinsize, forceeval_autowts=forceeval_autowts, forceeval_autocorr=forceeval_autocorr)
+            self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(pol=None, datapool=datapool, tbinsize=self.tbinsize, forceeval_autowts=forceeval_autowts, forceeval_autocorr=forceeval_autocorr)
             self.autocorr_set = True
             if verbose:
                 print 'Determined auto-correlation weights and data...'
+
+            if save:
+                if datapool == 'avg':
+                    if self.extfile is not None:
+                        with h5py.File(self.extfile, 'a') as fext:
+                            for qtytype in ['autocorr', 'autowts']:
+                                for arraytype in ['avg']:
+                                    for p in pol:
+                                        for reim in ['real', 'imag']:
+                                            dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
+                                            if NP.any(NP.isnan(dset.value)):
+                                                if NP.sum(NP.isnan(dset.value)) != dset.size:
+                                                    raise ValueError('Inconsistent number of NaN found')
+                                            else:
+                                                dset.resize(dset.shape[0]+1, axis=0)
+                                            if qtytype == 'autocorr':
+                                                if reim == 'real':
+                                                    dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
+                                                else:
+                                                    dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
+                                            elif qtytype == 'autowts':
+                                                if reim == 'real':
+                                                    dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
+                                                else:
+                                                    dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
             
     ############################################################################
     
