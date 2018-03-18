@@ -1,3 +1,13 @@
+From e236383 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function imagr() of class Image, create variable length
+container for autocorr data in the external file.
+(*) Update member function evalAutoCorr() of class Image to update
+autocorr data and weights in the container in the external file.
+
 From 8bd654c (extimg):
 =====================
 

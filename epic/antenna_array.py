@@ -7212,7 +7212,7 @@ class Image(object):
         
         with h5py.File(self.extfile, 'a') as fext:
             if 'image' not in fext:
-                qtytypes = ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']
+                qtytypes = ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr']
                 arraytypes = ['stack', 'accumulate', 'avg']
                 reim_list = ['real', 'imag']
                 for p in pol:
@@ -7227,6 +7227,15 @@ class Image(object):
                                     dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.zeros((self.f.size,self.img[p].shape[0],self.img[p].shape[1])), maxshape=(self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
                                 elif arraytype == 'avg':
                                     dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                            elif qtytype in ['autocorr']:
+                                if arraytype == 'avg':
+                                    idxdt = h5py.special_dtype(vlen=NP.dtype('int64'))
+                                    for rowcol in ['freqind', 'ij']:
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,rowcol,arraytype,p), shape=(1,), maxshape=(None,), dtype=idxdt, compression='gzip', compression_opts=9)
+                                    valdt = h5py.special_dtype(vlen=NP.dtype('f8'))
+                                    for subqty in ['autowts', 'autodata']:
+                                        for reim in reim_list:
+                                            dset = fext.create_dataset('{0}/{1}/{2}/{3}/{4}'.format(qtytype,subqty,arraytype,p,reim), shape=(1,), maxshape=(None,), dtype=valdt, compression='gzip', compression_opts=9)
                             else:
                                 for reim in reim_list:
                                     if arraytype == 'stack':
@@ -7276,7 +7285,7 @@ class Image(object):
     
             if self.extfile is not None:
                 with h5py.File(self.extfile, 'a') as fext:
-                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']:
+                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autodata', 'autowts']:
                         for arraytype in ['stack']:
                             for p in pol:
                                 if qtytype in ['image', 'psf']:
@@ -7309,7 +7318,7 @@ class Image(object):
                                                 dset[-1:] = NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
                                             else:
                                                 dset[-1:] = NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
-                                        # elif qtytype == 'autocorr':
+                                        # elif qtytype == 'autodata':
                                         #     if reim == 'real':
                                         #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
                                         #     else:
@@ -7380,7 +7389,7 @@ class Image(object):
     
             if self.extfile is not None:
                 with h5py.File(self.extfile, 'a') as fext:
-                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr', 'autowts']:
+                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
                         for arraytype in ['accumulate']:
                             for p in pol:
                                 if qtytype in ['image', 'psf']:
@@ -7402,7 +7411,7 @@ class Image(object):
                                                 dset[...] += NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
                                             else:
                                                 dset[...] += NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
-                                        # elif qtytype == 'autocorr':
+                                        # elif qtytype == 'autodata':
                                         #     if reim == 'real':
                                         #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
                                         #     else:
@@ -7780,18 +7789,21 @@ class Image(object):
             if save:
                 if datapool == 'avg':
                     if self.extfile is not None:
+                        autowts_vuf = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf), 2, start=0)
+                        autocorr_shape = autowts_vuf.shape
+                        autowts_vuf = autowts_vuf.reshape(autocorr_shape[0], -1)
+                        sprow, spcol = NP.where(NP.abs(autowts_vuf) > 1e-10)
                         with h5py.File(self.extfile, 'a') as fext:
-                            for qtytype in ['autocorr', 'autowts']:
+                            if 'shape' not in fext['autocorr']:
+                                dset = fext.create_dataset('autocorr/shape', data=NP.asarray(autocorr_shape), dtype='i8')
+                            for qtytype in ['autowts', 'autodata']:
                                 for arraytype in ['avg']:
                                     for p in pol:
                                         for reim in ['real', 'imag']:
                                             dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
-                                            if NP.any(NP.isnan(dset.value)):
-                                                if NP.sum(NP.isnan(dset.value)) != dset.size:
-                                                    raise ValueError('Inconsistent number of NaN found')
-                                            else:
+                                            if dset.value.size > 0:
                                                 dset.resize(dset.shape[0]+1, axis=0)
-                                            if qtytype == 'autocorr':
+                                            if qtytype == 'autodata':
                                                 if reim == 'real':
                                                     dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
                                                 else:
@@ -7801,6 +7813,31 @@ class Image(object):
                                                     dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
                                                 else:
                                                     dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
+
+            # if save:
+            #     if datapool == 'avg':
+            #         if self.extfile is not None:
+            #             with h5py.File(self.extfile, 'a') as fext:
+            #                 for qtytype in ['autodata', 'autowts']:
+            #                     for arraytype in ['avg']:
+            #                         for p in pol:
+            #                             for reim in ['real', 'imag']:
+            #                                 dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
+            #                                 if NP.any(NP.isnan(dset.value)):
+            #                                     if NP.sum(NP.isnan(dset.value)) != dset.size:
+            #                                         raise ValueError('Inconsistent number of NaN found')
+            #                                 else:
+            #                                     dset.resize(dset.shape[0]+1, axis=0)
+            #                                 if qtytype == 'autodata':
+            #                                     if reim == 'real':
+            #                                         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
+            #                                     else:
+            #                                         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
+            #                                 elif qtytype == 'autowts':
+            #                                     if reim == 'real':
+            #                                         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
+            #                                     else:
+            #                                         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
             
     ############################################################################
     
