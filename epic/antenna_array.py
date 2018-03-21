@@ -7335,7 +7335,6 @@ class Image(object):
                                                         dset[-1] = NP.copy(wts_vuf[sprow,spcol].real)
                                                     else:
                                                         dset[-1] = NP.copy(wts_vuf[sprow,spcol].imag)
-
                                                 else:
                                                     if reim == 'real':
                                                         dset[-1] = NP.copy(vis_vuf[sprow,spcol].real)
@@ -7891,55 +7890,52 @@ class Image(object):
             if save:
                 if datapool == 'avg':
                     if self.extfile is not None:
-                        autowts_vuf = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf), 2, start=0)
-                        autocorr_shape = autowts_vuf.shape
-                        autowts_vuf = autowts_vuf.reshape(autocorr_shape[0], -1)
-                        sprow, spcol = NP.where(NP.abs(autowts_vuf) > 1e-10)
                         with h5py.File(self.extfile, 'a') as fext:
-                            if 'shape' not in fext['autocorr']:
-                                dset = fext.create_dataset('autocorr/shape', data=NP.asarray(autocorr_shape), dtype='i8')
-                            for qtytype in ['autowts', 'autodata']:
-                                for arraytype in ['avg']:
-                                    for p in pol:
-                                        for reim in ['real', 'imag']:
-                                            dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
-                                            if dset[-1].size > 0:
-                                                dset.resize(dset.shape[0]+1, axis=0)
-                                            if qtytype == 'autodata':
-                                                if reim == 'real':
-                                                    dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
-                                                else:
-                                                    dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
-                                            elif qtytype == 'autowts':
-                                                if reim == 'real':
-                                                    dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
-                                                else:
-                                                    dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
-
-            # if save:
-            #     if datapool == 'avg':
-            #         if self.extfile is not None:
-            #             with h5py.File(self.extfile, 'a') as fext:
-            #                 for qtytype in ['autodata', 'autowts']:
-            #                     for arraytype in ['avg']:
-            #                         for p in pol:
-            #                             for reim in ['real', 'imag']:
-            #                                 dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
-            #                                 if NP.any(NP.isnan(dset.value)):
-            #                                     if NP.sum(NP.isnan(dset.value)) != dset.size:
-            #                                         raise ValueError('Inconsistent number of NaN found')
-            #                                 else:
-            #                                     dset.resize(dset.shape[0]+1, axis=0)
-            #                                 if qtytype == 'autodata':
-            #                                     if reim == 'real':
-            #                                         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
-            #                                     else:
-            #                                         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
-            #                                 elif qtytype == 'autowts':
-            #                                     if reim == 'real':
-            #                                         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
-            #                                     else:
-            #                                         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
+                            planes = ['aperture-plane']
+                            arraytypes = ['avg']
+                            reim_list = ['real', 'imag']
+                            for plane in planes:
+                                if plane == 'aperture-plane':
+                                    qtytypes = ['acorr']
+                                    subqtytypes = ['wts', 'vals']
+                                for qtytype in qtytypes:
+                                    for arraytype in arraytypes:
+                                        for p in pol:
+                                            if plane == 'aperture-plane':
+                                                wts_vuf = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p]), 2, start=0)
+                                                acorr_shape_3D = wts_vuf.shape
+                                                wts_vuf = wts_vuf.reshape(wts_vuf.shape[0], -1)
+                                                acorr_shape_2D = wts_vuf.shape
+                                                sprow, spcol = NP.where(NP.abs(wts_vuf) > 1e-10)
+                                                vis_vuf = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p]), 2,start=0)
+                                                vis_vuf = vis_vuf.reshape(vis_vuf.shape[0], -1)
+                                                if '{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,arraytype,p) not in fext:
+                                                    dset = fext.create_dataset('{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.asarray(acorr_shape_2D))
+                                                if '{0}/{1}/shape3D/{2}/{3}'.format(plane,qtytype,arraytype,p) not in fext:
+                                                    dset = fext.create_dataset('{0}/{1}/shape3D/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.asarray(acorr_shape_3D))
+                                                for rowcol in ['freqind', 'ij']:
+                                                    dset = fext['{0}/{1}/{2}/{3}/{4}'.format(plane,qtytype,rowcol,arraytype,p)]
+                                                    if dset[-1].size > 0:
+                                                        dset.resize(dset.shape[0]+1, axis=0)
+                                                    if rowcol == 'freqind':
+                                                        dset[-1] = NP.copy(sprow)
+                                                    else:
+                                                        dset[-1] = NP.copy(spcol)
+                                                for subqty in subqtytypes:
+                                                    for reim in ['real', 'imag']:
+                                                        dset = fext['{0}/{1}/{2}/{3}/{4}/{5}'.format(plane,qtytype,subqty,arraytype,p,reim)]
+                                                        if dset[-1].size > 0:
+                                                            dset.resize(dset.shape[0]+1, axis=0)
+                                                        if subqty == 'wts':
+                                                            if reim == 'real':
+                                                                dset[-1] = NP.copy(wts_vuf[sprow,spcol].real)
+                                                            else:
+                                                                dset[-1] = NP.copy(wts_vuf[sprow,spcol].imag)
+                                                        else:
+                                                            if reim == 'real':
+                                                                dset[-1] = NP.copy(vis_vuf[sprow,spcol].real)
+                                                            else:
+                                                                dset[-1] = NP.copy(vis_vuf[sprow,spcol].imag)
             
     ############################################################################
     

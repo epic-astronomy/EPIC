@@ -1,3 +1,11 @@
+From af2e7ef (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function evalAutoCorr() of class Image, store autocorr
+weights and data averages in sparse format
+
 From 81af133 (extimg):
 =====================
 
