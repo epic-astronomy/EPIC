@@ -1,3 +1,12 @@
+From 81af133 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member functions imagr(), stack(), accumulate_inplace() of
+class Image, use variable length containers for aperture plane weights
+and visibilities and store them in sparse matrix format. 
+
 From e236383 (extimg):
 =====================
 

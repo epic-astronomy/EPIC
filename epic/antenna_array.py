@@ -7211,39 +7211,36 @@ class Image(object):
         # self.evalAutoCorr(datapool='current', forceeval=False)
         
         with h5py.File(self.extfile, 'a') as fext:
-            if 'image' not in fext:
-                qtytypes = ['image', 'psf', 'visibility', 'aprtrwts', 'autocorr']
+            if 'image-plane' not in fext:
+                planes = ['image-plane', 'aperture-plane']
                 arraytypes = ['stack', 'accumulate', 'avg']
                 reim_list = ['real', 'imag']
                 for p in pol:
                     dset = fext.create_dataset('twts/{0}'.format(p), data=NP.zeros(1), dtype='f4')
-                for qtytype in qtytypes:
-                    for arraytype in arraytypes:
-                        for p in pol:
-                            if qtytype in ['image', 'psf']:
-                                if arraytype == 'stack':
-                                    dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
-                                elif arraytype == 'accumulate':
-                                    dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.zeros((self.f.size,self.img[p].shape[0],self.img[p].shape[1])), maxshape=(self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
-                                elif arraytype == 'avg':
-                                    dset = fext.create_dataset('{0}/{1}/{2}'.format(qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
-                            elif qtytype in ['autocorr']:
-                                if arraytype == 'avg':
-                                    idxdt = h5py.special_dtype(vlen=NP.dtype('int64'))
-                                    for rowcol in ['freqind', 'ij']:
-                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,rowcol,arraytype,p), shape=(1,), maxshape=(None,), dtype=idxdt, compression='gzip', compression_opts=9)
-                                    valdt = h5py.special_dtype(vlen=NP.dtype('f8'))
-                                    for subqty in ['autowts', 'autodata']:
-                                        for reim in reim_list:
-                                            dset = fext.create_dataset('{0}/{1}/{2}/{3}/{4}'.format(qtytype,subqty,arraytype,p,reim), shape=(1,), maxshape=(None,), dtype=valdt, compression='gzip', compression_opts=9)
-                            else:
-                                for reim in reim_list:
+                for plane in planes:
+                    if plane == 'image-plane':
+                        qtytypes = ['image', 'psf']
+                    else:
+                        qtytypes = ['xcorr', 'acorr']
+                        subqtytypes = ['vals', 'wts']
+                    for qtytype in qtytypes:
+                        for arraytype in arraytypes:
+                            for p in pol:
+                                if plane == 'image-plane':
                                     if arraytype == 'stack':
-                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.full((1,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
                                     elif arraytype == 'accumulate':
-                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.zeros((self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1])), maxshape=(self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.zeros((self.f.size,self.img[p].shape[0],self.img[p].shape[1])), maxshape=(self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
                                     elif arraytype == 'avg':
-                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim), data=NP.full((1,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), chunks=(1,1,self.vis_vuf[p].shape[0],self.vis_vuf[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                else:
+                                    idxdt = h5py.special_dtype(vlen=NP.dtype('i8'))
+                                    valdt = h5py.special_dtype(vlen=NP.dtype('f8'))
+                                    for rowcol in ['freqind', 'ij']:
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}/{4}'.format(plane,qtytype,rowcol,arraytype,p), shape=(1,), maxshape=(None,), dtype=idxdt, compression='gzip', compression_opts=9)
+                                    for subqty in subqtytypes:
+                                        for reim in reim_list:
+                                            dset = fext.create_dataset('{0}/{1}/{2}/{3}/{4}/{5}'.format(plane,qtytype,subqty,arraytype,p,reim), shape=(1,), maxshape=(None,), dtype=valdt, compression='gzip', compression_opts=9)
 
         # Call stack() if required
         if stack:
@@ -7285,49 +7282,65 @@ class Image(object):
     
             if self.extfile is not None:
                 with h5py.File(self.extfile, 'a') as fext:
-                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts', 'autodata', 'autowts']:
-                        for arraytype in ['stack']:
-                            for p in pol:
-                                if qtytype in ['image', 'psf']:
-                                    dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
-                                    if NP.any(NP.isnan(dset.value)):
-                                        if NP.sum(NP.isnan(dset.value)) != dset.size:
-                                            raise ValueError('Inconsistent number of NaN found')
-                                    else:
-                                        dset.resize(dset.shape[0]+1, axis=0)
-                                    if qtytype == 'image':
-                                        dset[-1:] = NP.rollaxis(self.img[p], 2, start=0)
-                                    elif qtytype == 'psf':
-                                        dset[-1:] = NP.rollaxis(self.beam[p], 2, start=0)
-                                else:
-                                    for reim in ['real', 'imag']:
-                                        dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
+                    planes = ['image-plane', 'aperture-plane']
+                    arraytypes = ['stack']
+                    reim_list = ['real', 'imag']
+                    for plane in planes:
+                        if plane == 'image-plane':
+                            qtytypes = ['image', 'psf']
+                        else:
+                            qtytypes = ['xcorr']
+                            subqtytypes = ['vals', 'wts']
+                        for qtytype in qtytypes:
+                            for arraytype in arraytypes:
+                                for p in pol:
+                                    if plane == 'image-plane':
+                                        dset = fext['{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p)]
                                         if NP.any(NP.isnan(dset.value)):
                                             if NP.sum(NP.isnan(dset.value)) != dset.size:
                                                 raise ValueError('Inconsistent number of NaN found')
                                         else:
                                             dset.resize(dset.shape[0]+1, axis=0)
+                                        if qtytype == 'image':
+                                            dset[-1:] = NP.rollaxis(self.img[p], 2, start=0)
+                                        elif qtytype == 'psf':
+                                            dset[-1:] = NP.rollaxis(self.beam[p], 2, start=0)
+                                    else:
+                                        wts_vuf = NP.rollaxis(self.wts_vuf[p], 2, start=0)
+                                        xcorr_shape_3D = wts_vuf.shape
+                                        wts_vuf = wts_vuf.reshape(wts_vuf.shape[0], -1)
+                                        xcorr_shape_2D = wts_vuf.shape
+                                        sprow, spcol = NP.where(NP.abs(wts_vuf) > 1e-10)
+                                        vis_vuf = NP.rollaxis(self.vis_vuf[p], 2,start=0)
+                                        vis_vuf = vis_vuf.reshape(vis_vuf.shape[0], -1)
+                                        if '{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,arraytype,p) not in fext:
+                                            dset = fext.create_dataset('{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.asarray(xcorr_shape_2D))
+                                        if '{0}/{1}/shape3D/{2}/{3}'.format(plane,qtytype,arraytype,p) not in fext:
+                                            dset = fext.create_dataset('{0}/{1}/shape3D/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.asarray(xcorr_shape_3D))
+                                        for rowcol in ['freqind', 'ij']:
+                                            dset = fext['{0}/{1}/{2}/{3}/{4}'.format(plane,qtytype,rowcol,arraytype,p)]
+                                            if dset[-1].size > 0:
+                                                dset.resize(dset.shape[0]+1, axis=0)
+                                            if rowcol == 'freqind':
+                                                dset[-1] = NP.copy(sprow)
+                                            else:
+                                                dset[-1] = NP.copy(spcol)
+                                        for subqty in subqtytypes:
+                                            for reim in ['real', 'imag']:
+                                                dset = fext['{0}/{1}/{2}/{3}/{4}/{5}'.format(plane,qtytype,subqty,arraytype,p,reim)]
+                                                if dset[-1].size > 0:
+                                                    dset.resize(dset.shape[0]+1, axis=0)
+                                                if subqty == 'wts':
+                                                    if reim == 'real':
+                                                        dset[-1] = NP.copy(wts_vuf[sprow,spcol].real)
+                                                    else:
+                                                        dset[-1] = NP.copy(wts_vuf[sprow,spcol].imag)
 
-                                        if qtytype == 'visibility':
-                                            if reim == 'real':
-                                                dset[-1:] = NP.rollaxis(self.vis_vuf[p].real, 2, start=0)
-                                            else:
-                                                dset[-1:] = NP.rollaxis(self.vis_vuf[p].imag, 2, start=0)
-                                        elif qtytype == 'aprtrwts':
-                                            if reim == 'real':
-                                                dset[-1:] = NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
-                                            else:
-                                                dset[-1:] = NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
-                                        # elif qtytype == 'autodata':
-                                        #     if reim == 'real':
-                                        #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
-                                        #     else:
-                                        #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
-                                        # elif qtytype == 'autowts':
-                                        #     if reim == 'real':
-                                        #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
-                                        #     else:
-                                        #         dset[-1:] = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
+                                                else:
+                                                    if reim == 'real':
+                                                        dset[-1] = NP.copy(vis_vuf[sprow,spcol].real)
+                                                    else:
+                                                        dset[-1] = NP.copy(vis_vuf[sprow,spcol].imag)
             else:
                 for p in pol:
                     if self.img_stack[p] is None:
@@ -7389,40 +7402,116 @@ class Image(object):
     
             if self.extfile is not None:
                 with h5py.File(self.extfile, 'a') as fext:
-                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
-                        for arraytype in ['accumulate']:
-                            for p in pol:
-                                if qtytype in ['image', 'psf']:
-                                    dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
-                                    if qtytype == 'image':
-                                        dset[...] += NP.rollaxis(self.img[p], 2, start=0)
+                    planes = ['image-plane', 'aperture-plane']
+                    arraytypes = ['accumulate']
+                    reim_list = ['real', 'imag']
+                    for plane in planes:
+                        if plane == 'image-plane':
+                            qtytypes = ['image', 'psf']
+                        else:
+                            qtytypes = ['xcorr']
+                            subqtytypes = ['wts', 'vals']
+                        for qtytype in qtytypes:
+                            for arraytype in arraytypes:
+                                for p in pol:
+                                    if plane == 'image-plane':
+                                        dset = fext['{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p)]
+                                        if qtytype == 'image':
+                                            dset[...] += NP.rollaxis(self.img[p], 2, start=0)
+                                        else:
+                                            dset[...] += NP.rollaxis(self.beam[p], 2, start=0)
                                     else:
-                                        dset[...] += NP.rollaxis(self.beam[p], 2, start=0)
-                                else:
-                                    for reim in ['real', 'imag']:
-                                        dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
-                                        if qtytype == 'visibility':
-                                            if reim == 'real':
-                                                dset[...] += NP.rollaxis(self.vis_vuf[p].real, 2, start=0)
+                                        new_wts_vuf = NP.rollaxis(self.wts_vuf[p], 2, start=0)
+                                        xcorr_shape_3D = new_wts_vuf.shape
+                                        new_wts_vuf = new_wts_vuf.reshape(new_wts_vuf.shape[0], -1)
+                                        xcorr_shape_2D = new_wts_vuf.shape
+                                        new_sprow, new_spcol = NP.where(NP.abs(new_wts_vuf) > 1e-10)
+                                        new_vis_vuf = NP.rollaxis(self.vis_vuf[p], 2,start=0)
+                                        new_vis_vuf = new_vis_vuf.reshape(new_vis_vuf.shape[0], -1)
+                                        new_csc_wts_vuf = SpM.csc_matrix((new_wts_vuf[new_sprow,new_spcol], (new_sprow, new_spcol)), shape=xcorr_shape_2D)
+                                        new_csc_vis_vuf = SpM.csc_matrix((new_vis_vuf[new_sprow,new_spcol], (new_sprow, new_spcol)), shape=xcorr_shape_2D)
+                                        if '{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,arraytype,p) not in fext:
+                                            dset = fext.create_dataset('{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.asarray(xcorr_shape_2D))
+                                        if '{0}/{1}/shape3D/{2}/{3}'.format(plane,qtytype,arraytype,p) not in fext:
+                                            dset = fext.create_dataset('{0}/{1}/shape3D/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.asarray(xcorr_shape_3D))
+                                        for rowcol in ['freqind', 'ij']:
+                                            dset = fext['{0}/{1}/{2}/{3}/{4}'.format(plane,qtytype,rowcol,arraytype,p)]
+                                            if dset[-1].size == 0:
+                                                if rowcol == 'freqind':
+                                                    dset[-1] = NP.copy(new_sprow)
+                                                else:
+                                                    dset[-1] = NP.copy(new_spcol)
                                             else:
-                                                dset[...] += NP.rollaxis(self.vis_vuf[p].imag, 2, start=0)
-                                        elif qtytype == 'aprtrwts':
-                                            if reim == 'real':
-                                                dset[...] += NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
-                                            else:
-                                                dset[...] += NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
-                                        # elif qtytype == 'autodata':
-                                        #     if reim == 'real':
-                                        #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].real), 2, start=0)
-                                        #     else:
-                                        #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_data_vuf[p].imag), 2, start=0)
-                                        # elif qtytype == 'autowts':
-                                        #     if reim == 'real':
-                                        #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].real), 2, start=0)
-                                        #     else:
-                                        #         dset[...] += NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p].imag), 2, start=0)
-                        dset = fext['twts/{0}'.format(p)]
-                        dset[...] += 1.0
+                                                if rowcol == 'freqind':
+                                                    acc_sprow = NP.copy(dset[-1])
+                                                else:
+                                                    acc_spcol = NP.copy(dset[-1])
+                                        for subqty in subqtytypes:
+                                            for reim in ['real', 'imag']:
+                                                dset = fext['{0}/{1}/{2}/{3}/{4}/{5}'.format(plane,qtytype,subqty,arraytype,p,reim)]
+                                                if dset[-1].size == 0:
+                                                    if subqty == 'wts':
+                                                        if reim == 'real':
+                                                            dset[-1] = NP.copy(new_wts_vuf[new_sprow, new_spcol].real)
+                                                        else:
+                                                            dset[-1] = NP.copy(new_wts_vuf[new_sprow, new_spcol].imag)
+                                                    else:
+                                                        if reim == 'real':
+                                                            dset[-1] = NP.copy(new_vis_vuf[new_sprow, new_spcol].real)
+                                                        else:
+                                                            dset[-1] = NP.copy(new_vis_vuf[new_sprow, new_spcol].imag)
+                                                    just_set = True
+                                                else:
+                                                    if reim == 'real':
+                                                        acc_qty = dset[-1].astype(NP.complex128)
+                                                    else:
+                                                        acc_qty += 1j * dset[-1]
+                                                    just_set = False
+                                            if (dset[-1].size > 0) and not just_set:
+                                                acc_spmat = SpM.csc_matrix((acc_qty, (acc_sprow, acc_spcol)), shape=xcorr_shape_2D)
+                                                if subqty == 'wts':
+                                                    acc_spmat += new_csc_wts_vuf
+                                                    new_acc_sprow, new_acc_spcol = NP.where((NP.abs(acc_spmat) > 1e-10).toarray())
+                                                    for rowcol in ['freqind', 'ij']:
+                                                        dset = fext['{0}/{1}/{2}/{3}/{4}'.format(plane,qtytype,rowcol,arraytype,p)]
+                                                        if rowcol == 'freqind':
+                                                            dset[-1] = NP.copy(new_acc_sprow)
+                                                        else:
+                                                            dset[-1] = NP.copy(new_acc_spcol)
+                                                else:
+                                                    acc_spmat += new_csc_vis_vuf
+                                                for reim in ['real', 'imag']:
+                                                    dset = fext['{0}/{1}/{2}/{3}/{4}/{5}'.format(plane,qtytype,subqty,arraytype,p,reim)]
+                                                    if reim == 'real':
+                                                        dset[-1] = acc_spmat[acc_sprow, acc_spcol].real.A.ravel()
+                                                    else:
+                                                        dset[-1] = acc_spmat[acc_sprow, acc_spcol].imag.A.ravel()
+                                                    
+                            
+                    # for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
+                    #     for arraytype in ['accumulate']:
+                    #         for p in pol:
+                    #             if qtytype in ['image', 'psf']:
+                    #                 dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
+                    #                 if qtytype == 'image':
+                    #                     dset[...] += NP.rollaxis(self.img[p], 2, start=0)
+                    #                 else:
+                    #                     dset[...] += NP.rollaxis(self.beam[p], 2, start=0)
+                    #             else:
+                    #                 for reim in ['real', 'imag']:
+                    #                     dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
+                    #                     if qtytype == 'visibility':
+                    #                         if reim == 'real':
+                    #                             dset[...] += NP.rollaxis(self.vis_vuf[p].real, 2, start=0)
+                    #                         else:
+                    #                             dset[...] += NP.rollaxis(self.vis_vuf[p].imag, 2, start=0)
+                    #                     elif qtytype == 'aprtrwts':
+                    #                         if reim == 'real':
+                    #                             dset[...] += NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
+                    #                         else:
+                    #                             dset[...] += NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
+                    dset = fext['twts/{0}'.format(p)]
+                    dset[...] += 1.0
             self.timestamps += [self.timestamp]
             if verbose:
                 print '\nIn-place accumulation of image, beam, visibility, and synthesis aperture weights completed for timestamp {0:.7f}.\n'.format(self.timestamp)
@@ -7476,17 +7565,30 @@ class Image(object):
         if autocorr_op.lower() not in ['rmfit', 'mask', 'none']:
             raise ValueError('Invalid value specified for input autocorr_op')
 
-        for p in pol:
-            if self.extfile is not None:
-                with h5py.File(self.extfile, 'a') as fext:
-                    for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
+        if self.extfile is not None:
+            with h5py.File(self.extfile, 'a') as fext:
+                for p in pol:
+                    twts = fext['twts/{0}'.format(p)].value
+                    for qtytype in ['visibility', 'aprtrwts']:
                         arraytype = 'accumulate'
-                        try:
-                            dset = fext['image/{0}/{1}'.format(arraytype,p)]
-                            if NP.any(NP.isnan(dset.value)):
+                        for reim in ['real', 'imag']:
+                            dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
+                            if NP.any(NP.isnan(dset[-1].value)):
+                                raise ValueError('NaN found in {0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim))
+                            if reim == 'real':
+                                acc_qty = dset.value
+                            else:
+                                acc_qty += 1j * dset.value
+    
+                            if autocorr_op == 'none':
+                                avg_qty = acc_qty / twts
+                            elif autocorr_op == 'mask':
                                 pass
-                        except:
-                            pass
+                            else:
+                                pass
+                            if qtytype == 'visibility':
+                                pass
+                                
 
     ############################################################################
 
@@ -7801,7 +7903,7 @@ class Image(object):
                                     for p in pol:
                                         for reim in ['real', 'imag']:
                                             dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
-                                            if dset.value.size > 0:
+                                            if dset[-1].size > 0:
                                                 dset.resize(dset.shape[0]+1, axis=0)
                                             if qtytype == 'autodata':
                                                 if reim == 'real':
