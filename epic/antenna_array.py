@@ -6500,6 +6500,9 @@ class Image(object):
                  gridded visibilities and aperture plane weights in the 
                  external file.
 
+    reset_extfile()
+                 Reset/initialize the extfile under specified datapool(s)
+
     accumulate() Accumulates and averages gridded quantities that are 
                  statistically stationary such as images and visibilities
 
@@ -7634,8 +7637,85 @@ class Image(object):
                     for p in pol:
                         if autocorr_op.lower() == 'none':
                             dset = fext['{0}/{1}/{2}/{3}'.format(plane,qtytype,datapool,p)]
-                            
-                                
+
+    ############################################################################
+
+    def reset_extfile(self, datapool=None):
+
+        """
+        ------------------------------------------------------------------------
+        Reset/initialize the extfile under specified datapool(s)
+
+        datapool 
+                [None or string or list] Data pool which will be reset or 
+                initialized in the external file. Accepted values are 
+                'accumulate' and 'stack'. If set to None (default), both 
+                'accumulate' and 'stack' datapools will be reset/initialized in 
+                the external file
+        ------------------------------------------------------------------------
+        """
+        
+        if datapool is None:
+            datapool = ['accumulate', 'stack']
+        elif isinstance(datapool, 'str'):
+            if datapool not in ['accumulate', 'stack']:
+                raise ValueError('Value "{0}" in input datapool not accepted.'.format(datapool))
+            datapool = [datapool]
+        elif isinstance(datapool, list):
+            for item in datapool:
+                if not isinstance(item, str):
+                    raise TypeError('Item in datapool must be a string')
+                if item not in ['accumulate', 'stack']:
+                    raise ValueError('Value "{0}" in input datapool not accepted.'.format(item))
+        else:
+            raise TypeError('Input datapool has invalid type')
+
+        pol = ['P1', 'P2']
+        if self.extfile is not None:
+            with h5py.File(self.extfile, 'a') as fext:
+                planes = ['image-plane', 'aperture-plane']
+                reim_list = ['real', 'imag']
+                for p in pol:
+                    try:
+                        dset = fext['twts/{0}'.format(p)]
+                        dset[...] = NP.zeros(1)
+                    except KeyError:
+                        pass
+                for plane in planes:
+                    if plane == 'image-plane':
+                        qtytypes = ['image', 'psf']
+                    else:
+                        qtytypes = ['xcorr', 'acorr']
+                        subqtytypes = ['vals', 'wts']
+                    for qtytype in qtytypes:
+                        for arraytype in datapool:
+                            for p in pol:
+                                if plane == 'image-plane':
+                                    try:
+                                        dset = fext['{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p)]
+                                        if arraytype == 'stack':
+                                            dset.resize(1, axis=0)
+                                            dset[-1] = NP.full((dset.shape[1], dset.shape[2], dset.shape[3]), NP.nan)
+                                        elif arraytype == 'accumulate':
+                                            dset[...] = NP.full(dset.shape, 0.0)
+                                    except KeyError:
+                                        pass
+                                else:
+                                    for rowcol in ['freqind', 'ij']:
+                                        try:
+                                            dset = fext['{0}/{1}/{2}/{3}/{4}'.format(plane,qtytype,rowcol,arraytype,p)]
+                                            dset.resize(1, axis=0)
+                                            dset[-1] = NP.asarray([])
+                                        except KeyError:
+                                            pass
+                                    for subqty in subqtytypes:
+                                        for reim in reim_list:
+                                            try:
+                                                dset = fext['{0}/{1}/{2}/{3}/{4}/{5}'.format(plane,qtytype,subqty,arraytype,p,reim)]
+                                                dset.resize(1, axis=0)
+                                                dset[-1] = NP.asarray([])
+                                            except KeyError:
+                                                pass
 
     ############################################################################
 

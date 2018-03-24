@@ -1,3 +1,11 @@
+From 2a13a63 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Create member function reset_extfile() along with docstring under
+class Image. Update class docstring accordingly
+
 From 666139e (extimg):
 =====================
 
