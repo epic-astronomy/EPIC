@@ -7340,6 +7340,9 @@ class Image(object):
                                                         dset[-1] = NP.copy(vis_vuf[sprow,spcol].real)
                                                     else:
                                                         dset[-1] = NP.copy(vis_vuf[sprow,spcol].imag)
+                    for p in pol:
+                        dset = fext['twts/{0}'.format(p)]
+                        dset[...] += 1.0
             else:
                 for p in pol:
                     if self.img_stack[p] is None:
@@ -7482,42 +7485,21 @@ class Image(object):
                                                 for reim in ['real', 'imag']:
                                                     dset = fext['{0}/{1}/{2}/{3}/{4}/{5}'.format(plane,qtytype,subqty,arraytype,p,reim)]
                                                     if reim == 'real':
-                                                        dset[-1] = acc_spmat[acc_sprow, acc_spcol].real.A.ravel()
+                                                        dset[-1] = acc_spmat[new_acc_sprow, new_acc_spcol].real.A.ravel()
                                                     else:
-                                                        dset[-1] = acc_spmat[acc_sprow, acc_spcol].imag.A.ravel()
+                                                        dset[-1] = acc_spmat[new_acc_sprow, new_acc_spcol].imag.A.ravel()
                                                     
-                            
-                    # for qtytype in ['image', 'psf', 'visibility', 'aprtrwts']:
-                    #     for arraytype in ['accumulate']:
-                    #         for p in pol:
-                    #             if qtytype in ['image', 'psf']:
-                    #                 dset = fext['{0}/{1}/{2}'.format(qtytype,arraytype,p)]
-                    #                 if qtytype == 'image':
-                    #                     dset[...] += NP.rollaxis(self.img[p], 2, start=0)
-                    #                 else:
-                    #                     dset[...] += NP.rollaxis(self.beam[p], 2, start=0)
-                    #             else:
-                    #                 for reim in ['real', 'imag']:
-                    #                     dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
-                    #                     if qtytype == 'visibility':
-                    #                         if reim == 'real':
-                    #                             dset[...] += NP.rollaxis(self.vis_vuf[p].real, 2, start=0)
-                    #                         else:
-                    #                             dset[...] += NP.rollaxis(self.vis_vuf[p].imag, 2, start=0)
-                    #                     elif qtytype == 'aprtrwts':
-                    #                         if reim == 'real':
-                    #                             dset[...] += NP.rollaxis(self.wts_vuf[p].real, 2, start=0)
-                    #                         else:
-                    #                             dset[...] += NP.rollaxis(self.wts_vuf[p].imag, 2, start=0)
-                    dset = fext['twts/{0}'.format(p)]
-                    dset[...] += 1.0
+                    for p in pol:
+                        dset = fext['twts/{0}'.format(p)]
+                        dset[...] += 1.0
             self.timestamps += [self.timestamp]
             if verbose:
                 print '\nIn-place accumulation of image, beam, visibility, and synthesis aperture weights completed for timestamp {0:.7f}.\n'.format(self.timestamp)
 
     ############################################################################
 
-    def average(self, pol=None, autocorr_op='rmfit', verbose=True):
+    def average(self, pol=None, datapool='accumulate', autocorr_op='rmfit',
+                pad=0, verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -7533,6 +7515,11 @@ class Image(object):
                 information on all polarizations appropriate for MOFF or FX 
                 are accumulated
 
+        datapool 
+                [string] Data pool from which values will be used in the 
+                averaging. Accepted values are 'accumulate' (default) and 
+                'stack'. 
+
         autocorr_op
                 [string] indicates if autocorrelation weights and data are to
                 be removed. Accepted values are 'rmfit' (fit and remove an
@@ -7540,6 +7527,15 @@ class Image(object):
                 footprint of autocorr weights to zero) , and 'none' (keep the
                 autocorr weights and data without any modification). 
                 Default='rmfit'.
+
+        pad     [integer] indicates the amount of padding before imaging when
+                autocorr_op is not 'none' and autocorr has either been masked 
+                or subtracted. Applicable only when attribute measured_type is 
+                set to 'E-field' (EPIC imaging). The output image will be of 
+                size 2**pad-1 times the size of the antenna array grid along u- 
+                and v-axes. Value must not be negative. Default=0 (implies no 
+                padding of the aperture footprint). pad=1 implies padding by 
+                factor 2 along u- and v-axes for EPIC
 
         verbose [boolean] If True (default), prints diagnostic and progress
                 messages. If False, suppress printing such messages.
@@ -7559,6 +7555,12 @@ class Image(object):
         else:
             raise TypeError('Input pol must be a string or list specifying polarization(s)')
     
+        if not isinstance(datapool, str):
+            raise TypeError('Input datapool must be a string')
+        else:
+            if datapool.lower() not in ['accumulate', 'stack']:
+                raise ValueError('Inout datapool value not accepted')
+
         if not isinstance(autocorr_op, str):
             raise TypeError('Input autocorr_op must be a string')
         if autocorr_op.lower() not in ['rmfit', 'mask', 'none']:
@@ -7566,27 +7568,73 @@ class Image(object):
 
         if self.extfile is not None:
             with h5py.File(self.extfile, 'a') as fext:
-                for p in pol:
-                    twts = fext['twts/{0}'.format(p)].value
-                    for qtytype in ['visibility', 'aprtrwts']:
-                        arraytype = 'accumulate'
-                        for reim in ['real', 'imag']:
-                            dset = fext['{0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim)]
-                            if NP.any(NP.isnan(dset[-1].value)):
-                                raise ValueError('NaN found in {0}/{1}/{2}/{3}'.format(qtytype,arraytype,p,reim))
-                            if reim == 'real':
-                                acc_qty = dset.value
-                            else:
-                                acc_qty += 1j * dset.value
-    
-                            if autocorr_op == 'none':
-                                avg_qty = acc_qty / twts
-                            elif autocorr_op == 'mask':
-                                pass
-                            else:
-                                pass
-                            if qtytype == 'visibility':
-                                pass
+                plane = 'aperture-plane'
+                reim_list = ['real', 'imag']
+                qtytypes = ['xcorr']
+                subqtytypes = ['wts', 'vals']
+                for qtytype in qtytypes:
+                    for p in pol:
+                        if '{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,datapool,p) not in fext:
+                            raise KeyError('Key {0}/{1}/shape2D/{2}/{3} not found in external file')
+                        else:
+                            shape2D_dset = fext['{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,datapool,p)]
+                            shape2D = shape2D_dset.value
+                        freqind_list = [arr for arr in fext['{0}/{1}/freqind/{2}/{3}'.format(plane,qtytype,datapool,p)]]
+                        ijind_list = [arr for arr in fext['{0}/{1}/ij/{2}/{3}'.format(plane,qtytype,datapool,p)]]
+                        for subqty in subqtytypes:
+                            spmat = SpM.csc_matrix(tuple(shape2D), dtype=NP.complex128) # Create empty sparse matrix
+                            for tind in range(len(freqind_list)):
+                                for reim in reim_list:
+                                    dset = fext['{0}/{1}/{2}/{3}/{4}/{5}'.format(plane,qtytype,subqty,datapool,p,reim)][tind]
+                                    if reim == 'real':
+                                        spmat += SpM.csc_matrix((dset, (freqind_list[tind], ijind_list[tind])), shape=spmat.shape)
+                                    else:
+                                        spmat += 1j*SpM.csc_matrix((dset, (freqind_list[tind], ijind_list[tind])), shape=spmat.shape)
+                            spmat /= fext['twts/{0}'.format(p)].value[0] # Average the accumulated sparse matrix
+                            if autocorr_op in ['rmfit', 'mask']:
+                                shape2D_auto = fext['{0}/acorr/shape2D/avg/{1}'.format(plane,p)].value
+                                if not NP.array_equal(shape2D_auto,shape2D):
+                                    raise ValueError('Xcorr and Acorr shapes not equal')
+                                sprow_auto = fext['{0}/acorr/freqind/avg/{1}'.format(plane,p)][-1]
+                                spcol_auto = fext['{0}/acorr/ij/avg/{1}'.format(plane,p)][-1]
+                                spmat_auto = SpM.csc_matrix(tuple(shape2D_auto), dtype=NP.complex128)
+                                for reim in reim_list:
+                                    dset = fext['{0}/acorr/{1}/avg/{2}/{3}'.format(plane,subqty,p,reim)]
+                                    if reim == 'real':
+                                        spmat_auto += SpM.csc_matrix((dset[-1], (sprow_auto, spcol_auto)), shape=shape2D_auto)
+                                    else:
+                                        spmat_auto += 1j * SpM.csc_matrix((dset[-1], (sprow_auto, spcol_auto)), shape=shape2D_auto)
+                                if autocorr_op.lower() == 'mask':
+                                    spmat -= SpM.csc_matrix((spmat[sprow_auto, spcol_auto].A.ravel(), (sprow_auto, spcol_auto)), shape=shape2D) # Force pixels present in auto footprint to zero
+                                else:
+                                    spmat = spmat.A - (spmat[:,int(NP.floor(0.5*shape2D[1]))] / spmat_auto[:,int(NP.floor(0.5*shape2D[1]))]).A * spmat_auto.A # Force zero spacing pixel to match and then subtract the auto footprint, now a dense matrix
+
+                            if subqty == 'wts':
+                                sprow, spcol = NP.where((NP.abs(spmat) > 1e-10).toarray())
+                                for rowcol  in ['freqind', 'ij']:
+                                    rc_dset = fext['{0}/{1}/{2}/avg/{3}'.format(plane,qtytype,rowcol,p)]
+                                    if rc_dset[-1].size > 0:
+                                        rc_dset.resize(rc_dset.size+1, axis=0)
+                                    if rowcol == 'freqind':
+                                        rc_dset[-1] = NP.copy(sprow)
+                                    else:
+                                        rc_dset[-1] = NP.copy(spcol)
+                            for reim in reim_list:
+                                avg_dset = fext['{0}/{1}/{2}/avg/{3}/{4}'.format(plane,qtytype,subqty,p,reim)]
+                                if avg_dset[-1].size > 0:
+                                    avg_dset.resize(avg_dset.size+1, axis=0)
+                                if reim == 'real':
+                                    avg_dset[-1] = NP.copy(spmat[sprow,spcol].A.real.ravel())
+                                else:
+                                    avg_dset[-1] = NP.copy(spmat[sprow,spcol].A.imag.ravel())
+
+                plane = 'image-plane'
+                qtytypes = ['image', 'psf']
+                for qtytype in qtytypes:
+                    for p in pol:
+                        if autocorr_op.lower() == 'none':
+                            dset = fext['{0}/{1}/{2}/{3}'.format(plane,qtytype,datapool,p)]
+                            
                                 
 
     ############################################################################

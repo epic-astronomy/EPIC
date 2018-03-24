@@ -1,3 +1,19 @@
+From 666139e (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function average() of class Image, average and remove
+(if specified) autocorr weights and data, and store in external file
+(*) In member function average() of class Image, add keyword inputs
+datapool and pad. Update docstring of member function accordingly
+(*) In member function stack() of class Image, increment twts in
+external file
+(*) In member function stack() of class Image, fix bug in updating
+stored accumulated values
+(*) In member function accumulate_inplace() of class Image, increment
+twts in external file
+
 From af2e7ef (extimg):
 =====================
 
