@@ -11009,7 +11009,7 @@ class AntennaArray(object):
             else:
                 raise ValueError('Input tbinsize is invalid')
 
-            auto_corr_data[p]['E-fields'] = auto_corr_data[p]['E-fields'] / auto_corr_data[p]['twts']
+            auto_corr_data[p]['E-fields'] = NP.nan_to_num(auto_corr_data[p]['E-fields'] / auto_corr_data[p]['twts']) # nan_to_num() just in case there are NaN
         self.auto_corr_data['avg'] = auto_corr_data
 
     ############################################################################
@@ -12804,7 +12804,7 @@ class AntennaArray(object):
             if datapool not in self.auto_corr_data:
                 self.evalAutoCorr(datapool=datapool, tbinsize=tbinsize)
             for apol in pol:
-                data_info[apol] = {'labels': self.auto_corr_data[datapool][apol]['labels'], 'twts': self.auto_corr_data[datapool][apol]['twts'], 'data': self.auto_corr_data[datapool][apol]['E-fields']}
+                data_info[apol] = {'labels': self.auto_corr_data[datapool][apol]['labels'], 'twts': self.auto_corr_data[datapool][apol]['twts'], 'data': NP.nan_to_num(self.auto_corr_data[datapool][apol]['E-fields'])}
         else:
             if not isinstance(data, dict):
                 raise TypeError('Input data must be a dictionary')
@@ -12838,8 +12838,8 @@ class AntennaArray(object):
                 progress.update(antind+1)
             progress.finish()
             sum_wts = NP.sum(data_info[apol]['twts'], axis=1) # nt x 1
-            autocorr_wts_cube[apol] = autocorr_wts_cube[apol] / sum_wts[:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
-            autocorr_data_cube[apol] = autocorr_data_cube[apol] / sum_wts[:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
+            autocorr_wts_cube[apol] = NP.nan_to_num(autocorr_wts_cube[apol] / sum_wts[:,NP.newaxis,NP.newaxis,:]) # nt x nv x nu x nchan, nan_to_num() just in case there are NaN
+            autocorr_data_cube[apol] = NP.nan_to_num(autocorr_data_cube[apol] / sum_wts[:,NP.newaxis,NP.newaxis,:]) # nt x nv x nu x nchan, nan_to_num() just in case there are NaN
 
         return (autocorr_wts_cube, autocorr_data_cube)
                     

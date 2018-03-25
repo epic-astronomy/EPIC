@@ -1,3 +1,12 @@
+From c03b25f (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member functions avgAutoCorr(), makeAutoCorrCube() of class
+AntennaArray, use nan_to_num() to protect against NaN from 0/0
+division
+
 From 11a741b (extimg):
 =====================
 
