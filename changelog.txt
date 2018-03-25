@@ -1,3 +1,12 @@
+From 271fd5e (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function imagr() of class Image, initialize containers
+for timestamps under key 'avg' for averaged image and aperture plane
+quantities
+
 From 173ab5a (extimg):
 =====================
 

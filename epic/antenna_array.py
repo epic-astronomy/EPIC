@@ -7227,12 +7227,12 @@ class Image(object):
                             if '{0}/{1}'.format(plane, lm) not in fext:
                                 if lm == 'l':
                                     vect = self.gridl[0,:]
-                                    l_ind = NP.where(NP.abs(vect) <= 1.0)[0]
+                                    l_ind = NP.where(NP.abs(vect) <= 1.05)[0]
                                     dset = fext.create_dataset('{0}/{1}_ind'.format(plane, lm), data=l_ind)
                                     dset = fext.create_dataset('{0}/{1}'.format(plane, lm), data=vect[l_ind])
                                 else:
                                     vect = self.gridm[:,0]
-                                    m_ind = NP.where(NP.abs(vect) <= 1.0)[0]
+                                    m_ind = NP.where(NP.abs(vect) <= 1.05)[0]
                                     dset = fext.create_dataset('{0}/{1}_ind'.format(plane, lm), data=m_ind)
                                     dset = fext.create_dataset('{0}/{1}'.format(plane, lm), data=vect[m_ind])
                             else:
@@ -7260,8 +7260,16 @@ class Image(object):
                                     elif arraytype == 'accumulate':
                                         dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.zeros((self.f.size,m_ind.size,l_ind.size)), maxshape=(self.f.size,m_ind.size,l_ind.size), chunks=(1,m_ind.size,l_ind.size), dtype='f8', compression='gzip', compression_opts=9)
                                     elif arraytype == 'avg':
+                                        if '{0}/{1}/timestamps'.format(plane,arraytype) not in fext:
+                                            tsdt = h5py.special_dtype(vlen=NP.dtype('f8'))
+                                            tdset = fext.create_dataset('{0}/{1}/timestamps'.format(plane,arraytype), shape=(1,), maxshape=(None,), dtype=tsdt)
                                         dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.full((1,self.f.size,m_ind.size,l_ind.size), NP.nan), maxshape=(None,self.f.size,m_ind.size,l_ind.size), chunks=(1,1,m_ind.size,l_ind.size), dtype='f8', compression='gzip', compression_opts=9)
                                 else:
+                                    if arraytype == 'avg':
+                                        if '{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype) not in fext:
+                                            tsdt = h5py.special_dtype(vlen=NP.dtype('f8'))
+                                            tdset = fext.create_dataset('{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype), shape=(1,), maxshape=(None,), dtype=tsdt)
+                                        
                                     idxdt = h5py.special_dtype(vlen=NP.dtype('i8'))
                                     valdt = h5py.special_dtype(vlen=NP.dtype('f8'))
                                     for rowcol in ['freqind', 'ij']:
