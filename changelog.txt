@@ -1,3 +1,13 @@
+From 173ab5a (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function average() of class Image, add ability to mask
+or remove the autocorr data and reimage and store in extfile.
+(*) In member function average() of class Image, remove input keyword
+pad. Update member function docstring accordingly
+
 From c03b25f (extimg):
 =====================
 

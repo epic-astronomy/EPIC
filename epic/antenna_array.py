@@ -7541,7 +7541,7 @@ class Image(object):
     ############################################################################
 
     def average(self, pol=None, datapool='accumulate', autocorr_op='rmfit',
-                pad=0, verbose=True):
+                verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -7569,15 +7569,6 @@ class Image(object):
                 footprint of autocorr weights to zero) , and 'none' (keep the
                 autocorr weights and data without any modification). 
                 Default='rmfit'.
-
-        pad     [integer] indicates the amount of padding before imaging when
-                autocorr_op is not 'none' and autocorr has either been masked 
-                or subtracted. Applicable only when attribute measured_type is 
-                set to 'E-field' (EPIC imaging). The output image will be of 
-                size 2**pad-1 times the size of the antenna array grid along u- 
-                and v-axes. Value must not be negative. Default=0 (implies no 
-                padding of the aperture footprint). pad=1 implies padding by 
-                factor 2 along u- and v-axes for EPIC
 
         verbose [boolean] If True (default), prints diagnostic and progress
                 messages. If False, suppress printing such messages.
@@ -7671,17 +7662,56 @@ class Image(object):
                                     avg_dset[-1] = NP.copy(spmat[sprow,spcol].A.imag.ravel())
 
                 plane = 'image-plane'
-                qtytypes = ['image', 'psf']
+                qtytypes = ['psf', 'image']
                 for qtytype in qtytypes:
                     for p in pol:
                         if autocorr_op.lower() == 'none':
                             dset = fext['{0}/{1}/{2}/{3}'.format(plane,qtytype,datapool,p)]
                             if datapool == 'stack':
-                                avg_vals = NP.mean(dset.value, axis=0) # Average across time
+                                qty_fml = NP.mean(dset.value, axis=0) # Average across time
                             else:
-                                avg_vals = dset.value / fext['twts/{0}'.format(p)].value[0] # Average across time
+                                qty_fml = dset.value / fext['twts/{0}'.format(p)].value[0] # Average across time
+                        else:
+                            for lm in ['l', 'm']:
+                                dset = fext['{0}/{1}_ind'.format(plane, lm)]
+                                if lm == 'l':
+                                    l_ind = dset.value
+                                else:
+                                    m_ind = dset.value
+                            fml_ind = NP.ix_(NP.arange(self.f.size), m_ind, l_ind) # m (row) first
+                            shape2D = fext['aperture-plane/xcorr/shape2D/{0}/{1}'.format(datapool,p)].value
+                            shape3D = fext['aperture-plane/xcorr/shape3D/{0}/{1}'.format(datapool,p)].value
+                            for rowcol in ['freqind', 'ij']:
+                                dset = fext['aperture-plane/xcorr/{0}/avg/{1}'.format(rowcol,p)]
+                                if rowcol == 'freqind':
+                                    sprow = dset[-1]
+                                else:
+                                    spcol = dset[-1]
+                            if qtytype == 'psf':
+                                apqty = 'wts'
+                            else:
+                                apqty = 'vals'
+                            for reim in reim_list:
+                                dset = fext['aperture-plane/xcorr/{0}/avg/{1}/{2}'.format(apqty,p,reim)]
+                                if reim == 'real':
+                                    spmat = SpM.csc_matrix((dset[-1], (sprow, spcol)), shape=shape2D, dtype=NP.complex128)
+                                else:
+                                    spmat += 1j * SpM.csc_matrix((dset[-1], (sprow, spcol)), shape=shape2D, dtype=NP.complex128)
+                            mat = spmat.A.reshape(shape3D)
+                            if apqty == 'wts':
+                                sum_wts = NP.sum(mat, axis=(1,2), keepdims=True)
+                            qty_fml = NP.fft.fftshift(NP.fft.fft2(NP.fft.ifftshift(mat, axes=(1,2)), axes=(1,2)), axes=(1,2)) / sum_wts
+                            if NP.abs(qty_fml.imag).max() > 1e-10:
+                                raise ValueError('Significant imaginary component found in the image-plane quantity.')
+                            qty_fml = qty_fml[fml_ind].real
                             
-                                
+                        dset = fext['{0}/{1}/avg/{2}'.format(plane,qtytype,p)]
+                        if NP.any(NP.isnan(dset.value)):
+                            if NP.sum(NP.isnan(dset.value)) != dset.size:
+                                raise ValueError('Inconsistent number of NaN found')
+                        else:
+                            dset.resize(dset.shape[0]+1, axis=0)
+                        dset[-1] = qty_fml
 
     ############################################################################
 
