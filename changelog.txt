@@ -1,3 +1,14 @@
+From 11a741b (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function imagr() of class Image, store l and m, and u
+and v, in external file. Create containers in image plane for only
+storing pixels inside horizon
+(*) In member functions stack() and accumulate_inplace() of class
+Image, store image pixels that lie inside the horizon.
+
 From 2a13a63 (extimg):
 =====================
 

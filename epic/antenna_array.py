@@ -7223,19 +7223,44 @@ class Image(object):
                 for plane in planes:
                     if plane == 'image-plane':
                         qtytypes = ['image', 'psf']
+                        for lm in ['l', 'm']:
+                            if '{0}/{1}'.format(plane, lm) not in fext:
+                                if lm == 'l':
+                                    vect = self.gridl[0,:]
+                                    l_ind = NP.where(NP.abs(vect) <= 1.0)[0]
+                                    dset = fext.create_dataset('{0}/{1}_ind'.format(plane, lm), data=l_ind)
+                                    dset = fext.create_dataset('{0}/{1}'.format(plane, lm), data=vect[l_ind])
+                                else:
+                                    vect = self.gridm[:,0]
+                                    m_ind = NP.where(NP.abs(vect) <= 1.0)[0]
+                                    dset = fext.create_dataset('{0}/{1}_ind'.format(plane, lm), data=m_ind)
+                                    dset = fext.create_dataset('{0}/{1}'.format(plane, lm), data=vect[m_ind])
+                            else:
+                                dset = fext['{0}/{1}_ind'.format(plane, lm)]
+                                if lm == 'l':
+                                    l_ind = dset.value
+                                else:
+                                    m_ind = dset.value
                     else:
                         qtytypes = ['xcorr', 'acorr']
                         subqtytypes = ['vals', 'wts']
+                        for uv in ['u', 'v']:
+                            if '{0}/{1}'.format(plane, uv) not in fext:
+                                if uv == 'u':
+                                    vect = self.gridu[0,:]
+                                else:
+                                    vect = self.gridv[:,0]
+                                dset = fext.create_dataset('{0}/{1}'.format(plane, uv), data=vect)
                     for qtytype in qtytypes:
                         for arraytype in arraytypes:
                             for p in pol:
                                 if plane == 'image-plane':
                                     if arraytype == 'stack':
-                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.full((1,self.f.size,m_ind.size,l_ind.size), NP.nan), maxshape=(None,self.f.size,m_ind.size,l_ind.size), chunks=(1,1,m_ind.size,l_ind.size), dtype='f8', compression='gzip', compression_opts=9)
                                     elif arraytype == 'accumulate':
-                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.zeros((self.f.size,self.img[p].shape[0],self.img[p].shape[1])), maxshape=(self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.zeros((self.f.size,m_ind.size,l_ind.size)), maxshape=(self.f.size,m_ind.size,l_ind.size), chunks=(1,m_ind.size,l_ind.size), dtype='f8', compression='gzip', compression_opts=9)
                                     elif arraytype == 'avg':
-                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.full((1,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), NP.nan), maxshape=(None,self.f.size,self.img[p].shape[0],self.img[p].shape[1]), chunks=(1,1,self.img[p].shape[0],self.img[p].shape[1]), dtype='f8', compression='gzip', compression_opts=9)
+                                        dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.full((1,self.f.size,m_ind.size,l_ind.size), NP.nan), maxshape=(None,self.f.size,m_ind.size,l_ind.size), chunks=(1,1,m_ind.size,l_ind.size), dtype='f8', compression='gzip', compression_opts=9)
                                 else:
                                     idxdt = h5py.special_dtype(vlen=NP.dtype('i8'))
                                     valdt = h5py.special_dtype(vlen=NP.dtype('f8'))
@@ -7291,6 +7316,13 @@ class Image(object):
                     for plane in planes:
                         if plane == 'image-plane':
                             qtytypes = ['image', 'psf']
+                            for lm in ['l', 'm']:
+                                dset = fext['{0}/{1}_ind'.format(plane, lm)]
+                                if lm == 'l':
+                                    l_ind = dset.value
+                                else:
+                                    m_ind = dset.value
+                            mlf_ind = NP.ix_(m_ind, l_ind, NP.arange(self.f.size)) # m (row) first
                         else:
                             qtytypes = ['xcorr']
                             subqtytypes = ['vals', 'wts']
@@ -7305,9 +7337,9 @@ class Image(object):
                                         else:
                                             dset.resize(dset.shape[0]+1, axis=0)
                                         if qtytype == 'image':
-                                            dset[-1:] = NP.rollaxis(self.img[p], 2, start=0)
+                                            dset[-1:] = NP.rollaxis(self.img[p][mlf_ind], 2, start=0)
                                         elif qtytype == 'psf':
-                                            dset[-1:] = NP.rollaxis(self.beam[p], 2, start=0)
+                                            dset[-1:] = NP.rollaxis(self.beam[p][mlf_ind], 2, start=0)
                                     else:
                                         wts_vuf = NP.rollaxis(self.wts_vuf[p], 2, start=0)
                                         xcorr_shape_3D = wts_vuf.shape
@@ -7413,6 +7445,13 @@ class Image(object):
                     for plane in planes:
                         if plane == 'image-plane':
                             qtytypes = ['image', 'psf']
+                            for lm in ['l', 'm']:
+                                dset = fext['{0}/{1}_ind'.format(plane, lm)]
+                                if lm == 'l':
+                                    l_ind = dset.value
+                                else:
+                                    m_ind = dset.value
+                            mlf_ind = NP.ix_(m_ind, l_ind, NP.arange(self.f.size)) # m (row) first
                         else:
                             qtytypes = ['xcorr']
                             subqtytypes = ['wts', 'vals']
@@ -7422,9 +7461,9 @@ class Image(object):
                                     if plane == 'image-plane':
                                         dset = fext['{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p)]
                                         if qtytype == 'image':
-                                            dset[...] += NP.rollaxis(self.img[p], 2, start=0)
+                                            dset[...] += NP.rollaxis(self.img[p][mlf_ind], 2, start=0)
                                         else:
-                                            dset[...] += NP.rollaxis(self.beam[p], 2, start=0)
+                                            dset[...] += NP.rollaxis(self.beam[p][mlf_ind], 2, start=0)
                                     else:
                                         new_wts_vuf = NP.rollaxis(self.wts_vuf[p], 2, start=0)
                                         xcorr_shape_3D = new_wts_vuf.shape
@@ -7637,6 +7676,12 @@ class Image(object):
                     for p in pol:
                         if autocorr_op.lower() == 'none':
                             dset = fext['{0}/{1}/{2}/{3}'.format(plane,qtytype,datapool,p)]
+                            if datapool == 'stack':
+                                avg_vals = NP.mean(dset.value, axis=0) # Average across time
+                            else:
+                                avg_vals = dset.value / fext['twts/{0}'.format(p)].value[0] # Average across time
+                            
+                                
 
     ############################################################################
 
