@@ -7222,6 +7222,14 @@ class Image(object):
                     dset = fext.create_dataset('twts/{0}'.format(p), data=NP.zeros(1), dtype='f4')
                 for plane in planes:
                     if plane == 'image-plane':
+                        for arraytype in arraytypes:
+                            if arraytype == 'avg':
+                                tdt = h5py.special_dtype(vlen=NP.dtype('f8'))
+                                tshape = (1,)
+                            else:
+                                tdt = 'f8'
+                                tshape = (0,)
+                            tdset = fext.create_dataset('{0}/{1}/timestamps'.format(plane,arraytype), shape=tshape, maxshape=(None,), dtype=tdt)
                         qtytypes = ['image', 'psf']
                         for lm in ['l', 'm']:
                             if '{0}/{1}'.format(plane, lm) not in fext:
@@ -7244,6 +7252,16 @@ class Image(object):
                     else:
                         qtytypes = ['xcorr', 'acorr']
                         subqtytypes = ['vals', 'wts']
+                        for qtytype in qtytypes:
+                            for arraytype in arraytypes:
+                                if arraytype == 'avg':
+                                    tdt = h5py.special_dtype(vlen=NP.dtype('f8'))
+                                    tshape = (1,)
+                                else:
+                                    tdt = 'f8'
+                                    tshape = (0,)
+                                tdset = fext.create_dataset('{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype), shape=tshape, maxshape=(None,), dtype=tdt)
+
                         for uv in ['u', 'v']:
                             if '{0}/{1}'.format(plane, uv) not in fext:
                                 if uv == 'u':
@@ -7260,16 +7278,8 @@ class Image(object):
                                     elif arraytype == 'accumulate':
                                         dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.zeros((self.f.size,m_ind.size,l_ind.size)), maxshape=(self.f.size,m_ind.size,l_ind.size), chunks=(1,m_ind.size,l_ind.size), dtype='f8', compression='gzip', compression_opts=9)
                                     elif arraytype == 'avg':
-                                        if '{0}/{1}/timestamps'.format(plane,arraytype) not in fext:
-                                            tsdt = h5py.special_dtype(vlen=NP.dtype('f8'))
-                                            tdset = fext.create_dataset('{0}/{1}/timestamps'.format(plane,arraytype), shape=(1,), maxshape=(None,), dtype=tsdt)
                                         dset = fext.create_dataset('{0}/{1}/{2}/{3}'.format(plane,qtytype,arraytype,p), data=NP.full((1,self.f.size,m_ind.size,l_ind.size), NP.nan), maxshape=(None,self.f.size,m_ind.size,l_ind.size), chunks=(1,1,m_ind.size,l_ind.size), dtype='f8', compression='gzip', compression_opts=9)
                                 else:
-                                    if arraytype == 'avg':
-                                        if '{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype) not in fext:
-                                            tsdt = h5py.special_dtype(vlen=NP.dtype('f8'))
-                                            tdset = fext.create_dataset('{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype), shape=(1,), maxshape=(None,), dtype=tsdt)
-                                        
                                     idxdt = h5py.special_dtype(vlen=NP.dtype('i8'))
                                     valdt = h5py.special_dtype(vlen=NP.dtype('f8'))
                                     for rowcol in ['freqind', 'ij']:
@@ -7323,6 +7333,11 @@ class Image(object):
                     reim_list = ['real', 'imag']
                     for plane in planes:
                         if plane == 'image-plane':
+                            for arraytype in arraytypes:
+                                tdset = fext['{0}/{1}/timestamps'.format(plane,arraytype)]
+                                tdset.resize(tdset.size+1, axis=0)
+                                tdset[-1:] = self.timestamp
+
                             qtytypes = ['image', 'psf']
                             for lm in ['l', 'm']:
                                 dset = fext['{0}/{1}_ind'.format(plane, lm)]
@@ -7334,6 +7349,12 @@ class Image(object):
                         else:
                             qtytypes = ['xcorr']
                             subqtytypes = ['vals', 'wts']
+                            for qtytype in qtytypes:
+                                for arraytype in arraytypes:
+                                    tdset = fext['{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype)]
+                                    tdset.resize(tdset.size+1, axis=0)
+                                    tdset[-1:] = self.timestamp
+
                         for qtytype in qtytypes:
                             for arraytype in arraytypes:
                                 for p in pol:
@@ -7452,6 +7473,11 @@ class Image(object):
                     reim_list = ['real', 'imag']
                     for plane in planes:
                         if plane == 'image-plane':
+                            for arraytype in arraytypes:
+                                tdset = fext['{0}/{1}/timestamps'.format(plane,arraytype)]
+                                tdset.resize(tdset.size+1, axis=0)
+                                tdset[-1] = self.timestamp
+
                             qtytypes = ['image', 'psf']
                             for lm in ['l', 'm']:
                                 dset = fext['{0}/{1}_ind'.format(plane, lm)]
@@ -7463,6 +7489,12 @@ class Image(object):
                         else:
                             qtytypes = ['xcorr']
                             subqtytypes = ['wts', 'vals']
+                            for qtytype in qtytypes:
+                                for arraytype in arraytypes:
+                                    tdset = fext['{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype)]
+                                    tdset.resize(tdset.size+1, axis=0)
+                                    tdset[-1] = self.timestamp
+
                         for qtytype in qtytypes:
                             for arraytype in arraytypes:
                                 for p in pol:
@@ -7614,6 +7646,11 @@ class Image(object):
                 qtytypes = ['xcorr']
                 subqtytypes = ['wts', 'vals']
                 for qtytype in qtytypes:
+                    tdset = fext['{0}/{1}/avg/timestamps'.format(plane,qtytype)]
+                    if tdset[-1].size > 0:
+                        tdset.resize(tdset.size+1, axis=0)
+                    tdset[-1] = fext['{0}/{1}/{2}/timestamps'.format(plane,qtytype,datapool)].value
+                    
                     for p in pol:
                         if '{0}/{1}/shape2D/{2}/{3}'.format(plane,qtytype,datapool,p) not in fext:
                             raise KeyError('Key {0}/{1}/shape2D/{2}/{3} not found in external file')
@@ -7670,6 +7707,11 @@ class Image(object):
                                     avg_dset[-1] = NP.copy(spmat[sprow,spcol].A.imag.ravel())
 
                 plane = 'image-plane'
+                tdset = fext['{0}/avg/timestamps'.format(plane)]
+                if tdset[-1].size > 0:
+                    tdset.resize(tdset.size+1, axis=0)
+                tdset[-1] = fext['{0}/{1}/timestamps'.format(plane,datapool)].value
+
                 qtytypes = ['psf', 'image']
                 for qtytype in qtytypes:
                     for p in pol:
@@ -7767,9 +7809,16 @@ class Image(object):
                 for plane in planes:
                     if plane == 'image-plane':
                         qtytypes = ['image', 'psf']
+                        for arraytype in datapool:
+                            tdset = fext['{0}/{1}/timestamps'.format(plane,arraytype)]
+                            tdset.resize(0, axis=0)
                     else:
                         qtytypes = ['xcorr', 'acorr']
                         subqtytypes = ['vals', 'wts']
+                        for qtytype in qtytypes:
+                            for arraytype in datapool:
+                                tdset = fext['{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype)]
+                                tdset.resize(0, axis=0)
                     for qtytype in qtytypes:
                         for arraytype in datapool:
                             for p in pol:
@@ -8111,6 +8160,18 @@ class Image(object):
                                     subqtytypes = ['wts', 'vals']
                                 for qtytype in qtytypes:
                                     for arraytype in arraytypes:
+                                        if arraytype == 'avg':
+                                            tdset = fext['{0}/{1}/{2}/timestamps'.format(plane,qtytype,arraytype)]
+                                            if (tdset.size == 1) and (tdset[-1].size == 0):
+                                                tdset[-1] = NP.asarray(self.timestamps)
+                                            else:
+                                                prev_max_tstamp = tdset[-1].max()
+                                                if (len(self.timestamps)>tdset[-1].size) or (max(self.timestamps)>tdset[-1].max()):
+                                                    tstamps = NP.asarray(self.timestamps)
+                                                    nearest_ind = NP.argmin(NP.abs(tstamps - tdset[-1].max()))
+                                                    new_tstamps = tstamps[nearest_ind+1:]
+                                                    tdset.resize(tdset.size+1, axis=0)
+                                                    tdset[-1] = NP.copy(new_tstamps)
                                         for p in pol:
                                             if plane == 'aperture-plane':
                                                 wts_vuf = NP.rollaxis(NP.squeeze(self.autocorr_wts_vuf[p]), 2, start=0)

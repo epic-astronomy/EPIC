@@ -1,3 +1,11 @@
+From fa3fe26 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Initialize and reset timestamps for stack, accumulate, and average
+quantities in both image and aperture planes.
+
 From 271fd5e (extimg):
 =====================
 
