@@ -1,3 +1,10 @@
+From 600a8a2 (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Remove old commented lines
+
 From fa3fe26 (extimg):
 =====================
 

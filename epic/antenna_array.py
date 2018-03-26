@@ -7071,12 +7071,6 @@ class Image(object):
         elif pad < 0:
             raise ValueError('Input keyword pad must not be negative')
 
-        # if not isinstance(pad, str):
-        #     raise TypeError('Input keyword pad must be a string')
-        # else:
-        #     if pad not in ['on', 'off']:
-        #         raise ValueError('Invalid value specified for pad')
-
         du = self.gridu[0,1] - self.gridu[0,0]
         dv = self.gridv[1,0] - self.gridv[0,0]
         grid_shape = self.gridu.shape
@@ -7113,15 +7107,6 @@ class Image(object):
                     syn_beam = NP.fft.fft2(self.grid_wts[apol]*self.grid_illumination[apol], s=[2**(pad+1) * self.gridu.shape[0], 2**(pad+1) * self.gridv.shape[1]], axes=(0,1))
                     dirty_image = NP.fft.fft2(self.grid_wts[apol]*self.grid_Ef[apol], s=[2**(pad+1) * self.gridu.shape[0], 2**(pad+1) * self.gridv.shape[1]], axes=(0,1))
                     self.gridl, self.gridm = NP.meshgrid(NP.fft.fftshift(NP.fft.fftfreq(2**(pad+1) * self.gridu.shape[1], du)), NP.fft.fftshift(NP.fft.fftfreq(2**(pad+1) * self.gridv.shape[0], dv)))
-
-                    # if pad == 'on':
-                    #     syn_beam = NP.fft.fft2(self.grid_wts[apol]*self.grid_illumination[apol], s=[4*self.gridu.shape[0], 4*self.gridv.shape[1]], axes=(0,1))
-                    #     dirty_image = NP.fft.fft2(self.grid_wts[apol]*self.grid_Ef[apol], s=[4*self.gridu.shape[0], 4*self.gridv.shape[1]], axes=(0,1))
-                    #     self.gridl, self.gridm = NP.meshgrid(NP.fft.fftshift(NP.fft.fftfreq(4*grid_shape[1], du)), NP.fft.fftshift(NP.fft.fftfreq(4*grid_shape[0], dv)))
-                    # else:
-                    #     syn_beam = NP.fft.fft2(self.grid_wts[apol]*self.grid_illumination[apol], axes=(0,1))
-                    #     dirty_image = NP.fft.fft2(self.grid_wts[apol]*self.grid_Ef[apol], axes=(0,1))
-                    #     self.gridl, self.gridm = NP.meshgrid(NP.fft.fftshift(NP.fft.fftfreq(grid_shape[1], du)), NP.fft.fftshift(NP.fft.fftfreq(grid_shape[0], dv)))
 
                     self.holbeam[apol] = NP.fft.fftshift(syn_beam/sum_wts, axes=(0,1))
                     self.holimg[apol] = NP.fft.fftshift(dirty_image/sum_wts, axes=(0,1))
@@ -7170,15 +7155,6 @@ class Image(object):
                     padded_syn_beam_in_uv = NP.pad(self.grid_wts[cpol]*self.grid_illumination[cpol], (((2**pad-1)*self.gridv.shape[0]/2,(2**pad-1)*self.gridv.shape[0]/2),((2**pad-1)*self.gridu.shape[1]/2,(2**pad-1)*self.gridu.shape[1]/2),(0,0)), mode='constant', constant_values=0)
                     padded_grid_Vf = NP.pad(self.grid_wts[cpol]*self.grid_Vf[cpol], (((2**pad-1)*self.gridv.shape[0]/2,(2**pad-1)*self.gridv.shape[0]/2),((2**pad-1)*self.gridu.shape[1]/2,(2**pad-1)*self.gridu.shape[1]/2),(0,0)), mode='constant', constant_values=0)
                     self.gridl, self.gridm = NP.meshgrid(NP.fft.fftshift(NP.fft.fftfreq(2**pad * grid_shape[1], du)), NP.fft.fftshift(NP.fft.fftfreq(2**pad * grid_shape[0], dv)))
-
-                    # if pad == 'on': # Pad it with zeros on either side to be twice the size
-                    #     padded_syn_beam_in_uv = NP.pad(self.grid_wts[cpol]*self.grid_illumination[cpol], ((self.gridv.shape[0]/2,self.gridv.shape[0]/2),(self.gridu.shape[1]/2,self.gridu.shape[1]/2),(0,0)), mode='constant', constant_values=0)
-                    #     padded_grid_Vf = NP.pad(self.grid_wts[cpol]*self.grid_Vf[cpol], ((self.gridv.shape[0]/2,self.gridv.shape[0]/2),(self.gridu.shape[1]/2,self.gridu.shape[1]/2),(0,0)), mode='constant', constant_values=0)
-                    #     self.gridl, self.gridm = NP.meshgrid(NP.fft.fftshift(NP.fft.fftfreq(2*grid_shape[1], du)), NP.fft.fftshift(NP.fft.fftfreq(2*grid_shape[0], dv)))
-                    # else:  # No padding
-                    #     padded_syn_beam_in_uv = self.grid_wts[cpol]*self.grid_illumination[cpol]
-                    #     padded_grid_Vf = self.grid_wts[cpol]*self.grid_Vf[cpol]
-                    #     self.gridl, self.gridm = NP.meshgrid(NP.fft.fftshift(NP.fft.fftfreq(grid_shape[1], du)), NP.fft.fftshift(NP.fft.fftfreq(grid_shape[0], dv)))
 
                     # Shift to be centered
                     padded_syn_beam_in_uv = NP.fft.ifftshift(padded_syn_beam_in_uv, axes=(0,1))
@@ -7977,104 +7953,6 @@ class Image(object):
                 self.grid_illumination_avg[p] = grid_illumination_acc[p] / twts[p]
 
         self.twts = twts
-
-    ############################################################################
-
-    # def evalAutoCorr(self, lkpinfo=None, forceeval=False):
-
-    #     """
-    #     ------------------------------------------------------------------------
-    #     Evaluate auto-correlation of single antenna weights with itself on the
-    #     UV-plane. 
-
-    #     Inputs:
-
-    #     lkpinfo   [dictionary] consists of weights information for each of 
-    #               the polarizations under polarization keys. Each of 
-    #               the values under the keys is a string containing the full
-    #               path to a filename that contains the positions and 
-    #               weights for the aperture illumination in the form of 
-    #               a lookup table as columns (x-loc [float], y-loc 
-    #               [float], wts[real], wts[imag if any]). In this case, the 
-    #               lookup is for auto-corrlation of antenna weights. It only 
-    #               applies when the antenna aperture class is set to 
-    #               lookup-based kernel estimation instead of a functional form
-
-    #     forceeval [boolean] When set to False (default) the auto-correlation in
-    #               the UV plane is not evaluated if it was already evaluated 
-    #               earlier. If set to True, it will be forcibly evaluated 
-    #               independent of whether they were already evaluated or not
-    #     ------------------------------------------------------------------------
-    #     """
-
-    #     if forceeval or (not self.autocorr_set):
-    #         if self.measured_type == 'E-field':
-    
-    #             pol = ['P1', 'P2']
-    
-    #             # Assume all antenna apertures are identical and make a copy of the
-    #             # antenna aperture
-    #             # Need serious development for non-identical apertures
-    
-    #             ant_aprtr = copy.deepcopy(self.antenna_array.antennas.itervalues().next().aperture)
-    #             pol_type = 'dual'
-    #             kerntype = ant_aprtr.kernel_type
-    #             shape = ant_aprtr.shape
-    #             # kernshapeparms = {'xmax': {p: ant_aprtr.xmax[p] for p in pol}, 'ymax': {p: ant_aprtr.ymax[p] for p in pol}, 'rmin': {p: ant_aprtr.rmin[p] for p in pol}, 'rmax': {p: ant_aprtr.rmax[p] for p in pol}, 'rotangle': {p: ant_aprtr.rotangle[p] for p in pol}}
-    #             kernshapeparms = {p: {'xmax': ant_aprtr.xmax[p], 'ymax': ant_aprtr.ymax[p], 'rmax': ant_aprtr.rmax[p], 'rmin': ant_aprtr.rmin[p], 'rotangle': ant_aprtr.rotangle[p]} for p in pol}
-    
-    #             for p in pol:
-    #                 if kerntype[p] == 'func':
-    #                     if shape[p] == 'rect':
-    #                         shape[p] = 'auto_convolved_rect'
-    #                     elif shape[p] == 'square':
-    #                         shape[p] = 'auto_convolved_square'
-    #                     elif shape[p] == 'circular':
-    #                         shape[p] = 'auto_convolved_circular'
-    #                     else:
-    #                         raise ValueError('Aperture kernel footprint shape - {0} - currently unsupported'.format(shape[p]))
-                        
-    #             aprtr = APR.Aperture(pol_type=pol_type, kernel_type=kerntype,
-    #                                  shape=shape, parms=kernshapeparms,
-    #                                  lkpinfo=lkpinfo, load_lookup=True)
-                
-    #             du = self.gridu[0,1] - self.gridu[0,0]
-    #             dv = self.gridv[1,0] - self.gridv[0,0]
-    #             if self.measured_type == 'E-field':
-    #                 gridu, gridv = NP.meshgrid(du*(NP.arange(2*self.gridu.shape[1])-self.gridu.shape[1]), dv*(NP.arange(2*self.gridu.shape[0])-self.gridu.shape[0]))
-    #             else:
-    #                 gridu, gridv = self.gridu, self.gridv
-    
-    #             wavelength = FCNST.c / self.f
-    #             min_lambda = NP.abs(wavelength).min()
-    #             rmaxNN = 0.5 * NP.sqrt(du**2 + dv**2) * min_lambda 
-    
-    #             gridx = gridu[:,:,NP.newaxis] * wavelength.reshape(1,1,-1)
-    #             gridy = gridv[:,:,NP.newaxis] * wavelength.reshape(1,1,-1)
-    #             gridxy = NP.hstack((gridx.reshape(-1,1), gridy.reshape(-1,1)))
-    #             wl = NP.ones(gridu.shape)[:,:,NP.newaxis] * wavelength.reshape(1,1,-1)
-    #             wl = wl.reshape(-1)
-    #             distNN = 2.0 * max([NP.sqrt(aprtr.xmax['P1']**2 + NP.sqrt(aprtr.ymax['P1']**2)), NP.sqrt(aprtr.xmax['P2']**2 + NP.sqrt(aprtr.ymax['P2']**2)), aprtr.rmax['P1'], aprtr.rmax['P2']]) # factor in the front is to safely estimate kernel around some extra grid pixels
-    #             indNN_list, blind, vuf_gridind = LKP.find_NN(NP.zeros((1,2)), gridxy, distance_ULIM=distNN, flatten=True, parallel=False)
-    #             dxy = gridxy[vuf_gridind,:]
-    #             unraveled_vuf_ind = NP.unravel_index(vuf_gridind, gridu.shape+(self.f.size,))
-    
-    #             self.autocorr_wts_vuf = {p: NP.zeros(gridu.shape+(self.f.size,), dtype=NP.complex64) for p in pol}
-    #             # self.pbeam = {p: NP.zeros((2*gridv.shape[0],2*gridu.shape[1],self.f.size), dtype=NP.complex64) for p in pol}                
-    #             for p in pol:
-    #                 krn = aprtr.compute(dxy, wavelength=wl[vuf_gridind], pol=p, rmaxNN=rmaxNN, load_lookup=False)
-    #                 self.autocorr_wts_vuf[p][unraveled_vuf_ind] = krn[p]
-    #                 self.autocorr_wts_vuf[p] = self.autocorr_wts_vuf[p] / NP.sum(self.autocorr_wts_vuf[p], axis=(0,1), keepdims=True)
-    #                 # sum_wts = NP.sum(self.autocorr_wts_vuf[p], axis=(0,1), keepdims=True)
-    #                 # padded_wts_vuf = NP.pad(self.autocorr_wts_vuf[p], ((self.gridv.shape[0],self.gridv.shape[0]),(self.gridu.shape[1],self.gridu.shape[1]),(0,0)), mode='constant', constant_values=0)
-    #                 # padded_wts_vuf = NP.fft.ifftshift(padded_wts_vuf, axes=(0,1))
-    #                 # wts_lmf = NP.fft.fft2(padded_wts_vuf, axes=(0,1)) / sum_wts
-    #                 # if NP.abs(wts_lmf.imag).max() < 1e-10:
-    #                 #     self.pbeam[p] = NP.fft.fftshift(wts_lmf.real, axes=(0,1))
-    #                 # else:
-    #                 #     raise ValueError('Significant imaginary component found in the power pattern')
-                    
-    #             self.autocorr_set = True
 
     ############################################################################
 
