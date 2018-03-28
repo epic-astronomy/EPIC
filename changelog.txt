@@ -1,3 +1,11 @@
+From fe9027e (extimg):
+=====================
+
+In scripts/run_EPIC.py,
+
+(*) Import epic
+(*) Add epic_path
+
 From c457a8b (extimg):
 =====================
 

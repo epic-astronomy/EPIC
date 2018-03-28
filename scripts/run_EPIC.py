@@ -10,11 +10,14 @@ import progressbar as PGB
 from astroutils import geometry as GEOM
 from astroutils import DSP_modules as DSP
 from astroutils import mathops as OPS
+import epic
 from epic import sim_observe as SIM
 from epic import antenna_array as AA
 from epic import aperture as APR
 from epic import data_interface as DI
 import ipdb as PDB
+
+epic_path = epic.__path__[0]+'/'
 
 epsilon = sys.float_info.epsilon # typical floating-point calculation error
 
@@ -206,7 +209,6 @@ if __name__ == '__main__':
     
     dstream = DI.DataStreamer()
 
-    PDB.set_trace()
     tprogress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Timestamps '.format(len(range(mintime_ind, maxtime_ind+1))), PGB.ETA()], maxval=len(range(mintime_ind, maxtime_ind+1))).start()
     for ti in range(mintime_ind, maxtime_ind+1):
         timestamp = timestamps[ti]
