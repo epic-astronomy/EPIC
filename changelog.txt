@@ -1,3 +1,10 @@
+From d08525a (extimg):
+=====================
+
+In epic/antenna_array.py,
+
+(*) Minor inconsequential change
+
 From 600a8a2 (extimg):
 =====================
 

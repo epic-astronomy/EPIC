@@ -12802,7 +12802,7 @@ class AntennaArray(object):
             if apol not in ['P1', 'P2']:
                 raise ValueError('Invalid specification for input parameter pol')
 
-            progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas'.format(len(data_info[apol]['labels'])), PGB.ETA()], maxval=len(data_info[apol]['labels'])).start()
+            progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(len(data_info[apol]['labels'])), PGB.ETA()], maxval=len(data_info[apol]['labels'])).start()
             for antind, antkey in enumerate(data_info[apol]['labels']):
                 typetag_pair = self.antenna_pair_to_typetag[(antkey,antkey)] # auto pair
                 shape_tuple = tuple(2*NP.asarray(self.gridu.shape))+(self.f.size,)
