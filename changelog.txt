@@ -1,3 +1,13 @@
+From c457a8b (extimg):
+=====================
+
+(*) Add epic/examples/imagingparms/EPIC_parms.yaml and
+scripts/run_EPIC.py to repo
+
+In examples/ioparms/LWA_TBN_input_file_parameters.yaml,
+
+(*) Minor bug fixes - append '/' to directories
+
 From d08525a (extimg):
 =====================
 

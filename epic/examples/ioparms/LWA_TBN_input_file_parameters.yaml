@@ -7,14 +7,14 @@
 dirstruct   :
                                 # Directory information
 
-    indir           : '/path/to/indir'
+    indir           : '/path/to/indir/'
                                 # Full path to input data directory
                                 # containing TBN files
 
     infile          : 'infile'
                                 # Input TBN filename
 
-    outdir          : '/path/to/outdir'
+    outdir          : '/path/to/outdir/'
                                 # Base directory for outputs
 
     outfile         : 'outfile'

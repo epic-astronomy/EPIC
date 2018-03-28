@@ -1,0 +1,160 @@
+##### IMPORTANT INFORMATION #####
+##### DO NOT MODIFY THIS FILE #####
+##### MAKE A COPY OF THIS FILE AND CUSTOMIZE #####
+
+########## Directory Structure information #########
+
+dirstruct   :
+                                # Directory information
+
+    indir           : '/path/to/indir/'
+                                # Directory containing the data
+
+    infile          : 'infile.hdf5'
+                                # Input HDF5 file containing the data
+                                # in EPIC-compatible data container
+
+    outdir          : '/path/to/outdir/'
+                                # Folder where images will be stored
+
+    outfile         : 'outfile.hdf5'
+                                # Name of HDF5 file containng images
+
+    h5repack_path   : '/path/to/bin/h5repack'
+                                # Full path to h5repack which will be
+                                # used to substantially compress the
+                                # unaccounted free space in the HDF5
+                                # created. If not available, set it
+                                # to null (no h5repack will be done).
+                                # The H5FS (H5 File Space) strategy
+                                # is specified in h5fs_strategy
+
+    h5fs_strategy   : 'FSM_AGGR'
+                                # HDF5 file space management strategy
+                                # only used if h5repack_path is not
+                                # set to null. Check "h5repack -h" for
+                                # more info. Accepted values are
+                                # 'FSM_AGGR' (default), 'PAGE', 'AGGR',
+                                # and 'NONE'
+                                
+########## Array parameters ##########
+
+arrayinfo   :
+                                # Array parameters
+
+    latitude    : +34.348358
+                                # Latitude of observatory in degrees
+
+    longitude   : -106.885783
+                                # Longitude of observatory in degrees
+
+    ants_identical  : true
+                                # Are antennas identical (true or
+                                # false)
+
+    core_size   : 120.0
+                                # Size of antenna core to select
+                                # (in m). Box side if shape of core
+                                # is box, or diameter if shape of
+                                # core is a circle. If null, core
+                                # selection does not apply and all
+                                # the antennas are used
+
+########## Antenna parameters ##########
+
+antinfo   :
+                                # Antenna parameters
+
+    illumination: 'analytic'
+                                # Type of antenna illumination pattern
+                                # Accepted values are 'analytic' and
+                                # 'lookup'. Default='analytic'
+
+    lookup_file : null
+                                # File containing lookup table for
+                                # antenna illumination. Applies only
+                                # if illumination is not set to
+                                # 'analytic'
+
+    shape       : 'rect'
+
+    xsize       : 3.0
+                                # Size along x-dimension (primary
+                                # axis)
+
+    ysize       : 3.0
+                                # Size along y-dimension (secondary
+                                # axis)
+
+    rotangle    : 0.0
+                                # Rotation of x- (primary) axis
+                                # wrt east counter-clockwise
+
+    rmin        : null
+                                # Minimum radius of aperture (in m)
+                                # if aperture shape is circular
+
+    rmax        : null
+                                # Maximum radius of aperture (in m)
+                                # if aperture shape is circular
+
+    poltype     : 'dual'
+                                # Antenna polarization type
+
+########## Observation parameters ##########
+
+obsinfo     :
+                                # Observation parameters to subselect
+                                # from data
+
+    datatype    : 'Et'
+                                # 'Et'=time-series if data is not
+                                # channelized into spectrum. Otherwise
+                                # 'Ef' for spectrum
+
+    minfreq     : null
+                                # Minimum frequency in the data to
+                                # process. If set to null, process
+                                # all frequency channels
+
+    maxfreq     : null
+                                # Maximum frequency in the data to
+                                # process. If set to null, process
+                                # all frequency channels
+
+    mintime_ind : null
+                                # Index of Minimum timestamp in the 
+                                # data to process. If set to null, 
+                                # process all timestamps
+
+    maxtime_ind : null
+                                # Index of Maximum timestamp in the 
+                                # data to process. If set to null, 
+                                # process all timestamps
+    pol         : 'P1'
+                                # Polarizations to process. If set
+                                # to null, all four polarizations will
+                                # be processd. Otherwise, must be set
+                                # to 'P1P1' (or just 'P1'), 'P2P2' (or
+                                # just 'P2'), 'P1P2' or 'P2P1'
+
+########## Gridding parameters ##########
+
+gridinfo    :
+                                # Gridding information
+
+    del_uv_max  : 0.25
+                                # Maximum uv spacing in units of
+                                # number of wavelengths
+
+########## Processing parameters ##########
+
+procinfo    :
+                                # Processing parameters
+
+    grid_map    : 'sparse'
+                                # Grid mapping method. Can be set to
+                                # 'sparse' (default) or 'regular'
+    t_acc       : 0.1024
+                                # Accumulation time interval (in
+                                # seconds)
