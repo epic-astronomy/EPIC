@@ -62,7 +62,7 @@ if __name__ == '__main__':
     ant_ids = [a.id for a in antennas]
     stand_ids = [a.stand.id for a in antennas]
 
-    ldpinstance = ldp.LWADataFile(filename=infile)
+    ldpinstance = ldp.LWADataFile(filename=infile, ignoreTimeTagErrors=True)
     cFreq = ldpinstance.description['freq1']  # Data tuning in Hz
     nFrames = ldpinstance.description['nFrames']
     file_duration = nFrames / len(antennas) * nsamples_in_frame / ldpinstance.description['sampleRate']

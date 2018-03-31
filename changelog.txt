@@ -1,3 +1,10 @@
+From 35f6b3b (master):
+=====================
+
+In scripts/convert_LWA_TBN_data_to_EPIC_format.py,
+
+(*) Include ignoreTimeTagErrors=True in call to ldp.LWADataFile()
+
 From fe9027e (extimg):
 =====================
 
