@@ -47,4 +47,9 @@ directory:
 Basic Usage
 ===========
 
- 
+``run_EPIC.py -i /path/to/imagingparms.yaml``
+
+where ``/path/to/imagingparms.yaml`` is a YAML file specifying all imaging
+and processing parameters. See example in
+
+``epic/examples/imagingparms/EPIC_parms.yaml``

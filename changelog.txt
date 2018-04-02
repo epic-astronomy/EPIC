@@ -1,3 +1,10 @@
+From f40b28a (master):
+=====================
+
+In README.rst,
+
+(*) Add notes on basic usage
+
 From 35f6b3b (master):
 =====================
 
