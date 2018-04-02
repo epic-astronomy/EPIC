@@ -158,3 +158,17 @@ procinfo    :
     t_acc       : 0.1024
                                 # Accumulation time interval (in
                                 # seconds)
+
+    imgnproc    : null
+                                # Number of parallel processes to be
+                                # used in call to imagr().
+                                # Default=null will set nproc to
+                                # number of processors minus 1.
+                                # Otherwise must be set to an integer
+                                # greater than 0
+    
+
+
+
+
+

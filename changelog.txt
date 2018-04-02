@@ -1,3 +1,24 @@
+From f40b28a (master):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function imagr() of class Image, add input keyword
+nproc to invoke parallel processing in calls to 2D FFT and IFFT via
+DSP module in AstroUtils.
+(*) In member function imagr() of class Image, make both parallel and
+non-parallel calls to 2D FFT and IFFT available
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add option to use parallelization in calls to Image.imagr() via
+new input option imgnproc
+
+In scripts/run_EPIC.py,
+
+(*) Read input imgnproc from input config YAML file
+(*) Include option imgnproc in call to Image.imagr()
+
 From 35f6b3b (master):
 =====================
 

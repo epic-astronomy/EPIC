@@ -7007,7 +7007,7 @@ class Image(object):
     ############################################################################
 
     def imagr(self, pol=None, weighting='natural', pad=0, stack=True,
-              grid_map_method='sparse', cal_loop=False, verbose=True):
+              grid_map_method='sparse', cal_loop=False, nproc=1, verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -7051,6 +7051,16 @@ class Image(object):
                   calibration loop is assumed to be OFF and the current stream 
                   of electric fields are assumed to be the calibrated data to 
                   be mapped to the grid 
+
+        nproc     [integer] specifies number of independent processes to spawn.
+                  Default = None, means automatically determines the number of 
+                  process cores in the system and use one less than that to 
+                  avoid locking the system for other processes. Applies only 
+                  if input parameter 'parallel' (see above) is set to True. 
+                  If nproc is set to a value more than the number of process
+                  cores in the system, it will be reset to number of process 
+                  cores in the system minus one to avoid locking the system out 
+                  for other processes
 
         verbose   [boolean] If True (default), prints diagnostic and progress
                   messages. If False, suppress printing such messages.
@@ -7104,8 +7114,30 @@ class Image(object):
 
                     sum_wts = NP.sum(NP.abs(self.grid_wts[apol] * self.grid_illumination[apol]), axis=(0,1), keepdims=True)
 
-                    syn_beam = NP.fft.fft2(self.grid_wts[apol]*self.grid_illumination[apol], s=[2**(pad+1) * self.gridu.shape[0], 2**(pad+1) * self.gridv.shape[1]], axes=(0,1))
-                    dirty_image = NP.fft.fft2(self.grid_wts[apol]*self.grid_Ef[apol], s=[2**(pad+1) * self.gridu.shape[0], 2**(pad+1) * self.gridv.shape[1]], axes=(0,1))
+                    if nproc is None:
+                        nproc = max(MP.cpu_count()-1, 1) 
+                    else:
+                        nproc = min(nproc, max(MP.cpu_count()-1, 1))
+                    if nproc > 1:
+                        s_list = [(2**(pad+1) * self.gridu.shape[0], 2**(pad+1) * self.gridv.shape[1])] * nproc
+                        axes_list = [(0,1)] * nproc 
+                        for qty in ['psf', 'image']:
+                            if qty == 'psf':
+                                qtylist = NP.array_split(self.grid_wts[apol]*self.grid_illumination[apol], nproc, axis=2)
+                            else:
+                                qtylist = NP.array_split(self.grid_wts[apol]*self.grid_Ef[apol], nproc, axis=2)
+                            pool = MP.Pool(processes=nproc)
+                            outqtylist = pool.map(DSP.unwrap_FFT2D, IT.izip(qtylist, s_list, axes_list))
+                            pool.close()
+                            pool.join()
+                            if qty == 'psf':
+                                syn_beam = NP.concatenate(tuple(outqtylist), axis=2)
+                            else:
+                                dirty_image = NP.concatenate(tuple(outqtylist), axis=2)
+                        del outqtylist
+                    else:
+                        syn_beam = NP.fft.fft2(self.grid_wts[apol]*self.grid_illumination[apol], s=[2**(pad+1) * self.gridu.shape[0], 2**(pad+1) * self.gridv.shape[1]], axes=(0,1))
+                        dirty_image = NP.fft.fft2(self.grid_wts[apol]*self.grid_Ef[apol], s=[2**(pad+1) * self.gridu.shape[0], 2**(pad+1) * self.gridv.shape[1]], axes=(0,1))
                     self.gridl, self.gridm = NP.meshgrid(NP.fft.fftshift(NP.fft.fftfreq(2**(pad+1) * self.gridu.shape[1], du)), NP.fft.fftshift(NP.fft.fftfreq(2**(pad+1) * self.gridv.shape[0], dv)))
 
                     self.holbeam[apol] = NP.fft.fftshift(syn_beam/sum_wts, axes=(0,1))
@@ -7115,13 +7147,33 @@ class Image(object):
                     dirty_image = NP.abs(dirty_image)**2
                     self.beam[apol] = NP.fft.fftshift(syn_beam/sum_wts2, axes=(0,1))
                     self.img[apol] = NP.fft.fftshift(dirty_image/sum_wts2, axes=(0,1))
-                    qty_vuf = NP.fft.ifft2(syn_beam/sum_wts2, axes=(0,1)) # Inverse FT
-                    qty_vuf = NP.fft.ifftshift(qty_vuf, axes=(0,1)) # Shift array to be centered
-                    # self.wts_vuf[apol] = qty_vuf[self.gridv.shape[0]:3*self.gridv.shape[0],self.gridu.shape[1]:3*self.gridu.shape[1],:]
-                    self.wts_vuf[apol] = qty_vuf[qty_vuf.shape[0]/2-self.gridv.shape[0]:qty_vuf.shape[0]/2+self.gridv.shape[0], qty_vuf.shape[1]/2-self.gridu.shape[1]:qty_vuf.shape[1]/2+self.gridu.shape[1], :]
-                    qty_vuf = NP.fft.ifft2(dirty_image/sum_wts2, axes=(0,1)) # Inverse FT
-                    qty_vuf = NP.fft.ifftshift(qty_vuf, axes=(0,1)) # Shift array to be centered
-                    self.vis_vuf[apol] = qty_vuf[qty_vuf.shape[0]/2-self.gridv.shape[0]:qty_vuf.shape[0]/2+self.gridv.shape[0], qty_vuf.shape[1]/2-self.gridu.shape[1]:qty_vuf.shape[1]/2+self.gridu.shape[1], :]
+
+                    if nproc > 1:
+                        s_list = [None] * nproc
+                        axes_list = [(0,1)] * nproc
+                        for qty in ['wts', 'vis']:
+                            if qty == 'wts':
+                                qtylist = NP.array_split(syn_beam/sum_wts2, nproc, axis=2)
+                            else:
+                                qtylist = NP.array_split(dirty_image/sum_wts2, nproc, axis=2)
+                            pool = MP.Pool(processes=nproc)
+                            outqtylist = pool.map(DSP.unwrap_IFFT2D, IT.izip(qtylist, s_list, axes_list))
+                            pool.close()
+                            pool.join()
+                            qty_vuf = NP.concatenate(tuple(outqtylist), axis=2)
+                            qty_vuf = NP.fft.ifftshift(qty_vuf, axes=(0,1)) # Shift array to be centered
+                            if qty == 'wts':
+                                self.wts_vuf[apol] = qty_vuf[qty_vuf.shape[0]/2-self.gridv.shape[0]:qty_vuf.shape[0]/2+self.gridv.shape[0], qty_vuf.shape[1]/2-self.gridu.shape[1]:qty_vuf.shape[1]/2+self.gridu.shape[1], :]
+                            else:
+                                self.vis_vuf[apol] = qty_vuf[qty_vuf.shape[0]/2-self.gridv.shape[0]:qty_vuf.shape[0]/2+self.gridv.shape[0], qty_vuf.shape[1]/2-self.gridu.shape[1]:qty_vuf.shape[1]/2+self.gridu.shape[1], :]
+                    else:
+                        qty_vuf = NP.fft.ifft2(syn_beam/sum_wts2, axes=(0,1)) # Inverse FT
+                        qty_vuf = NP.fft.ifftshift(qty_vuf, axes=(0,1)) # Shift array to be centered
+                        # self.wts_vuf[apol] = qty_vuf[self.gridv.shape[0]:3*self.gridv.shape[0],self.gridu.shape[1]:3*self.gridu.shape[1],:]
+                        self.wts_vuf[apol] = qty_vuf[qty_vuf.shape[0]/2-self.gridv.shape[0]:qty_vuf.shape[0]/2+self.gridv.shape[0], qty_vuf.shape[1]/2-self.gridu.shape[1]:qty_vuf.shape[1]/2+self.gridu.shape[1], :]
+                        qty_vuf = NP.fft.ifft2(dirty_image/sum_wts2, axes=(0,1)) # Inverse FT
+                        qty_vuf = NP.fft.ifftshift(qty_vuf, axes=(0,1)) # Shift array to be centered
+                        self.vis_vuf[apol] = qty_vuf[qty_vuf.shape[0]/2-self.gridv.shape[0]:qty_vuf.shape[0]/2+self.gridv.shape[0], qty_vuf.shape[1]/2-self.gridu.shape[1]:qty_vuf.shape[1]/2+self.gridu.shape[1], :]
                        
         if self.measured_type == 'visibility':
             if pol is None: pol = ['P11', 'P12', 'P21', 'P22']
