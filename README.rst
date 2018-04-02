@@ -41,7 +41,7 @@ directory:
 
 ``cd EPIC``
 
-``pip install .``.
+``pip install .``
 
 
 Basic Usage

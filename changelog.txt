@@ -1,3 +1,10 @@
+From e6616e7 (master):
+=====================
+
+In README.rst,
+
+(*) Minor update for better readability
+
 From f40b28a (master):
 =====================
 
