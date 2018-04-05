@@ -18,20 +18,20 @@ import aperture as APR
 
 ################### Routines essential for parallel processing ################
 
-def unwrap_antenna_FT(arg, **kwarg):
-    return Antenna.FT_pp(*arg, **kwarg)
+def unwrap_antenna_FT(args, **kwargs):
+    return Antenna.FT_pp(*args, **kwargs)
 
-def unwrap_interferometer_FX(arg, **kwarg):
-    return Interferometer.FX_pp(*arg, **kwarg)
+def unwrap_interferometer_FX(args, **kwargs):
+    return Interferometer.FX_pp(*args, **kwargs)
 
-def unwrap_interferometer_stack(arg, **kwarg):
-    return Interferometer.stack_pp(*arg, **kwarg)
+def unwrap_interferometer_stack(args, **kwargs):
+    return Interferometer.stack_pp(*args, **kwargs)
 
-def unwrap_antenna_update(arg, **kwarg):
-    return Antenna.update_pp(*arg, **kwarg)
+def unwrap_antenna_update(args, **kwargs):
+    return Antenna.update_pp(*args, **kwargs)
 
-def unwrap_interferometer_update(arg, **kwarg):
-    return Interferometer.update_pp(*arg, **kwarg)
+def unwrap_interferometer_update(args, **kwargs):
+    return Interferometer.update_pp(*args, **kwargs)
 
 def antenna_grid_mapping(gridind_raveled, values, bins=None):
     if bins is None:
@@ -113,6 +113,13 @@ def genMatrixMapper(val, ind, shape):
             if ind[i+1].size != ind[i].size:
                 raise ValueError('All index groups must have same size')
     return SpM.csr_matrix((val, ind), shape=shape)
+
+def unwrap_multidim_product(args, **kwargs):
+    return multidim_product(*args, **kwargs)
+
+def multidim_product(spmat, dnsmat1, dnsmat2, spmatshape):
+    dnsmat = dnsmat1 * dnsmat2
+    return spmat.toarray().reshape(spmatshape)[NP.newaxis,:,:,:] * dnsmat[:,NP.newaxis,NP.newaxis,:]
 
 ################################################################################
 
@@ -7007,7 +7014,8 @@ class Image(object):
     ############################################################################
 
     def imagr(self, pol=None, weighting='natural', pad=0, stack=True,
-              grid_map_method='sparse', cal_loop=False, nproc=1, verbose=True):
+              grid_map_method='sparse', cal_loop=False, nproc=None,
+              verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -8009,7 +8017,8 @@ class Image(object):
     ############################################################################
 
     def evalAutoCorr(self, pol=None, datapool='avg', forceeval_autowts=False,
-                     forceeval_autocorr=True, save=True, verbose=True):
+                     forceeval_autocorr=True, nproc=None, save=True,
+                     verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -8043,6 +8052,16 @@ class Image(object):
                   evaluated independent of whether they were already evaluated 
                   or not
 
+        nproc     [integer] specifies number of independent processes to spawn.
+                  Default = None, means automatically determines the number of 
+                  process cores in the system and use one less than that to 
+                  avoid locking the system for other processes. Applies only 
+                  if input parameter 'parallel' (see above) is set to True. 
+                  If nproc is set to a value more than the number of process
+                  cores in the system, it will be reset to number of process 
+                  cores in the system minus one to avoid locking the system out 
+                  for other processes
+
         save      [boolean] If True (default), save the autocorrelation weights
                   and data if an external file exists. It only applies when 
                   datapool='avg', otherwise it does not save to external file.
@@ -8072,7 +8091,7 @@ class Image(object):
             raise TypeError('Input save must be boolean')
 
         if forceeval_autowts or forceeval_autocorr or (not self.autocorr_set):
-            self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(pol=None, datapool=datapool, tbinsize=self.tbinsize, forceeval_autowts=forceeval_autowts, forceeval_autocorr=forceeval_autocorr)
+            self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(pol=None, datapool=datapool, tbinsize=self.tbinsize, forceeval_autowts=forceeval_autowts, forceeval_autocorr=forceeval_autocorr, nproc=nproc)
             self.autocorr_set = True
             if verbose:
                 print 'Determined auto-correlation weights and data...'
@@ -12740,7 +12759,7 @@ class AntennaArray(object):
 
     def makeAutoCorrCube(self, pol=None, data=None, datapool='stack',
                          tbinsize=None, forceeval_autowts=False,
-                         forceeval_autocorr=False, verbose=True):
+                         forceeval_autocorr=False, nproc=None, verbose=True):
 
         """
         ------------------------------------------------------------------------
@@ -12796,6 +12815,16 @@ class AntennaArray(object):
                 evaluated earlier. If set to True, it will be forcibly 
                 evaluated independent of whether they were already evaluated 
                 or not
+
+        nproc   [integer] specifies number of independent processes to spawn.
+                Default = None, means automatically determines the number of 
+                process cores in the system and use one less than that to 
+                avoid locking the system for other processes. Applies only 
+                if input parameter 'parallel' (see above) is set to True. 
+                If nproc is set to a value more than the number of process
+                cores in the system, it will be reset to number of process 
+                cores in the system minus one to avoid locking the system out 
+                for other processes
 
         verbose [boolean] If True, prints diagnostic and progress messages. 
                 If False (default), suppress printing such messages.
@@ -12854,18 +12883,50 @@ class AntennaArray(object):
             if apol not in ['P1', 'P2']:
                 raise ValueError('Invalid specification for input parameter pol')
 
-            progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(len(data_info[apol]['labels'])), PGB.ETA()], maxval=len(data_info[apol]['labels'])).start()
-            for antind, antkey in enumerate(data_info[apol]['labels']):
-                typetag_pair = self.antenna_pair_to_typetag[(antkey,antkey)] # auto pair
-                shape_tuple = tuple(2*NP.asarray(self.gridu.shape))+(self.f.size,)
-                if autocorr_wts_cube[apol] is None:
-                    autocorr_wts_cube[apol] = self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
-                    autocorr_data_cube[apol] = self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] * data_info[apol]['data'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
-                else:
-                    autocorr_wts_cube[apol] += self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
-                    autocorr_data_cube[apol] += self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] * data_info[apol]['data'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
-                progress.update(antind+1)
-            progress.finish()
+            if nproc is None:
+                nproc = max(MP.cpu_count()-1, 1) 
+            else:
+                nproc = min(nproc, max(MP.cpu_count()-1, 1))
+            if nproc > 1:
+                list_antind = []
+                list_antkey = []
+                list_typetag_pair = []
+                list_shape_tuple = []
+                list_sparse_crosswts_vuf = []
+                list_twts = []
+                list_acorr_data = []
+                for antind, antkey in enumerate(data_info[apol]['labels']):
+                    typetag_pair = self.antenna_pair_to_typetag[(antkey,antkey)]
+                    list_shape_tuple += [tuple(2*NP.asarray(self.gridu.shape))+(self.f.size,)]
+                    list_sparse_crosswts_vuf += [self.pairwise_typetag_crosswts_vuf[typetag_pair][apol]]
+                    list_twts += [data_info[apol]['twts'][:,antind,:]]
+                    list_acorr_data += [data_info[apol]['data'][:,antind,:]]
+                for qty in ['wts', 'data']:
+                    pool = MP.Pool(processes=nproc)
+                    if qty == 'wts':
+                        outqtylist = pool.map(unwrap_multidim_product, IT.izip(list_sparse_crosswts_vuf, list_twts, [1.0]*len(data_info[apol]['labels']), list_shape_tuple))
+                    else:
+                        outqtylist = pool.map(unwrap_multidim_product, IT.izip(list_sparse_crosswts_vuf, list_twts, list_acorr_data, list_shape_tuple))
+                    pool.close()
+                    pool.join()
+                    if qty == 'wts':
+                        autocorr_wts_cube[apol] = NP.sum(NP.array(outqtylist), axis=0)
+                    else:
+                        autocorr_data_cube[apol] = NP.sum(NP.array(outqtylist), axis=0)
+                    del outqtylist
+            else: # Serial processing of autocorr accumulation into cube
+                progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Antennas '.format(len(data_info[apol]['labels'])), PGB.ETA()], maxval=len(data_info[apol]['labels'])).start()
+                for antind, antkey in enumerate(data_info[apol]['labels']):
+                    typetag_pair = self.antenna_pair_to_typetag[(antkey,antkey)] # auto pair
+                    shape_tuple = tuple(2*NP.asarray(self.gridu.shape))+(self.f.size,)
+                    if autocorr_wts_cube[apol] is None:
+                        autocorr_wts_cube[apol] = self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
+                        autocorr_data_cube[apol] = self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] * data_info[apol]['data'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
+                    else:
+                        autocorr_wts_cube[apol] += self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
+                        autocorr_data_cube[apol] += self.pairwise_typetag_crosswts_vuf[typetag_pair][apol].toarray().reshape(shape_tuple)[NP.newaxis,:,:,:] * data_info[apol]['twts'][:,antind,:][:,NP.newaxis,NP.newaxis,:] * data_info[apol]['data'][:,antind,:][:,NP.newaxis,NP.newaxis,:] # nt x nv x nu x nchan
+                    progress.update(antind+1)
+                progress.finish()
             sum_wts = NP.sum(data_info[apol]['twts'], axis=1) # nt x 1
             autocorr_wts_cube[apol] = NP.nan_to_num(autocorr_wts_cube[apol] / sum_wts[:,NP.newaxis,NP.newaxis,:]) # nt x nv x nu x nchan, nan_to_num() just in case there are NaN
             autocorr_data_cube[apol] = NP.nan_to_num(autocorr_data_cube[apol] / sum_wts[:,NP.newaxis,NP.newaxis,:]) # nt x nv x nu x nchan, nan_to_num() just in case there are NaN

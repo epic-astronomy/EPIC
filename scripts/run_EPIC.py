@@ -187,6 +187,7 @@ if __name__ == '__main__':
     t_acc = procinfo['t_acc']
     n_t_acc = NP.ceil(t_acc * df).astype(NP.int)
     imgnproc = procinfo['imgnproc']
+    acorrnproc = procinfo['acorrgrid_nproc']
 
     ant_lookupinfo = None
     if illumination_type.lower() == 'analytic':
@@ -279,7 +280,7 @@ if __name__ == '__main__':
                 warnings.warn(str(x))
 
         if ti-ti_evalACwts == n_t_acc:
-            efimgobj.evalAutoCorr(pol='P1', datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, verbose=True)
+            efimgobj.evalAutoCorr(pol='P1', datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, nproc=acorrnproc, save=True, verbose=True)
             efimgobj.average(pol='P1', datapool='accumulate', autocorr_op='mask', verbose=True)
             efimgobj.reset_extfile(datapool=None)
             ti_evalACwts = ti

@@ -167,7 +167,17 @@ procinfo    :
                                 # Otherwise must be set to an integer
                                 # greater than 0
     
-
+    acorrgrid_nproc : 1
+                                # Number of parallel processes to be
+                                # used in call to evalAutoCorr().
+                                # Default=1 will set nproc to 1
+                                # (serial processing). Otherwise must
+                                # be set to an integer greater than 0,
+                                # number of processors will be set
+                                # to nproc-1.
+                                # *** Not advisable to parallelize
+                                # because of memory requirements and
+                                # hence slower than serial ***
 
 
 

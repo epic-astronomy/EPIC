@@ -1,3 +1,25 @@
+From a46fde5 (parallel):
+=======================
+
+In epic/antenna_array.py,
+
+(*) Add input keyword nproc in member function makeAutoCorrCube() of
+class AntennaArray. Update member function docstring accordingly.
+(*) Add input keyword nproc in member function evalAutoCorr() of class
+Image. Update member function docstring accordingly. Pass nproc in
+call to member function makeAutoCorrCube() of class AntennaArray.
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add option acorrgrid_nproc to specify number of parallel processes
+to be used in evaluation of autocorrelation cube
+
+In scripts/run_EPIC.py,
+
+(*) Read option acorrgrid_nproc to specify number of parallel processes
+to be used in evaluation of autocorrelation cube and pass in call to
+member function evalAutoCorrCube() of class Image
+
 From f40b28a (master):
 =====================
 
