@@ -1,3 +1,8 @@
+From 0ec3a29 (master), b0f1fc0 (parallel):
+=========================================
+
+(*) Merge 'parallel' branch onto 'master' branch
+
 From e6616e7 (master):
 =====================
 
@@ -11,6 +16,49 @@ From f40b28a (master):
 In README.rst,
 
 (*) Add notes on basic usage
+
+From a46fde5 (parallel):
+=======================
+
+In epic/antenna_array.py,
+
+(*) Add input keyword nproc in member function makeAutoCorrCube() of
+class AntennaArray. Update member function docstring accordingly.
+(*) Add input keyword nproc in member function evalAutoCorr() of class
+Image. Update member function docstring accordingly. Pass nproc in
+call to member function makeAutoCorrCube() of class AntennaArray.
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add option acorrgrid_nproc to specify number of parallel processes
+to be used in evaluation of autocorrelation cube
+
+In scripts/run_EPIC.py,
+
+(*) Read option acorrgrid_nproc to specify number of parallel processes
+to be used in evaluation of autocorrelation cube and pass in call to
+member function evalAutoCorrCube() of class Image
+
+From f40b28a (master):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function imagr() of class Image, add input keyword
+nproc to invoke parallel processing in calls to 2D FFT and IFFT via
+DSP module in AstroUtils.
+(*) In member function imagr() of class Image, make both parallel and
+non-parallel calls to 2D FFT and IFFT available
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add option to use parallelization in calls to Image.imagr() via
+new input option imgnproc
+
+In scripts/run_EPIC.py,
+
+(*) Read input imgnproc from input config YAML file
+(*) Include option imgnproc in call to Image.imagr()
 
 From 35f6b3b (master):
 =====================
@@ -2021,9 +2069,6 @@ NewImage. Update docstring accordingly
 (*) Minor modification to docstring of member function
 evalPowerPattern() of class NewImage
 
->>>>>>> upstream/FX-serial-all-lines-profiling
-####### Ancestor
-======= end
 From f87ab5b (branch padding):
 =============================
 
@@ -2064,7 +2109,6 @@ accordingly
 (*) Remove few previously commented lines in imagr() member 
 function of class NewImage
 
->>>>>>> master
 From 99344bf (branch performance):
 =================================
 
@@ -2742,19 +2786,16 @@ In aperture.py,
 aperture illumination
 (*) Tidy up and update missing information in docstring of function
 rect()
->>>>>>> master
 
 From ef4576a:
 ============
 
-<<<<<<< HEAD
 (*) Created new cal_devel branch for development of calibration capabilities
 (*) Changed cal script to actually mix up the data with "unknown" gains
 (*) Added option to calibrate by either dividing by gains, or by multiplying
 by conjugate of gains.
 (*) Moved file beardsley.py -> simple_cal_script.py
 
-=======
 Add new module aperture.py to repository
 
 In aperture.py,
@@ -2762,7 +2803,6 @@ In aperture.py,
 (*) Add function inputcheck() (with docstring) to check inputs
 (*) Add function rect() (with docstring) to create a uniform
 rectangular aperture illumination
->>>>>>> master
 
 From 88f97d5:
 ============

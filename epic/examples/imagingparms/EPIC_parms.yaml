@@ -158,3 +158,27 @@ procinfo    :
     t_acc       : 0.1024
                                 # Accumulation time interval (in
                                 # seconds)
+
+    imgnproc    : null
+                                # Number of parallel processes to be
+                                # used in call to imagr().
+                                # Default=null will set nproc to
+                                # number of processors minus 1.
+                                # Otherwise must be set to an integer
+                                # greater than 0
+    
+    acorrgrid_nproc : 1
+                                # Number of parallel processes to be
+                                # used in call to evalAutoCorr().
+                                # Default=1 will set nproc to 1
+                                # (serial processing). Otherwise must
+                                # be set to an integer greater than 0,
+                                # number of processors will be set
+                                # to nproc-1.
+                                # *** Not advisable to parallelize
+                                # because of memory requirements and
+                                # hence slower than serial ***
+
+
+
+

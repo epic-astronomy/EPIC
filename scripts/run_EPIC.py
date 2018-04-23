@@ -186,6 +186,8 @@ if __name__ == '__main__':
     grid_map_method = procinfo['grid_map']
     t_acc = procinfo['t_acc']
     n_t_acc = NP.ceil(t_acc * df).astype(NP.int)
+    imgnproc = procinfo['imgnproc']
+    acorrnproc = procinfo['acorrgrid_nproc']
 
     ant_lookupinfo = None
     if illumination_type.lower() == 'analytic':
@@ -270,7 +272,7 @@ if __name__ == '__main__':
             efimgobj = AA.Image(antenna_array=aar, pol='P1', extfile=outfile)
         else:
             efimgobj.update(antenna_array=aar, reset=True)
-        efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=False, grid_map_method=grid_map_method, cal_loop=False)
+        efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=False, grid_map_method=grid_map_method, cal_loop=False, nproc=imgnproc)
 
         if h5info['h5repack_path'] is not None:
             mv_result, h5repack_result, rm_result, x = h5repack(efimgobj.extfile, h5info['h5repack_path'], fs_strategy=h5info['h5fs_strategy'], outfile=None)
@@ -278,7 +280,7 @@ if __name__ == '__main__':
                 warnings.warn(str(x))
 
         if ti-ti_evalACwts == n_t_acc:
-            efimgobj.evalAutoCorr(pol='P1', datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, verbose=True)
+            efimgobj.evalAutoCorr(pol='P1', datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, nproc=acorrnproc, save=True, verbose=True)
             efimgobj.average(pol='P1', datapool='accumulate', autocorr_op='mask', verbose=True)
             efimgobj.reset_extfile(datapool=None)
             ti_evalACwts = ti
