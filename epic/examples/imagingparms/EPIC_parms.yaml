@@ -77,6 +77,10 @@ antinfo   :
                                 # 'analytic'
 
     shape       : 'rect'
+                                # Shape of aperture, used only when
+                                # illumination is set to 'analytic'
+                                # Accepted values are 'rect' and
+                                # 'circ'
 
     xsize       : 3.0
                                 # Size along x-dimension (primary
@@ -158,6 +162,14 @@ procinfo    :
     t_acc       : 0.1024
                                 # Accumulation time interval (in
                                 # seconds)
+
+    updatenproc : 1
+                                # Number of parallel processes to be
+                                # used in call to update().
+                                # Default=null will set nproc to
+                                # number of processors minus 1.
+                                # Otherwise must be set to an integer
+                                # greater than 0
 
     imgnproc    : null
                                 # Number of parallel processes to be

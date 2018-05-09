@@ -1,3 +1,21 @@
+From 1739331 (master):
+=====================
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add option 'updatenproc' under 'procinfo' to enable choice of
+serial or parallel processing of updates
+(*) Update description of 'shape' parameter in 'antinfo'
+
+In scripts/run_EPIC.py,
+
+(*) Read updatenproc parameter and set up parallelization parameters
+parallelize_update and updatenproc to be passed to aar.update()
+(*) Use variable lookup_file in place of variable ant_lookupinfo in
+initializing Aperture()
+(*) Remove hardcoded lookup file and instead set adict['wtsinfo']
+depending on the lookup_file parameter
+
 From 0ec3a29 (master), b0f1fc0 (parallel):
 =========================================
 

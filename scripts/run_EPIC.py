@@ -186,15 +186,25 @@ if __name__ == '__main__':
     grid_map_method = procinfo['grid_map']
     t_acc = procinfo['t_acc']
     n_t_acc = NP.ceil(t_acc * df).astype(NP.int)
+    updatenproc = procinfo['updatenproc']
+    parallelize_update = False
+    if updatenproc is not None:
+        if not isinstance(updatenproc, int):
+            raise TypeError('Input updatenproc must be an integer')
+        if updatenproc < 1:
+            updatenproc = 1
+        if updatenproc > 1:
+            parallelize_update = True
+    else:
+        parallelize_update = True
     imgnproc = procinfo['imgnproc']
     acorrnproc = procinfo['acorrgrid_nproc']
 
-    ant_lookupinfo = None
     if illumination_type.lower() == 'analytic':
         ant_kerntype = {pol: 'func' for pol in ['P1','P2']}
     ant_kernshape = {pol: antshape for pol in ['P1','P2']}
     ant_kernshapeparms = {pol: {'xmax': ant_xmax, 'ymax': ant_ymax, 'rmin': ant_rmin, 'rmax': ant_rmax, 'rotangle': rotangle} for pol in ['P1','P2']}
-    aprtr = APR.Aperture(pol_type=ant_pol_type, kernel_type=ant_kerntype, shape=ant_kernshape, parms=ant_kernshapeparms, lkpinfo=ant_lookupinfo, load_lookup=True)
+    aprtr = APR.Aperture(pol_type=ant_pol_type, kernel_type=ant_kerntype, shape=ant_kernshape, parms=ant_kernshapeparms, lkpinfo=lookup_file, load_lookup=True)
 
     ants = []
     aar = AA.AntennaArray()
@@ -239,7 +249,10 @@ if __name__ == '__main__':
             adict[data_type] = {}
             adict['flags'] = {}
             adict['stack'] = True
-            adict['wtsinfo'] = {}
+            if lookup_file is None:
+                adict['wtsinfo'] = None
+            else:
+                adict['wtsinfo'] = {}
             adict['delaydict'] = {}
             for pol in ['P1', 'P2']:
                 adict['flags'][pol] = False
@@ -247,7 +260,8 @@ if __name__ == '__main__':
                 adict['delaydict'][pol]['frequencies'] = channels
                 adict['delaydict'][pol]['delays'] = stand_cable_delays[pol][ind]
                 adict[data_type][pol] = dstream.data[pol]['real'][ind,:].astype(NP.float32) + 1j * dstream.data[pol]['imag'][ind,:].astype(NP.float32)
-                adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':'/data3/t_nithyanandan/project_MOFF/simulated/LWA/data/lookup/E_illumination_isotropic_radiators_lookup_zenith.txt'}]
+                if lookup_file is not None:
+                    adict['wtsinfo'][pol] = [{'orientation':0.0, 'lookup':lookup_file}]
                 if (NP.sum(NP.abs(adict[data_type][pol])) < 1e-10) or (NP.any(NP.isnan(adict[data_type][pol]))):
                     adict['flags'][pol] = True
                 else:
@@ -259,7 +273,7 @@ if __name__ == '__main__':
             antnum += 1
         aprogress.finish()
         
-        aar.update(update_info, parallel=True, verbose=True)
+        aar.update(update_info, parallel=parallelize_update, nproc=updatenproc, verbose=True)
         if grid_map_method == 'regular':
             aar.grid_convolve_new(pol='P1', method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=antennas_identical, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')    
         else:
