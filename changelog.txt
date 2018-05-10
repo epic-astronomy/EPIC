@@ -1,3 +1,11 @@
+From 884326e (master):
+=====================
+
+In setup.py,
+
+(*) Add h5py package with version >=2.7.0 as requirement for setup
+and install
+
 From 12a5730 (master):
 =====================
 
