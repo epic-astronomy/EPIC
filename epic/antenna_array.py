@@ -7248,7 +7248,7 @@ class Image(object):
             print 'Successfully imaged.'
 
         # self.evalAutoCorr(datapool='current', forceeval=False)
-        
+
         with h5py.File(self.extfile, 'a') as fext:
             if 'image-plane' not in fext:
                 planes = ['image-plane', 'aperture-plane']
@@ -8091,7 +8091,7 @@ class Image(object):
             raise TypeError('Input save must be boolean')
 
         if forceeval_autowts or forceeval_autocorr or (not self.autocorr_set):
-            self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(pol=None, datapool=datapool, tbinsize=self.tbinsize, forceeval_autowts=forceeval_autowts, forceeval_autocorr=forceeval_autocorr, nproc=nproc)
+            self.autocorr_wts_vuf, self.autocorr_data_vuf = self.antenna_array.makeAutoCorrCube(pol=pol, datapool=datapool, tbinsize=self.tbinsize, forceeval_autowts=forceeval_autowts, forceeval_autocorr=forceeval_autocorr, nproc=nproc)
             self.autocorr_set = True
             if verbose:
                 print 'Determined auto-correlation weights and data...'
@@ -10982,7 +10982,7 @@ class AntennaArray(object):
 
     ############################################################################
 
-    def avgAutoCorr(self, tbinsize=None):
+    def avgAutoCorr(self, pol=None, tbinsize=None):
 
         """
         ------------------------------------------------------------------------
@@ -10991,6 +10991,10 @@ class AntennaArray(object):
 
         Inputs:
 
+        pol      [String] The polarization to be averaged. Can be set to 'P1' or 
+                 'P2'. If set to None, averaging for all the polarizations is 
+                 performed. Default=None
+        
         tbinsize [scalar or dictionary] Contains bin size of timestamps while
                  averaging. Default = None means all antenna E-field 
                  auto-correlation spectra over all timestamps are averaged. If 
@@ -11005,7 +11009,11 @@ class AntennaArray(object):
         timestamps = NP.asarray(self.timestamps).astype(NP.float)
         twts = {}
         auto_corr_data = {}
-        pol = ['P1', 'P2']
+        if pol is None:
+            pol = ['P1', 'P2']
+
+        pol = NP.unique(NP.asarray(pol))
+        
         for p in pol:
             Ef_info = self.get_E_fields(p, flag=None, tselect=NP.arange(len(self.timestamps)), fselect=None, aselect=None, datapool='stack', sort=True)
             twts[p] = []
@@ -11062,7 +11070,7 @@ class AntennaArray(object):
 
     ############################################################################
 
-    def evalAutoCorr(self, datapool=None, tbinsize=None):
+    def evalAutoCorr(self, pol=None, datapool=None, tbinsize=None):
 
         """
         ------------------------------------------------------------------------
@@ -11072,6 +11080,11 @@ class AntennaArray(object):
 
         Inputs:
 
+        pol      [String] The polarization for which auto-correlation is to be
+                 estimated. Can be set to 'P1' or 'P2'. If set to None, 
+                 auto-correlation is estimated for all the polarizations. 
+                 Default=None
+        
         datapool [string] denotes the data pool from which electric fields are 
                  to be selected. Accepted values are 'current', 'stack', avg' or
                  None (default, same as 'current'). If set to None or 
@@ -11096,7 +11109,10 @@ class AntennaArray(object):
         if datapool not in [None, 'current', 'stack', 'avg']:
             raise ValueError('Input datapool must be set to None, "current", "stack" or "avg"')
 
-        pol = ['P1', 'P2']
+        if pol is None:
+            pol = ['P1', 'P2']
+
+        pol = NP.unique(NP.asarray(pol))
 
         if datapool in [None, 'current']:
             self.auto_corr_data['current'] = {}
@@ -11113,7 +11129,7 @@ class AntennaArray(object):
                 self.auto_corr_data['stack'][p] = Ef_info
 
         if datapool in [None, 'avg']:
-            self.avgAutoCorr(tbinsize=tbinsize)
+            self.avgAutoCorr(pol=pol, tbinsize=tbinsize)
 
     ############################################################################
 
@@ -12860,7 +12876,7 @@ class AntennaArray(object):
         data_info = {}
         if datapool in ['current', 'stack', 'avg']:
             if datapool not in self.auto_corr_data:
-                self.evalAutoCorr(datapool=datapool, tbinsize=tbinsize)
+                self.evalAutoCorr(pol=pol, datapool=datapool, tbinsize=tbinsize)
             for apol in pol:
                 data_info[apol] = {'labels': self.auto_corr_data[datapool][apol]['labels'], 'twts': self.auto_corr_data[datapool][apol]['twts'], 'data': NP.nan_to_num(self.auto_corr_data[datapool][apol]['E-fields'])}
         else:
