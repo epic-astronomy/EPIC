@@ -46,7 +46,10 @@ def h5repack(infile, h5repack_path, fs_strategy='FSM_AGGR', outfile=None):
         else:
             tmpfile = infile
         h5repack_result = subprocess.call('{0} -S {1} {2} {3}'.format(h5repack_path, fs_strategy, tmpfile, outfile), shell=True)
-        rm_result = subprocess.call('rm {0}'.format(tmpfile), shell=True)
+        if h5repack_result != 0: # problem with h5repack, just rename tmpfile back to original
+            rm_result = subprocess.call('mv {0} {1}'.format(tmpfile, outfile), shell=True)
+        else: # h5repack is successful, remove the tmpfile
+            rm_result = subprocess.call('rm {0}'.format(tmpfile), shell=True)
     except Exception as x:
         return (mv_result, h5repack_result, rm_result, x)
     else:
@@ -72,7 +75,7 @@ if __name__ == '__main__':
     outdir = parms['dirstruct']['outdir']
     outfile = outdir + parms['dirstruct']['outfile']
 
-    h5info = {'h5repack_path': parms['dirstruct']['h5repack_path'], 'h5fs_strategy': parms['dirstruct']['h5fs_strategy']}
+    h5info = {'h5repack_path': parms['dirstruct']['h5repack_path'], 'h5fs_strategy': parms['dirstruct']['h5fs_strategy'], 'h5repack_interval': parms['dirstruct']['h5repack_dtime']}
     if h5info['h5repack_path'] is not None:
         if not isinstance(h5info['h5repack_path'], str):
             raise TypeError('Input h5repack_path must be a string')
@@ -201,6 +204,16 @@ if __name__ == '__main__':
         parallelize_update = True
     imgnproc = procinfo['imgnproc']
     acorrnproc = procinfo['acorrgrid_nproc']
+    
+    if h5info['h5repack_path'] is not None:
+        if h5info['h5repack_interval'] is None:
+            h5info['h5repack_interval'] = t_acc
+        else:
+            if not isinstance(h5info['h5repack_interval'], (int,float)):
+                raise TypeError('Input h5repack interval must be a scalar')
+            if h5info['h5repack_interval'] <= 0.0:
+                raise ValueError('Input h5repack interval must be positive')
+        n_t_h5repack = NP.ceil(h5info['h5repack_interval'] * df).astype(NP.int)
 
     if illumination_type.lower() == 'analytic':
         ant_kerntype = {pol: 'func' for pol in ['P1','P2']}
@@ -284,22 +297,25 @@ if __name__ == '__main__':
 
         if ti == mintime_ind:
             ti_evalACwts = mintime_ind - 1
+            ti_h5repack = mintime_ind - 1
             aar.evalAntennaAutoCorrWts(forceeval=True)
             efimgobj = AA.Image(antenna_array=aar, pol='P1', extfile=outfile)
         else:
             efimgobj.update(antenna_array=aar, reset=True)
         efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=False, grid_map_method=grid_map_method, cal_loop=False, nproc=imgnproc)
 
-        if h5info['h5repack_path'] is not None:
-            mv_result, h5repack_result, rm_result, x = h5repack(efimgobj.extfile, h5info['h5repack_path'], fs_strategy=h5info['h5fs_strategy'], outfile=None)
-            if x is not None:
-                warnings.warn(str(x))
-
         if ti-ti_evalACwts == n_t_acc:
             efimgobj.evalAutoCorr(pol='P1', datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, nproc=acorrnproc, save=True, verbose=True)
             efimgobj.average(pol='P1', datapool='accumulate', autocorr_op='mask', verbose=True)
             efimgobj.reset_extfile(datapool=None)
             ti_evalACwts = ti
+
+        if h5info['h5repack_path'] is not None:
+            if ti - ti_h5repack == n_t_h5repack:
+                mv_result, h5repack_result, rm_result, x = h5repack(efimgobj.extfile, h5info['h5repack_path'], fs_strategy=h5info['h5fs_strategy'], outfile=None)
+                if x is not None:
+                    warnings.warn(str(x))
+                ti_h5repack = ti
 
         tprogress.update(ti+1)
     tprogress.finish()

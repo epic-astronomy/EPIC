@@ -1,3 +1,16 @@
+From fdf7746 (master):
+=====================
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add option h5repack_dtime to specify time over which h5repack
+needs to be invoked
+
+In scripts/run_EPIC.py,
+
+(*) Invoke h5repack after specified time interval, and perform this
+action after removing autocorr
+
 From 94aa6eb (master):
 =====================
 

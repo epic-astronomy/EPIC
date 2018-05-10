@@ -42,6 +42,13 @@ dirstruct   :
                                 # more info. Accepted values are
                                 # 'FSM_AGGR' (default), 'PAGE', 'AGGR',
                                 # and 'NONE'
+
+    h5repack_dtime  : null
+                                # Time interval (in seconds) after
+                                # which h5repack is to be applied.
+                                # If set to null (default), use
+                                # t_acc. Otherwise, time interval
+                                # must be a positive scalar
                                 
 ########## Array parameters ##########
 
