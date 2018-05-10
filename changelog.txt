@@ -1,3 +1,16 @@
+From 12a5730 (master):
+=====================
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add default path option for h5repack_path. Update description
+accordingly
+(*) Set default of updatenproc to null
+
+In scripts/run_EPIC.py,
+
+(*) Assign default path for h5repath_path in h5info
+
 From 1739331 (master):
 =====================
 

@@ -76,6 +76,8 @@ if __name__ == '__main__':
     if h5info['h5repack_path'] is not None:
         if not isinstance(h5info['h5repack_path'], str):
             raise TypeError('Input h5repack_path must be a string')
+        if h5info['h5repack_path'] == 'default':
+            h5info['h5repack_path'] = sys.exec_prefix + '/bin/h5repack'
         if not isinstance(h5info['h5fs_strategy'], str):
             raise TypeError('Input h5fs_strategy must be a string')
         if h5info['h5fs_strategy'].upper() not in ['FSM_AGGR', 'PAGE', 'AGGR', 'NONE']:

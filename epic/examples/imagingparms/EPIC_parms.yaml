@@ -26,8 +26,14 @@ dirstruct   :
                                 # unaccounted free space in the HDF5
                                 # created. If not available, set it
                                 # to null (no h5repack will be done).
-                                # The H5FS (H5 File Space) strategy
-                                # is specified in h5fs_strategy
+                                # If set to 'default' the version
+                                # installed in the current Python
+                                # executable path (the bin folder which
+                                # python command is found) will be
+                                # attempted to be used. Otherwise,
+                                # specify the full path to the h5repack
+                                # executable. The H5FS (H5 File Space) 
+                                # strategy is specified in h5fs_strategy
 
     h5fs_strategy   : 'FSM_AGGR'
                                 # HDF5 file space management strategy
@@ -163,7 +169,7 @@ procinfo    :
                                 # Accumulation time interval (in
                                 # seconds)
 
-    updatenproc : 1
+    updatenproc : null
                                 # Number of parallel processes to be
                                 # used in call to update().
                                 # Default=null will set nproc to
