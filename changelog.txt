@@ -1,3 +1,11 @@
+From 3577251 (master):
+=====================
+
+In scripts/run_EPIC.py,
+
+(*) Minor update to evaluation condition for autocorr evaluation
+and h5repack
+
 From fdf7746 (master):
 =====================
 

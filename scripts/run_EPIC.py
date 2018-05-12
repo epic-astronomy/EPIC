@@ -304,14 +304,14 @@ if __name__ == '__main__':
             efimgobj.update(antenna_array=aar, reset=True)
         efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=False, grid_map_method=grid_map_method, cal_loop=False, nproc=imgnproc)
 
-        if ti-ti_evalACwts == n_t_acc:
+        if (ti-ti_evalACwts == n_t_acc) or (ti == maxtime_ind):
             efimgobj.evalAutoCorr(pol='P1', datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, nproc=acorrnproc, save=True, verbose=True)
             efimgobj.average(pol='P1', datapool='accumulate', autocorr_op='mask', verbose=True)
             efimgobj.reset_extfile(datapool=None)
             ti_evalACwts = ti
 
         if h5info['h5repack_path'] is not None:
-            if ti - ti_h5repack == n_t_h5repack:
+            if (ti - ti_h5repack == n_t_h5repack) or (ti == maxtime_ind):
                 mv_result, h5repack_result, rm_result, x = h5repack(efimgobj.extfile, h5info['h5repack_path'], fs_strategy=h5info['h5fs_strategy'], outfile=None)
                 if x is not None:
                     warnings.warn(str(x))
