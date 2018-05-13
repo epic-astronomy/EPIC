@@ -1,3 +1,17 @@
+From 18ab409 (batch):
+====================
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Replace mintime_ind and maxtime_ind with start_time and duration.
+Update descriptions accordingly
+
+In scripts/run_EPIC.py,
+
+(*) Modify to read start_time and duration instead of reading
+mintime_ind and maxtime_ind from the parameters file to accommodate
+the changes above.
+
 From 3577251 (master):
 =====================
 

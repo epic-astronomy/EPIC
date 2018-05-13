@@ -139,15 +139,23 @@ obsinfo     :
                                 # process. If set to null, process
                                 # all frequency channels
 
-    mintime_ind : null
-                                # Index of Minimum timestamp in the 
-                                # data to process. If set to null, 
-                                # process all timestamps
+    start_time  : 0.0
+                                # Time in data (seconds) relative to
+                                # the beginning time in the file at
+                                # which processing begins.
+                                # Default=0.0 means processing
+                                # begins from the start of the file.
+                                # Otherwise, it will offset this time
+                                # from the beginning of the file, and
+                                # start processing
 
-    maxtime_ind : null
-                                # Index of Maximum timestamp in the 
-                                # data to process. If set to null, 
-                                # process all timestamps
+    duration    : null
+                                # Duration (in seconds) from start_time 
+                                # up to which processing proceeds. 
+                                # Default=null means process the entire 
+                                # duration in the file starting from
+                                # start_time
+
     pol         : 'P1'
                                 # Polarizations to process. If set
                                 # to null, all four polarizations will
@@ -172,6 +180,7 @@ procinfo    :
     grid_map    : 'sparse'
                                 # Grid mapping method. Can be set to
                                 # 'sparse' (default) or 'regular'
+
     t_acc       : 0.1024
                                 # Accumulation time interval (in
                                 # seconds)

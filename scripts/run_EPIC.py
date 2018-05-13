@@ -174,13 +174,26 @@ if __name__ == '__main__':
     ind_chans = NP.where(NP.logical_and(channels >= minfreq, channels <= maxfreq))[0]
     if ind_chans.size == 0:
         raise IndexError('No frequency channels found in the range specified')
-    mintime_ind = obsselectinfo['mintime_ind']
-    maxtime_ind = obsselectinfo['maxtime_ind']
-    if mintime_ind is None:
-        mintime_ind = 0
-    if maxtime_ind is None:
-        maxtime_ind = ntimes - 1
-    ind_times = NP.arange(mintime_ind, maxtime_ind+1)
+    start_time_in_file = obsselectinfo['start_time']
+    duration_to_process = obsselectinfo['duration']
+    if duration_to_process is None:
+        dtimestamp = timestamps[1] - timestamps[0]
+        duration_to_process = timestamps.max() - timestamps.min() + dtimestamp
+    else:
+        if not isinstance(duration_to_process, (int,float)):
+            raise TypeError('Input duration must be a scalar')
+        if duration_to_process <= 0.0:
+            raise ValueError('Input duration to process must be positive')
+    start_time_ind = NP.argmin(NP.abs(timestamps - timestamps[0] - start_time_in_file))
+    end_time_ind = NP.argmin(NP.abs(timestamps - timestamps[0] - start_time_in_file - duration_to_process))
+    
+    ind_times = NP.arange(start_time_ind, end_time_ind+1)
+    ind_times = ind_times[NP.logical_and(ind_times>=0, ind_times<timestamps.size)]
+    if ind_times.size == 0:
+        raise ValueError('No valid timestamps found to process')
+    ind_times = NP.unique(ind_times)
+    start_time_ind = ind_times[0]
+    end_time_ind = ind_times[-1]
 
     selectedpol = obsselectinfo['pol']
 
@@ -236,8 +249,8 @@ if __name__ == '__main__':
     
     dstream = DI.DataStreamer()
 
-    tprogress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Timestamps '.format(len(range(mintime_ind, maxtime_ind+1))), PGB.ETA()], maxval=len(range(mintime_ind, maxtime_ind+1))).start()
-    for ti in range(mintime_ind, maxtime_ind+1):
+    tprogress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Timestamps '.format(ind_times.size), PGB.ETA()], maxval=ind_times.size).start()
+    for ti in ind_times:
         timestamp = timestamps[ti]
         update_info = {}
         update_info['antennas'] = []
@@ -292,26 +305,26 @@ if __name__ == '__main__':
         if grid_map_method == 'regular':
             aar.grid_convolve_new(pol='P1', method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=antennas_identical, cal_loop=False, gridfunc_freq='scale', wts_change=False, parallel=False, pp_method='pool')    
         else:
-            if ti == mintime_ind:
+            if ti == start_time_ind:
                 aar.genMappingMatrix(pol='P1', method='NN', distNN=0.5*NP.sqrt(ant_sizex**2+ant_sizey**2), identical_antennas=antennas_identical, gridfunc_freq='scale', wts_change=False, parallel=False)
 
-        if ti == mintime_ind:
-            ti_evalACwts = mintime_ind - 1
-            ti_h5repack = mintime_ind - 1
+        if ti == start_time_ind:
+            ti_evalACwts = start_time_ind - 1
+            ti_h5repack = start_time_ind - 1
             aar.evalAntennaAutoCorrWts(forceeval=True)
             efimgobj = AA.Image(antenna_array=aar, pol='P1', extfile=outfile)
         else:
             efimgobj.update(antenna_array=aar, reset=True)
         efimgobj.imagr(pol='P1', weighting='natural', pad=0, stack=False, grid_map_method=grid_map_method, cal_loop=False, nproc=imgnproc)
 
-        if (ti-ti_evalACwts == n_t_acc) or (ti == maxtime_ind):
+        if (ti-ti_evalACwts == n_t_acc) or (ti == end_time_ind):
             efimgobj.evalAutoCorr(pol='P1', datapool='avg', forceeval_autowts=False, forceeval_autocorr=True, nproc=acorrnproc, save=True, verbose=True)
             efimgobj.average(pol='P1', datapool='accumulate', autocorr_op='mask', verbose=True)
             efimgobj.reset_extfile(datapool=None)
             ti_evalACwts = ti
 
         if h5info['h5repack_path'] is not None:
-            if (ti - ti_h5repack == n_t_h5repack) or (ti == maxtime_ind):
+            if (ti - ti_h5repack == n_t_h5repack) or (ti == end_time_ind):
                 mv_result, h5repack_result, rm_result, x = h5repack(efimgobj.extfile, h5info['h5repack_path'], fs_strategy=h5info['h5fs_strategy'], outfile=None)
                 if x is not None:
                     warnings.warn(str(x))
