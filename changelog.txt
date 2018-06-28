@@ -1,3 +1,73 @@
+From fdf7746 (master):
+=====================
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add option h5repack_dtime to specify time over which h5repack
+needs to be invoked
+
+In scripts/run_EPIC.py,
+
+(*) Invoke h5repack after specified time interval, and perform this
+action after removing autocorr
+
+From 94aa6eb (master):
+=====================
+
+In epic/antenna_array.py,
+
+(*) In member function evalAutoCorr() of class Image, pass input pol
+in call to member function makeAutoCorrCube() of class AntennaArray. 
+(*) In member function avgAutoCorr() of class, add keyword input pol
+to select and process specific polarization(s). Update member function
+docstring accordingly
+(*) In member function evalAutoCorr() of class AntennaArray, add input
+keyword pol to select and process specific polarization(s). Update
+member function docstring accordingly. Pass input pol in call to
+member function avgAutoCorr() of class AntennaArray
+(*) In member function makeAutoCorrCube() of class AntennaArray, pass
+input pol in call to member function evalAutoCorr() of class
+AntennaArray
+
+From 884326e (master):
+=====================
+
+In setup.py,
+
+(*) Add h5py package with version >=2.7.0 as requirement for setup
+and install
+
+From 12a5730 (master):
+=====================
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add default path option for h5repack_path. Update description
+accordingly
+(*) Set default of updatenproc to null
+
+In scripts/run_EPIC.py,
+
+(*) Assign default path for h5repath_path in h5info
+
+From 1739331 (master):
+=====================
+
+In epic/examples/imagingparms/EPIC_parms.yaml,
+
+(*) Add option 'updatenproc' under 'procinfo' to enable choice of
+serial or parallel processing of updates
+(*) Update description of 'shape' parameter in 'antinfo'
+
+In scripts/run_EPIC.py,
+
+(*) Read updatenproc parameter and set up parallelization parameters
+parallelize_update and updatenproc to be passed to aar.update()
+(*) Use variable lookup_file in place of variable ant_lookupinfo in
+initializing Aperture()
+(*) Remove hardcoded lookup file and instead set adict['wtsinfo']
+depending on the lookup_file parameter
+
 From 0ec3a29 (master), b0f1fc0 (parallel):
 =========================================
 

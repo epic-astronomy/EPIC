@@ -26,8 +26,14 @@ dirstruct   :
                                 # unaccounted free space in the HDF5
                                 # created. If not available, set it
                                 # to null (no h5repack will be done).
-                                # The H5FS (H5 File Space) strategy
-                                # is specified in h5fs_strategy
+                                # If set to 'default' the version
+                                # installed in the current Python
+                                # executable path (the bin folder which
+                                # python command is found) will be
+                                # attempted to be used. Otherwise,
+                                # specify the full path to the h5repack
+                                # executable. The H5FS (H5 File Space) 
+                                # strategy is specified in h5fs_strategy
 
     h5fs_strategy   : 'FSM_AGGR'
                                 # HDF5 file space management strategy
@@ -36,6 +42,13 @@ dirstruct   :
                                 # more info. Accepted values are
                                 # 'FSM_AGGR' (default), 'PAGE', 'AGGR',
                                 # and 'NONE'
+
+    h5repack_dtime  : null
+                                # Time interval (in seconds) after
+                                # which h5repack is to be applied.
+                                # If set to null (default), use
+                                # t_acc. Otherwise, time interval
+                                # must be a positive scalar
                                 
 ########## Array parameters ##########
 
@@ -77,6 +90,10 @@ antinfo   :
                                 # 'analytic'
 
     shape       : 'rect'
+                                # Shape of aperture, used only when
+                                # illumination is set to 'analytic'
+                                # Accepted values are 'rect' and
+                                # 'circ'
 
     xsize       : 3.0
                                 # Size along x-dimension (primary
@@ -158,6 +175,14 @@ procinfo    :
     t_acc       : 0.1024
                                 # Accumulation time interval (in
                                 # seconds)
+
+    updatenproc : null
+                                # Number of parallel processes to be
+                                # used in call to update().
+                                # Default=null will set nproc to
+                                # number of processors minus 1.
+                                # Otherwise must be set to an integer
+                                # greater than 0
 
     imgnproc    : null
                                 # Number of parallel processes to be
