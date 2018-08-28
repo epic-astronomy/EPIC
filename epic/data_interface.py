@@ -794,3 +794,25 @@ class DataStreamer(object):
                     self.antinfo[aparm] = fileobj['antenna_parms/{0}'.format(aparm)].value
             else:
                 raise KeyError('Datatype {0} not found in datafile {1}'.format(datatype, datafile))
+
+
+def epic2fits(data, telescope='LWA-SV', sampling_length=.5, t_int=1):
+
+    data = data.transpose(3,4,1,2,0)
+    hdu = fits.PrimaryHDU(data=data)
+    hdu.header['TELESCOP'] = telescope
+    # hdu.header['DATE-OBS'] = 
+    # hdu.header['END_UTC'] = 
+    # Coordinates - sky
+    hdu.header['CTYPE1'] = 'RA---SIN'
+    hdu.header['CRPIX1'] = float(data.shape[0] / 2 + 1)
+    l = np.fft.fftfreq(data.shape[0], d=sampling_length)
+    hdu.header['CDELT1'] = l[1] - l[0]
+    hdu.header['CRVAL1'] = zenith_ra
+    hdu.header['CUNIT1'] = 'deg'
+    hdu.header['CTYPE2'] = 'DEC--SIN'
+    hdu.header['CRPIX2'] = float(data.shape[1] / 2 + 1)
+    m = np.fft.fftfreq(data.shape[1], d=sampling_length)
+    hdu.header['CDELT2'] = m[1] - m[0]
+
+    hdulist = [hdu]
