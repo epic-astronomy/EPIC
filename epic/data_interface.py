@@ -840,7 +840,7 @@ def epic2fits(filename, data, hdr, image_nums):
     pol_order = np.argsort(pol_nums)[::-1]
     data = data[:, pol_order, :, :, :]
     # Break up real/imaginary
-    data = data[:, np.newaxis, :, :, :, :]
+    data = data[:, np.newaxis, :, :, :, :]  # Now (Ntimes, 2 (complex), Npol, Nfreq, y, x)
     data = np.concatenate([data.real, data.imag], axis=1)
 
     if not isinstance(image_nums, (list, tuple, np.ndarray)):
@@ -857,13 +857,15 @@ def epic2fits(filename, data, hdr, image_nums):
         hdu.header['LST'] = lst.hour
         # Coordinates - sky
         hdu.header['CTYPE1'] = 'RA---SIN'
-        hdu.header['CRPIX1'] = float(data.shape[0] / 2 + 1)
-        hdu.header['CDELT1'] = 1. / (data.shape[0] * hdr['sampling_length'])
+        hdu.header['CRPIX1'] = float(hdr['grid_size_x'] / 2 + 1)
+        dtheta = 2 * np.arcsin(.5 / (hdr['grid_size_x'] * hdr['sampling_length']))
+        hdu.header['CDELT1'] = dtheta * 180. / np.pi
         hdu.header['CRVAL1'] = lst.deg
         hdu.header['CUNIT1'] = 'deg'
         hdu.header['CTYPE2'] = 'DEC--SIN'
-        hdu.header['CRPIX2'] = float(data.shape[1] / 2 + 1)
-        hdu.header['CDELT2'] = 1. / (data.shape[1] * hdr['sampling_length'])
+        hdu.header['CRPIX2'] = float(hdr['grid_size_y'] / 2 + 1)
+        dtheta = 2 * np.arcsin(.5 / (hdr['grid_size_y'] * hdr['sampling_length']))
+        hdu.header['CDELT2'] = dtheta * 180. / np.pi
         hdu.header['CRVAL2'] = hdr['latitude']
         hdu.header['CUNIT2'] = 'deg'
         # Coordinates - Freq
@@ -901,12 +903,14 @@ def test_epic2fits(filename):
     nx = 64
     ny = 64
     ntimes = 25
+    FS = 196e6
     hdr = {'nbit': nbit, 'npol': npol, 'nstand': nstand, 'time_tag': time_tag, 'seq0': seq0,
            'sampling_length': sampling_length, 'accumulation_time': accumulation_time,
            'chan0': chan0, 'nchan': nchan, 'bw': nchan * chan_bw, 'cfreq': cfreq,
            'grid_size_x': nx, 'grid_size_y': ny, 'sampling_length_x': sampling_length,
            'sampling_length_y': sampling_length, 'pols': ['xx', 'xy', 'yx', 'yy'],
-           'telescope': 'LWA-SV', 'data_units': 'UNCALIB', 'latitude': 34.05, 'longitude': 107.03}
+           'telescope': 'LWA-SV', 'data_units': 'UNCALIB', 'latitude': 34.05, 'longitude': 107.03,
+           'FS': FS}
     d1 = (np.arange(ntimes * nchan * npol * nx * ny).reshape(ntimes, nchan, npol, nx, ny)
           + 1j * (np.arange(ntimes * nchan * npol * nx * ny).reshape(ntimes, nchan, npol, nx, ny)
                   + ntimes * nchan * npol * nx * ny))
