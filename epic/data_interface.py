@@ -2,6 +2,7 @@ import numpy as NP
 import astropy
 from astropy.io import fits
 from astropy.time import Time
+from astropy.time import TimeDelta
 import time
 import h5py
 import progressbar as PGB
@@ -798,28 +799,127 @@ class DataStreamer(object):
                 raise KeyError('Datatype {0} not found in datafile {1}'.format(datatype, datafile))
 
 
-def epic2fits(data, telescope='LWA-SV', sampling_length=.5, t_int=1):
+def epic2fits(filename, data, hdr, image_nums):
+    '''Function to dump EPIC images into FITs file
+    Args:
+        filename: (str) file to save
+        data: numpy ndarray shape (Ntimes, Nfreq, Npol, Ny, Nx)
+        hdr: header dictionary with necessary metadata
+        image_nums: List of image numbers from start of sequence. Length Ntimes.
+    '''
 
-    data = data.transpose(3,4,1,2,0)
-    #TODO: get zenith ra/dec
-    hdu = fits.PrimaryHDU(data=data)
-    hdu.header['TELESCOP'] = telescope
-    # hdu.header['DATE-OBS'] =
-    # hdu.header['END_UTC'] =
-    # Coordinates - sky
-    hdu.header['CTYPE1'] = 'RA---SIN'
-    hdu.header['CRPIX1'] = float(data.shape[0] / 2 + 1)
-    hdu.header['CDELT1'] = 1. / (data.shape[0] * sampling_length)
-    hdu.header['CRVAL1'] = zenith_ra
-    hdu.header['CUNIT1'] = 'deg'
-    hdu.header['CTYPE2'] = 'DEC--SIN'
-    hdu.header['CRPIX2'] = float(data.shape[1] / 2 + 1)
-    hdu.header['CDELT2'] = 1. / (data.shape[1] * sampling_length)
-    hdu.header['CRVAL1'] = zenith_dec
-    hdu.header['CUNIT1'] = 'deg'
+    # Set up primary header and create file
+    hdu = fits.PrimaryHDU()
+    hdu.header['TELESCOP'] = hdr['telescope']
+    t0 = Time(hdr['time_tag']/hdr['FS'] + 1e-3 * hdr['accumulation_time'] / 2.,
+              format='unix', precision=6, location=(hdr['longitude'], hdr['latitude']))
+    hdu.header['DATE-OBS'] = t0.isot
+    hdu.header['BUNIT'] = hdr['data_units']
+    hdu.header['BSCALE'] = 1e0
+    hdu.header['BZERO'] = 0e0
+    hdu.header['EQUINOX'] = t0.jyear
+    hdu.header['EXTNAME'] = 'PRIMARY'
+    hdu.header['GRIDDIMX'] = hdr['grid_size_x']
+    hdu.header['GRIDDIMY'] = hdr['grid_size_y']
+    hdu.header['DGRIDX'] = hdr['sampling_length_x']
+    hdu.header['DGRIDY'] = hdr['sampling_length_y']
+    hdu.header['INTTIM'] = hdr['accumulation_time'] * 1e-3
+    hdu.header['INTTIMU'] = 'SECONDS'
+    hdu.header['CFREQ'] = hdr['cfreq']
+    hdu.header['CFREQU'] = 'HZ'
 
 
-    hdulist = [hdu]
+    hdul = fits.HDUList([hdu])
+    hdul.writeto(filename, overwrite=True)
+
+    # Restructure data in preparation to stuff into fits
+    data = data.transpose(0, 2, 1, 3, 4)  # Now (Ntimes, Npol, Nfreq, y, x)
+    # Reorder pol for fits convention
+    pol_dict = {'xx': -5, 'yy': -6, 'xy': -7, 'yx': -8}
+    pol_nums = [pol_dict[p] for p in hdr['pols']]
+    pol_order = np.argsort(pol_nums)[::-1]
+    data = data[:, pol_order, :, :, :]
+    # Break up real/imaginary
+    data = data[:, np.newaxis, :, :, :, :]
+    data = np.concatenate([data.real, data.imag], axis=1)
+
+    if not isinstance(image_nums, (list, tuple, np.ndarray)):
+        image_nums = [image_nums]
+
+    dt = TimeDelta(1e-3 * hdr['accumulation_time'], format='sec')
+
+    for im_num, d in zip(image_nums, data):
+        hdu = fits.PrimaryHDU()
+        # Time
+        t = t0 + im_num * dt
+        lst = t.sidereal_time('apparent')
+        hdu.header['DATETIME'] = t.isot
+        hdu.header['LST'] = lst.hour
+        # Coordinates - sky
+        hdu.header['CTYPE1'] = 'RA---SIN'
+        hdu.header['CRPIX1'] = float(data.shape[0] / 2 + 1)
+        hdu.header['CDELT1'] = 1. / (data.shape[0] * hdr['sampling_length'])
+        hdu.header['CRVAL1'] = lst.deg
+        hdu.header['CUNIT1'] = 'deg'
+        hdu.header['CTYPE2'] = 'DEC--SIN'
+        hdu.header['CRPIX2'] = float(data.shape[1] / 2 + 1)
+        hdu.header['CDELT2'] = 1. / (data.shape[1] * hdr['sampling_length'])
+        hdu.header['CRVAL2'] = hdr['latitude']
+        hdu.header['CUNIT2'] = 'deg'
+        # Coordinates - Freq
+        hdu.header['CTYPE3'] = 'FREQ'
+        hdu.header['CRPIX3'] = 1
+        hdu.header['CDELT3'] = hdr['bw'] / hdr['nchan']
+        hdu.header['CRVAL3'] = hdr['bw'] / hdr['nchan'] * hdr['chan0']
+        hdu.header['CUNIT3'] = 'Hz'
+        # Coordinates - Stokes parameters
+        hdu.header['CTYPE4'] = 'STOKES'
+        hdu.header['CRPIX4'] = 1
+        hdu.header['CDELT4'] = -1
+        hdu.header['CRVAL4'] = pol_nums[pol_order[0]]
+        # Coordinates - Complex
+        hdu.header['CTYPE5'] = 'COMPLEX'
+        hdu.header['CRVAL5'] = 1.0
+        hdu.header['CRPIX5'] = 1.0
+        hdu.header['CDELT5'] = 1.0
+
+        fits.append(filename, d, hdu.header)
+
+def test_epic2fits(filename):
+
+    nbit = 64
+    npol = 4
+    nstand = 256
+    time_tag = 1535494830.4263752
+    seq0 = 5
+    sampling_length = 0.5
+    accumulation_time = 3.2
+    chan0 = 2960
+    nchan = 4
+    chan_bw = 25e3
+    cfreq = 74e6
+    nx = 64
+    ny = 64
+    ntimes = 25
+    hdr = {'nbit': nbit, 'npol': npol, 'nstand': nstand, 'time_tag': time_tag, 'seq0': seq0,
+           'sampling_length': sampling_length, 'accumulation_time': accumulation_time,
+           'chan0': chan0, 'nchan': nchan, 'bw': nchan * chan_bw, 'cfreq': cfreq,
+           'grid_size_x': nx, 'grid_size_y': ny, 'sampling_length_x': sampling_length,
+           'sampling_length_y': sampling_length, 'pols': ['xx', 'xy', 'yx', 'yy'],
+           'telescope': 'LWA-SV', 'data_units': 'UNCALIB', 'latitude': 34.05, 'longitude': 107.03}
+    d1 = (np.arange(ntimes * nchan * npol * nx * ny).reshape(ntimes, nchan, npol, nx, ny)
+          + 1j * (np.arange(ntimes * nchan * npol * nx * ny).reshape(ntimes, nchan, npol, nx, ny)
+                  + ntimes * nchan * npol * nx * ny))
+    image_nums = np.arange(ntimes)
+    start = time.time()
+    epic2fits(filename, d1, hdr, image_nums)
+    print('Saving file took ' + str(time.time() - start) + ' seconds')
+
+    start = time.time()
+    np.savez(filename + '.npz', d1=d1, hdr=hdr)
+    print('Saving npz took ' + str(time.time() - start) + ' seconds')
+
+
 
 def test_fits_wrapper(filename):
 
@@ -837,7 +937,6 @@ def test_fits_wrapper(filename):
     hdul.writeto(filename, overwrite=True)
 
     # Make up data and append to file
-    np.random.seed(0)
     chan0 = 2960
     nchan = 4
     chan_bw = 25e3
