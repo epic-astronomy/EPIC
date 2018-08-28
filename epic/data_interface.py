@@ -2,6 +2,7 @@ import numpy as NP
 import astropy
 from astropy.io import fits
 from astropy.time import Time
+import time
 import h5py
 import progressbar as PGB
 import warnings
@@ -838,15 +839,21 @@ def test_fits_wrapper(filename):
     # Make up data and append to file
     np.random.seed(0)
     chan0 = 2960
-    nchan = 6
+    nchan = 4
     chan_bw = 25e3
     cfreq = 74e6
+    nx = 64
+    ny = 64
+    ntimes = 25
     hdr = {'zenith_ra': 0., 'zenith_dec': 34., 'cfreq': cfreq, 'bw': nchan * chan_bw,
            'nchan': nchan, 'chan0': 2960, 'pols': ['xx', 'xy', 'yx', 'yy'], 'sampling_length': 0.5}
-    d1 = (np.arange(2 * nchan * 4 * 8 * 8).reshape(2, nchan, 4, 8, 8)
-          + 1j * (np.arange(2 * nchan * 4 * 8 * 8).reshape(2, nchan, 4, 8, 8) + 2 * nchan * 4 * 8 * 8))
+    d1 = (np.arange(ntimes * nchan * 4 * nx * ny).reshape(ntimes, nchan, 4, nx, ny)
+          + 1j * (np.arange(ntimes * nchan * 4 * nx * ny).reshape(ntimes, nchan, 4, nx, ny)
+                  + ntimes * nchan * 4 * nx * ny))
     # d1 = np.arange(2 * nchan * 4 * 8 * 8).reshape(2, nchan, 4, 8, 8)
+    start = time.time()
     test_fits(filename, d1, hdr)
+    print('Saving file took ' + str(time.time() - start) + ' seconds')
 
 
 def test_fits(filename, data, hdr):
