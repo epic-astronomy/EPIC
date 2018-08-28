@@ -859,7 +859,7 @@ def epic2fits(filename, data, hdr, image_nums):
         hdu.header['CTYPE1'] = 'RA---SIN'
         hdu.header['CRPIX1'] = float(hdr['grid_size_x'] / 2 + 1)
         dtheta = 2 * np.arcsin(.5 / (hdr['grid_size_x'] * hdr['sampling_length']))
-        hdu.header['CDELT1'] = dtheta * 180. / np.pi
+        hdu.header['CDELT1'] = -dtheta * 180. / np.pi
         hdu.header['CRVAL1'] = lst.deg
         hdu.header['CUNIT1'] = 'deg'
         hdu.header['CTYPE2'] = 'DEC--SIN'
