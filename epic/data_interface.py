@@ -1,6 +1,7 @@
 import numpy as NP
 import astropy
 from astropy.io import fits
+from astropy.time import Time
 import h5py
 import progressbar as PGB
 import warnings
@@ -20,10 +21,10 @@ class DataHandler(object):
 
     antid       [numpy array of strings] Unique identifier of antennas
 
-    antpos      [numpy array] Antenna positions (in m) specified along local 
+    antpos      [numpy array] Antenna positions (in m) specified along local
                 East, North and Up as a 3-column numpy array
 
-    timestamps  [numpy array of strings] Timestamps 
+    timestamps  [numpy array of strings] Timestamps
 
     sample_rate [scalar] Sampling rate (in Hz)
 
@@ -43,13 +44,13 @@ class DataHandler(object):
 
     npol        [scalar] Number of polarizations (fixed to 2)
 
-    data        [numpy array] Complex voltages of shape 
+    data        [numpy array] Complex voltages of shape
                 n_timestamps x n_antennas x nchan x npol. Places where data is
                 not available, it is filled with NaN.
 
     Methods:
 
-    __init__()  Initialize instance of class DataHandler 
+    __init__()  Initialize instance of class DataHandler
 
     save()      Save the antenna voltage data to disk in a "Common Data Format"
                 (CDF)
@@ -61,30 +62,30 @@ class DataHandler(object):
         """
         ------------------------------------------------------------------------
         Initialize the DataHandler Class which manages reads, manages and writes
-        antenna voltage data. 
+        antenna voltage data.
 
         Class attributes initialized are:
         latitude, antid, antpos, timestamps, sample_rate, center_freq, freq,
         freq_resolution, n_timestamps, n_antennas, nchan, npol, data
-     
+
         Read docstring of class PolInfo for details on these attributes.
 
         Inputs:
 
         indata   [str, list of str, dict] Specifies the input data to initialize
-                 from. If string, it must be the FITS file location containing 
-                 data saved by this class (it contains both polarizations) or a 
+                 from. If string, it must be the FITS file location containing
+                 data saved by this class (it contains both polarizations) or a
                  FITS file containing reformatted LWA data (one polarization).
-                 If provided as a list, it may contain one FITS file location 
+                 If provided as a list, it may contain one FITS file location
                  saved by this class (contains both polarizations) or the first
-                 polarization of reformatted LWA data. If it contains two 
-                 strings, it must be one for each polarization of reformatted 
+                 polarization of reformatted LWA data. If it contains two
+                 strings, it must be one for each polarization of reformatted
                  LWA data. If specified as dictionary, it must be contain the
                  following keys and values:
-                 'intype'      [string] specifies type of data. Currently 
-                               accepted values are 'sim' and 'LWA' for 
-                               simulations and LWA respectively. 
-                 'data-block'  [instance of class LWAO.LWAObs] Antenna and 
+                 'intype'      [string] specifies type of data. Currently
+                               accepted values are 'sim' and 'LWA' for
+                               simulations and LWA respectively.
+                 'data-block'  [instance of class LWAO.LWAObs] Antenna and
                                antenna voltage information. Read docstring of
                                class LWAO.LWAObs for more information. This is
                                associated with intype='LWA'. Needs serious
@@ -177,7 +178,7 @@ class DataHandler(object):
                     antid_P1 = map(str, antid_P1)
                     antid_P1 = NP.asarray(antid_P1)
                     self.antid = NP.copy(antid_P1)
-                    
+
                     extnames2 = None
                     antid_P2 = None
                     if len(indata) > 1:
@@ -204,16 +205,16 @@ class DataHandler(object):
                                 self.antpos = antpos_P2[antid_P2==antid,:].reshape(1,-1)
                             else:
                                 self.antpos = NP.vstack((self.antpos, antpos_P2[antid_P2==antid,:].reshape(1,-1)))
-        
+
                     self.n_timestamps = len(self.timestamps)
                     self.n_antennas = self.antid.size
                     self.nchan = self.freq.size
-        
+
                     self.data = NP.empty((self.n_timestamps, self.n_antennas, self.nchan, 2), dtype=NP.complex64)
                     self.data.fill(NP.nan)
-        
+
                     progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Timestamps '.format(self.n_timestamps), PGB.ETA()], maxval=self.n_timestamps).start()
-        
+
                     for hdu in hdulist1[5:]:
                         timestamp = hdu.header['EXTNAME']
                         it = NP.where(self.timestamps == timestamp)[0]
@@ -223,12 +224,12 @@ class DataHandler(object):
                             Et = hdu.data.field(ic)
                             self.data[it,ia,:,0] = Et[:,0] + 1j * Et[:,1]
                         progress.update(it+1)
-        
+
                     progress.finish()
-        
+
                     if len(indata) > 1:
                         progress = PGB.ProgressBar(widgets=[PGB.Percentage(), PGB.Bar(marker='-', left=' |', right='| '), PGB.Counter(), '/{0:0d} Timestamps '.format(self.n_timestamps), PGB.ETA()], maxval=self.n_timestamps).start()
-            
+
                         for hdu in hdulist2[5:]:
                             timestamp = hdu.header['EXTNAME']
                             it = NP.where(self.timestamps == timestamp)[0]
@@ -238,9 +239,9 @@ class DataHandler(object):
                                 Et = hdu.data.field(ic)
                                 self.data[it,ia,:,1] = Et[:,0] + 1j * Et[:,1]
                             progress.update(it+1)
-            
+
                         progress.finish()
-                    
+
                     hdulist1.close()
                     if len(indata) > 1:
                         hdulist2.close()
@@ -264,7 +265,7 @@ class DataHandler(object):
                 self.nchan = self.freq.size
                 self.latitude = indata['data-block'].latitude
                 antid_P1 = None
-                antid_P2 = None                
+                antid_P2 = None
                 if indata['data-block'].P1.stands:
                     antid_P1 = indata['data-block'].P1.stands
                     antpos_P1 = indata['data-block'].P1.antpos
@@ -272,7 +273,7 @@ class DataHandler(object):
                     antid_P2 = indata['data-block'].P2.stands
                     antpos_P2 = indata['data-block'].P2.antpos
                 antid_P1 = map(str, antid_P1)
-                antid_P2 = map(str, antid_P2)                
+                antid_P2 = map(str, antid_P2)
                 self.antid = NP.union1d(antid_P1, antid_P2)
                 self.n_antennas = self.antid.size
                 for antid in self.antid:
@@ -293,7 +294,7 @@ class DataHandler(object):
                     timestamps_P2 = indata['data-block'].P2.timestamps
                 self.timestamps = NP.union1d(timestamps_P1, timestamps_P2)
                 self.n_timestamps = self.timestamps.size
-                
+
                 self.data = NP.empty((self.n_timestamps, self.n_antennas, self.nchan, 2), dtype=NP.complex64)
                 self.data.fill(NP.nan)
 
@@ -306,7 +307,7 @@ class DataHandler(object):
                         if self.timestamps[it] in indata['data-block'].P2.data['tod']:
                             if self.antid[ia] in indata['data-block'].P2.data['tod'][self.timestamps[it]]:
                                 self.data[it,ia,:,1] = indata['data-block'].P2.data['tod'][self.timestamps[it]][self.antid[ia]]
-                
+
             elif indata['intype'] == 'sim':
                 pass
         else:
@@ -318,17 +319,17 @@ class DataHandler(object):
 
         """
         ------------------------------------------------------------------------
-        outfile     [string] filename with full path to save the antenna voltage 
+        outfile     [string] filename with full path to save the antenna voltage
                     data to.
 
         Keyword Input(s):
 
-        tabtype     [string] indicates table type for one of the extensions in 
-                    the FITS file. Allowed values are 'BinTableHDU' and 
+        tabtype     [string] indicates table type for one of the extensions in
+                    the FITS file. Allowed values are 'BinTableHDU' and
                     'TableHDU' for binary ascii tables respectively. Default is
                     'BinTableHDU'.
 
-        overwrite   [boolean] True indicates overwrite even if a file already 
+        overwrite   [boolean] True indicates overwrite even if a file already
                     exists. Default = True (allow overwrite)
 
         verbose     [boolean] If True (default), prints diagnostic and progress
@@ -375,7 +376,7 @@ class DataHandler(object):
         # hdulist += [fits.ImageHDU(self.timestamps, name='Timestamps')]
         if verbose:
             print '\tCreated an extension for timestamps.'
-        
+
         cols = []
         cols += [fits.Column(name='labels', format='7A', array=self.antid)]
         cols += [fits.Column(name='Positions', format='3D', array=self.antpos)]
@@ -389,11 +390,11 @@ class DataHandler(object):
         hdulist += [tbhdu]
         if verbose:
             print '\tCreated an extension for antenna information.'
-        
+
         hdulist += [fits.ImageHDU(self.freq, name='Frequencies')]
         if verbose:
             print '\tCreated an extension for frequencies.'
-        
+
         hdulist += [fits.ImageHDU(self.data.real, name='real_antenna_voltages')]
         hdulist += [fits.ImageHDU(self.data.imag, name='imag_antenna_voltages')]
         if verbose:
@@ -450,7 +451,7 @@ class DataContainer(object):
                 raise ValueError('Input npol must be >= 1')
         else:
             raise TypeError('Input npol must be an integer')
-        
+
         self.parmkeys = ['f0', 'ant_labels', 'ant_id', 'antpos', 'pol', 'f', 'df', 'bw', 'dT', 'dts', 'timestamps', 'cable_delays', 'Et', 'Ef']
 
         self.parmscheck = {'f0':
@@ -577,22 +578,22 @@ class DataContainer(object):
             # self.timestamps = None # Numpy array of Timestamps, shape=(ntimes,)
 
             # self.Et = None         # Nyquist sampled Electric fields in
-            #                        # time-domain. Dictionary containing two keys 
-            #                        # for the two polarizations 'P1' and 'P2'. 
-            #                        # Under each of these keys is another 
-            #                        # dictionary with keys 'real' and 'imag' for 
-            #                        # real and imaginary parts. Under each of 
-            #                        # these keys is a numpy array of datatype 
+            #                        # time-domain. Dictionary containing two keys
+            #                        # for the two polarizations 'P1' and 'P2'.
+            #                        # Under each of these keys is another
+            #                        # dictionary with keys 'real' and 'imag' for
+            #                        # real and imaginary parts. Under each of
+            #                        # these keys is a numpy array of datatype
             #                        # given as input and
             #                        # shape=(ntimes, nant, nchan)
 
             # self.Ef = None         # Nyquist sampled Electric fields in
-            #                        # frequency-domain. Dictionary containing two 
-            #                        # keys for the two polarizations 'P1' and 
-            #                        # 'P2'. Under each of these keys is another 
-            #                        # dictionary with keys 'real' and 'imag' for 
-            #                        # real and imaginary parts. Under each of 
-            #                        # these keys is a numpy array of datatype 
+            #                        # frequency-domain. Dictionary containing two
+            #                        # keys for the two polarizations 'P1' and
+            #                        # 'P2'. Under each of these keys is another
+            #                        # dictionary with keys 'real' and 'imag' for
+            #                        # real and imaginary parts. Under each of
+            #                        # these keys is a numpy array of datatype
             #                        # given as input and
             #                        # shape=(ntimes, nant, nchan)
 
@@ -634,7 +635,7 @@ class DataContainer(object):
                     n_noninit_E_vals[1] = n_noninit
                 if pkey == 'Ef':
                     n_noninit_E_vals[0] = n_noninit
-                
+
         if (n_noninit_E_vals[0] == 2*self.npol) and (n_noninit_E_vals[1] == 2*self.npol):
             raise AttributeError('Attribute Et and/or Ef not properly initialized in instance of class  DataContainer. Check all inputs again'.format('Et', 'Ef'))
         else:
@@ -666,7 +667,7 @@ class DataContainer(object):
                             if not isinstance(getattr(self, pkey), dict):
                                 setattr(self, pkey, {})
                             getattr(self, pkey)[pol] = inp_parms[pkey][pol]
-                                
+
                 elif (pkey != 'Et') and (pkey != 'Ef'):
                     if not isinstance(inp_parms[pkey], self.parmscheck[pkey]['objtype']):
                         raise TypeError('Invalid type for parameter {0}'.format(pkey))
@@ -698,7 +699,7 @@ class DataContainer(object):
                                 # setattr(self, pkey, inp_parms[pkey])
                 else:
                     raise AttributeError('Attribute pol not initialized yet')
-                    
+
     ############################################################################
 
     def save(self, outfile, overwrite=False, compress=True, compress_format='gzip', compress_opts=9):
@@ -799,20 +800,96 @@ class DataStreamer(object):
 def epic2fits(data, telescope='LWA-SV', sampling_length=.5, t_int=1):
 
     data = data.transpose(3,4,1,2,0)
+    #TODO: get zenith ra/dec
     hdu = fits.PrimaryHDU(data=data)
     hdu.header['TELESCOP'] = telescope
-    # hdu.header['DATE-OBS'] = 
-    # hdu.header['END_UTC'] = 
+    # hdu.header['DATE-OBS'] =
+    # hdu.header['END_UTC'] =
     # Coordinates - sky
     hdu.header['CTYPE1'] = 'RA---SIN'
     hdu.header['CRPIX1'] = float(data.shape[0] / 2 + 1)
-    l = np.fft.fftfreq(data.shape[0], d=sampling_length)
-    hdu.header['CDELT1'] = l[1] - l[0]
+    hdu.header['CDELT1'] = 1. / (data.shape[0] * sampling_length)
     hdu.header['CRVAL1'] = zenith_ra
     hdu.header['CUNIT1'] = 'deg'
     hdu.header['CTYPE2'] = 'DEC--SIN'
     hdu.header['CRPIX2'] = float(data.shape[1] / 2 + 1)
-    m = np.fft.fftfreq(data.shape[1], d=sampling_length)
-    hdu.header['CDELT2'] = m[1] - m[0]
+    hdu.header['CDELT2'] = 1. / (data.shape[1] * sampling_length)
+    hdu.header['CRVAL1'] = zenith_dec
+    hdu.header['CUNIT1'] = 'deg'
+
 
     hdulist = [hdu]
+
+def test_fits_wrapper(filename):
+
+    # Set up primary header and create file
+    hdu = fits.PrimaryHDU()
+    hdu.header['TELESCOP'] = 'LWA-SV'
+    hdu.header['DATE-OBS'] = Time.now().iso.replace(' ', 'T')
+    hdu.header['BUNIT'] = 'UNCALIB'
+    hdu.header['BSCALE'] = 1e0
+    hdu.header['BZERO'] = 0e0
+    hdu.header['EQUINOX'] = 2e3
+    hdu.header['EXTNAME'] = 'PRIMARY'
+
+    hdul = fits.HDUList([hdu])
+    hdul.writeto(filename, overwrite=True)
+
+    # Make up data and append to file
+    np.random.seed(0)
+    chan0 = 2960
+    nchan = 6
+    chan_bw = 25e3
+    cfreq = 74e6
+    hdr = {'zenith_ra': 0., 'zenith_dec': 34., 'cfreq': cfreq, 'bw': nchan * chan_bw,
+           'nchan': nchan, 'chan0': 2960, 'pols': ['xx', 'xy', 'yx', 'yy'], 'sampling_length': 0.5}
+    d1 = (np.arange(2 * nchan * 4 * 8 * 8).reshape(2, nchan, 4, 8, 8)
+          + 1j * (np.arange(2 * nchan * 4 * 8 * 8).reshape(2, nchan, 4, 8, 8) + 2 * nchan * 4 * 8 * 8))
+    # d1 = np.arange(2 * nchan * 4 * 8 * 8).reshape(2, nchan, 4, 8, 8)
+    test_fits(filename, d1, hdr)
+
+
+def test_fits(filename, data, hdr):
+    # data should be (Ntimes, Nfreq, Npol, y, x)
+    data = data.transpose(0, 2, 1, 3, 4)  # Now (Ntimes, Npol, Nfreq, y, x)
+    # Reorder pol for fits convention
+    pol_dict = {'xx': -5, 'yy': -6, 'xy': -7, 'yx': -8}
+    pol_nums = [pol_dict[p] for p in hdr['pols']]
+    pol_order = np.argsort(pol_nums)[::-1]
+    data = data[:, pol_order, :, :, :]
+
+    # Break up real/imaginary
+    data = data[:, np.newaxis, :, :, :, :]
+    data = np.concatenate([data.real, data.imag], axis=1)
+
+    for d in data:
+        hdu = fits.PrimaryHDU()
+        # Coordinates - sky
+        hdu.header['CTYPE1'] = 'RA---SIN'
+        hdu.header['CRPIX1'] = float(data.shape[0] / 2 + 1)
+        hdu.header['CDELT1'] = 1. / (data.shape[0] * hdr['sampling_length'])
+        hdu.header['CRVAL1'] = hdr['zenith_ra']
+        hdu.header['CUNIT1'] = 'deg'
+        hdu.header['CTYPE2'] = 'DEC--SIN'
+        hdu.header['CRPIX2'] = float(data.shape[1] / 2 + 1)
+        hdu.header['CDELT2'] = 1. / (data.shape[1] * hdr['sampling_length'])
+        hdu.header['CRVAL2'] = hdr['zenith_dec']
+        hdu.header['CUNIT2'] = 'deg'
+        # Coordinates - Freq
+        hdu.header['CTYPE3'] = 'FREQ'
+        hdu.header['CRPIX3'] = 1
+        hdu.header['CDELT3'] = hdr['bw'] / hdr['nchan']
+        hdu.header['CRVAL3'] = hdr['bw'] / hdr['nchan'] * hdr['chan0']
+        hdu.header['CUNIT3'] = 'Hz'
+        # Coordinates - Stokes parameters
+        hdu.header['CTYPE4'] = 'STOKES'
+        hdu.header['CRPIX4'] = 1
+        hdu.header['CDELT4'] = -1
+        hdu.header['CRVAL4'] = pol_nums[pol_order[0]]
+        # Coordinates - Complex
+        hdu.header['CTYPE5'] = 'COMPLEX'
+        hdu.header['CRVAL5'] = 1.0
+        hdu.header['CRPIX5'] = 1.0
+        hdu.header['CDELT5'] = 1.0
+
+        fits.append(filename, d, hdu.header)
