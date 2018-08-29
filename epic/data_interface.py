@@ -837,13 +837,13 @@ def epic2fits(filename, data, hdr, image_nums):
     # Reorder pol for fits convention
     pol_dict = {'xx': -5, 'yy': -6, 'xy': -7, 'yx': -8}
     pol_nums = [pol_dict[p] for p in hdr['pols']]
-    pol_order = np.argsort(pol_nums)[::-1]
+    pol_order = NP.argsort(pol_nums)[::-1]
     data = data[:, pol_order, :, :, :]
     # Break up real/imaginary
-    data = data[:, np.newaxis, :, :, :, :]  # Now (Ntimes, 2 (complex), Npol, Nfreq, y, x)
-    data = np.concatenate([data.real, data.imag], axis=1)
+    data = data[:, NP.newaxis, :, :, :, :]  # Now (Ntimes, 2 (complex), Npol, Nfreq, y, x)
+    data = NP.concatenate([data.real, data.imag], axis=1)
 
-    if not isinstance(image_nums, (list, tuple, np.ndarray)):
+    if not isinstance(image_nums, (list, tuple, NP.ndarray)):
         image_nums = [image_nums]
 
     dt = TimeDelta(1e-3 * hdr['accumulation_time'], format='sec')
@@ -858,14 +858,14 @@ def epic2fits(filename, data, hdr, image_nums):
         # Coordinates - sky
         hdu.header['CTYPE1'] = 'RA---SIN'
         hdu.header['CRPIX1'] = float(hdr['grid_size_x'] / 2 + 1)
-        dtheta = 2 * np.arcsin(.5 / (hdr['grid_size_x'] * hdr['sampling_length']))
-        hdu.header['CDELT1'] = -dtheta * 180. / np.pi
+        dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_x'] * hdr['sampling_length']))
+        hdu.header['CDELT1'] = -dtheta * 180. / NP.pi
         hdu.header['CRVAL1'] = lst.deg
         hdu.header['CUNIT1'] = 'deg'
         hdu.header['CTYPE2'] = 'DEC--SIN'
         hdu.header['CRPIX2'] = float(hdr['grid_size_y'] / 2 + 1)
-        dtheta = 2 * np.arcsin(.5 / (hdr['grid_size_y'] * hdr['sampling_length']))
-        hdu.header['CDELT2'] = dtheta * 180. / np.pi
+        dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_y'] * hdr['sampling_length']))
+        hdu.header['CDELT2'] = dtheta * 180. / NP.pi
         hdu.header['CRVAL2'] = hdr['latitude']
         hdu.header['CUNIT2'] = 'deg'
         # Coordinates - Freq
@@ -911,14 +911,14 @@ def test_epic2fits(filename):
            'sampling_length_y': sampling_length, 'pols': ['xx', 'xy', 'yx', 'yy'],
            'telescope': 'LWA-SV', 'data_units': 'UNCALIB', 'latitude': 34.05, 'longitude': 107.03,
            'FS': FS}
-    d1 = (np.arange(ntimes * nchan * npol * nx * ny).reshape(ntimes, nchan, npol, nx, ny)
-          + 1j * (np.arange(ntimes * nchan * npol * nx * ny).reshape(ntimes, nchan, npol, nx, ny)
+    d1 = (NP.arange(ntimes * nchan * npol * nx * ny).reshape(ntimes, nchan, npol, nx, ny)
+          + 1j * (NP.arange(ntimes * nchan * npol * nx * ny).reshape(ntimes, nchan, npol, nx, ny)
                   + ntimes * nchan * npol * nx * ny))
-    image_nums = np.arange(ntimes)
+    image_nums = NP.arange(ntimes)
     start = time.time()
     epic2fits(filename, d1, hdr, image_nums)
     print('Saving file took ' + str(time.time() - start) + ' seconds')
 
     start = time.time()
-    np.savez(filename + '.npz', d1=d1, hdr=hdr)
+    NP.savez(filename + '.npz', d1=d1, hdr=hdr)
     print('Saving npz took ' + str(time.time() - start) + ' seconds')
