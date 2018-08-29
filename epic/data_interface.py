@@ -858,13 +858,13 @@ def epic2fits(filename, data, hdr, image_nums):
         # Coordinates - sky
         hdu.header['CTYPE1'] = 'RA---SIN'
         hdu.header['CRPIX1'] = float(hdr['grid_size_x'] / 2 + 1)
-        dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_x'] * hdr['sampling_length']))
+        dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_x'] * hdr['sampling_length_x']))
         hdu.header['CDELT1'] = -dtheta * 180. / NP.pi
         hdu.header['CRVAL1'] = lst.deg
         hdu.header['CUNIT1'] = 'deg'
         hdu.header['CTYPE2'] = 'DEC--SIN'
         hdu.header['CRPIX2'] = float(hdr['grid_size_y'] / 2 + 1)
-        dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_y'] * hdr['sampling_length']))
+        dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_y'] * hdr['sampling_length_y']))
         hdu.header['CDELT2'] = dtheta * 180. / NP.pi
         hdu.header['CRVAL2'] = hdr['latitude']
         hdu.header['CUNIT2'] = 'deg'
