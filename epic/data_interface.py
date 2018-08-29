@@ -870,9 +870,9 @@ def epic2fits(filename, data, hdr, image_nums):
         hdu.header['CUNIT2'] = 'deg'
         # Coordinates - Freq
         hdu.header['CTYPE3'] = 'FREQ'
-        hdu.header['CRPIX3'] = 1
+        hdu.header['CRPIX3'] = (hdr['nchan'] - 1) * 0.5 + 1  # +1 for FITS numbering
         hdu.header['CDELT3'] = hdr['bw'] / hdr['nchan']
-        hdu.header['CRVAL3'] = hdr['bw'] / hdr['nchan'] * hdr['chan0']
+        hdu.header['CRVAL3'] = hdr['cfreq']
         hdu.header['CUNIT3'] = 'Hz'
         # Coordinates - Stokes parameters
         hdu.header['CTYPE4'] = 'STOKES'
