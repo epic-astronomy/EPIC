@@ -26,7 +26,7 @@ DOXYGEN       ?= doxygen
 PYBUILDFLAGS   ?=
 PYINSTALLFLAGS ?=
 
-GPU_ARCHS     ?= 30 32 35 37 50 52 53 60 61 # Nap time!
+GPU_ARCHS     ?= 50 # Nap time!
 #GPU_ARCHS     ?= 35 52
 #GPU_ARCHS     ?= 52
 
@@ -47,6 +47,11 @@ ALIGNMENT ?= 4096 # Memory allocation alignment
 #VMA        = 1 # Enable use of Mellanox libvma in udp_capture
 
 ####################
+
+Make sure the Python environment is in the Python path
+
+cp /data4/jdowell/CodeSafe/bifrost/src/proclog.cpp james_bifrost/src/
+(to make multi-user installation work)
 
 $ make -j 32
 
