@@ -1,3 +1,10 @@
+From c249687 (bf_dev):
+=====================
+
+In epic/examples/install_notes/ASU_bifrost_install,
+
+(*) Add few more notes related to installation of Bifrost
+
 From fdf7746 (master):
 =====================
 
