@@ -3,6 +3,8 @@ import astropy
 from astropy.io import fits
 from astropy.time import Time
 from astropy.time import TimeDelta
+from astropy.coordinates import SkyCoord
+from astropy.coordinates import FK5
 import time
 import h5py
 import progressbar as PGB
@@ -817,7 +819,7 @@ def epic2fits(filename, data, hdr, image_nums):
     hdu.header['BUNIT'] = hdr['data_units']
     hdu.header['BSCALE'] = 1e0
     hdu.header['BZERO'] = 0e0
-    hdu.header['EQUINOX'] = t0.jyear
+    hdu.header['EQUINOX'] = 'J2000'
     hdu.header['EXTNAME'] = 'PRIMARY'
     hdu.header['GRIDDIMX'] = hdr['grid_size_x']
     hdu.header['GRIDDIMY'] = hdr['grid_size_y']
@@ -856,17 +858,22 @@ def epic2fits(filename, data, hdr, image_nums):
         hdu.header['DATETIME'] = t.isot
         hdu.header['LST'] = lst.hour
         # Coordinates - sky
+        ra0 = lst.deg
+        dec0 = hdr['latitude']
+        coord = SkyCoord(ra0, dec0, frame='fk5', equinox='J' + str(t.jyear), unit='deg')
+        coord.transform_to(FK5(equinox='J2000'))
+        hdu.header['EQUINOX'] = 'J2000'
         hdu.header['CTYPE1'] = 'RA---SIN'
         hdu.header['CRPIX1'] = float(hdr['grid_size_x'] / 2 + 1)
         dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_x'] * hdr['sampling_length_x']))
         hdu.header['CDELT1'] = -dtheta * 180. / NP.pi
-        hdu.header['CRVAL1'] = lst.deg
+        hdu.header['CRVAL1'] = coord.ra.deg
         hdu.header['CUNIT1'] = 'deg'
         hdu.header['CTYPE2'] = 'DEC--SIN'
         hdu.header['CRPIX2'] = float(hdr['grid_size_y'] / 2 + 1)
         dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_y'] * hdr['sampling_length_y']))
         hdu.header['CDELT2'] = dtheta * 180. / NP.pi
-        hdu.header['CRVAL2'] = hdr['latitude']
+        hdu.header['CRVAL2'] = coord.dec.deg
         hdu.header['CUNIT2'] = 'deg'
         # Coordinates - Freq
         hdu.header['CTYPE3'] = 'FREQ'
