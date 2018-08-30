@@ -870,7 +870,9 @@ def epic2fits(filename, data, hdr, image_nums):
         hdu.header['CRVAL1'] = coord.ra.deg
         hdu.header['CUNIT1'] = 'deg'
         hdu.header['CTYPE2'] = 'DEC--SIN'
-        hdu.header['CRPIX2'] = float(hdr['grid_size_y'] / 2 + 1)
+        # Need to correct for shift in center pixel when we flipped dec dimension when writing npz
+        # Only applies for even dimension size
+        hdu.header['CRPIX2'] = float(hdr['grid_size_y'] / 2 + 1) - (hdr['grid_size_x'] + 1) % 2
         dtheta = 2 * NP.arcsin(.5 / (hdr['grid_size_y'] * hdr['sampling_length_y']))
         hdu.header['CDELT2'] = dtheta * 180. / NP.pi
         hdu.header['CRVAL2'] = coord.dec.deg
