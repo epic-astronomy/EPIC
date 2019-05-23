@@ -1,19 +1,23 @@
-# Bifrost install
+## Bifrost install
 
-Need to merge two forks - one from James and one from Jayce.
-git clone git@github.com:KentJames/bifrost.git james_bifrost
-git clone git@github.com:jaycedowell/bifrost.git jayce_bifrost
+# Add these lines to your .bashrc
+export PATH=/usr/local/cuda-9.1/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-9.1/lib64:$LD_LIBRARY_PATH
 
-Now we need to copy the relevant files between forks. I will move Jayce's stuff into Jame's fork.
-cp jayce_bifrost/src/reduce.cu james_bifrost/src/
-cp jayce_bifrost/src/bifrost/reduce.h james_bifrost/src/bifrost/
-cp jayce_bifrost/python/bifrost/reduce.py james_bifrost/python/bifrost/
+# Need to merge two forks - one from James and one from Jayce.
+$ git clone git@github.com:KentJames/bifrost.git james_bifrost
+$ git clone git@github.com:jaycedowell/bifrost.git jayce_bifrost
 
-Follow install instructions in README:
-https://github.com/ledatelescope/bifrost/blob/master/README.md
-Don't use sudo for pip installs
+# Now we need to copy the relevant files between forks. I will move Jayce's stuff into Jame's fork.
+$ cp jayce_bifrost/src/reduce.cu james_bifrost/src/
+$ cp jayce_bifrost/src/bifrost/reduce.h james_bifrost/src/bifrost/
+$ cp jayce_bifrost/python/bifrost/reduce.py james_bifrost/python/bifrost/
 
-Use this for user.mk (to use one intrepid at ASU):
+# Follow install instructions in README:
+# https://github.com/ledatelescope/bifrost/blob/master/README.md
+# Don't use sudo for pip installs
+
+# Use this for user.mk (to use one intrepid at ASU):
 ####################
 CXX           ?= g++
 NVCC          ?= nvcc
@@ -48,10 +52,10 @@ ALIGNMENT ?= 4096 # Memory allocation alignment
 
 ####################
 
-Make sure the Python environment is in the Python path
+# Make sure the Python environment is in the Python path
 
-cp /data4/jdowell/CodeSafe/bifrost/src/proclog.cpp james_bifrost/src/
-(to make multi-user installation work)
+# (to make multi-user installation work)
+$ cp /data4/jdowell/CodeSafe/bifrost/src/proclog.cpp james_bifrost/src/
 
 $ make -j 32
 
